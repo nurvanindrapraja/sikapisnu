@@ -45,7 +45,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('login') }}" method="POST">
+                    <form action="{{ route('login') }}" method="POST" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-muted small">Email atau Nomor HP</label>
@@ -70,8 +70,10 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-isnu-primary w-100 py-2.5 fw-bold rounded-pill mb-3">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang
+                        <button type="submit" class="btn btn-isnu-primary w-100 py-2.5 fw-bold rounded-pill mb-3" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-box-arrow-in-right me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Memproses Masuk...' : 'Masuk Sekarang'"></span>
                         </button>
 
                         <div class="text-center small text-muted">

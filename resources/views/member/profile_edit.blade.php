@@ -507,9 +507,9 @@
 
                     <div class="mt-4 text-end">
                         <button type="submit" class="btn btn-isnu px-4 rounded-pill fw-bold" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
                             <i class="bi bi-save me-1" x-show="!loading"></i>
-                            <span class="spinner-border spinner-border-sm me-1" x-show="loading"></span>
-                            Simpan Perubahan Profil
+                            <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan Profil'"></span>
                         </button>
                     </div>
                 </form>
@@ -550,7 +550,8 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" :disabled="loading">
-                        + Tambah Pendidikan
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Memproses...' : '+ Tambah Pendidikan'"></span>
                     </button>
                 </form>
 
@@ -594,7 +595,8 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" :disabled="loading">
-                        + Tambah Organisasi
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Memproses...' : '+ Tambah Organisasi'"></span>
                     </button>
                 </form>
                 <div class="mt-3 border-top pt-2">
@@ -655,7 +657,8 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" :disabled="loading">
-                        + Tambah Pekerjaan
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Memproses...' : '+ Tambah Pekerjaan'"></span>
                     </button>
                 </form>
                 <div class="mt-3 border-top pt-2">
@@ -703,7 +706,8 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" :disabled="loading">
-                        + Tambah Kaderisasi
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Memproses...' : '+ Tambah Kaderisasi'"></span>
                     </button>
                 </form>
                 <div class="mt-3 border-top pt-2">
@@ -750,7 +754,8 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 fw-semibold" :disabled="loading">
-                        + Tambah Sertifikasi
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Memproses...' : '+ Tambah Sertifikasi'"></span>
                     </button>
                 </form>
                 <div class="mt-3 border-top pt-2">
@@ -902,7 +907,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">Simpan Perubahan</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -956,7 +964,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">Simpan Perubahan</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -1034,7 +1045,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">Simpan Perubahan</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -1092,7 +1106,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">Simpan Perubahan</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -1150,7 +1167,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4">
                     <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">Simpan Perubahan</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
+                    </button>
                 </div>
             </form>
         </div>

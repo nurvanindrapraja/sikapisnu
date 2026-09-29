@@ -26,6 +26,7 @@
         <div class="col-lg-10">
             <div class="card border-0 shadow-lg rounded-4 overflow-hidden" x-init="initLocations()" x-data="{
                 step: {{ $initialStep }},
+                loading: false,
                 stepError: '',
                 emailError: '',
                 isCheckingEmail: false,
@@ -414,7 +415,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('register') }}" method="POST" enctype="multipart/form-data" @keydown.enter.prevent="if (step === 1) { validateStep1(); } else if (step === 2) { validateStep2(); }">
+                    <form action="{{ route('register') }}" method="POST" enctype="multipart/form-data" @submit="loading = true" @keydown.enter.prevent="if (step === 1) { validateStep1(); } else if (step === 2) { validateStep2(); }">
                         @csrf
 
                         <!-- STEP 1: AKUN LOGIN -->
@@ -701,8 +702,10 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary px-3 px-md-4 py-2 rounded-pill" @click="step = 2">
                                     <i class="bi bi-arrow-left me-1"></i> Kembali
                                 </button>
-                                <button type="submit" class="btn btn-sm btn-warning fw-bold px-3 px-md-4 py-2 rounded-pill text-dark shadow-sm">
-                                    <i class="bi bi-send-fill me-1"></i> Kirim Pendaftaran
+                                <button type="submit" class="btn btn-sm btn-warning fw-bold px-3 px-md-4 py-2 rounded-pill text-dark shadow-sm" :disabled="loading">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                                    <i class="bi bi-send-fill me-1" x-show="!loading"></i>
+                                    <span x-text="loading ? 'Mengirim Pendaftaran...' : 'Kirim Pendaftaran'"></span>
                                 </button>
                             </div>
                         </div>
