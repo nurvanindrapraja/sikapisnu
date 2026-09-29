@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/u6225576/public_html/sikap.isnusurabaya.or.id
+    - /bin/cp -R * $DEPLOYPATH
