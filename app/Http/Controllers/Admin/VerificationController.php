@@ -111,11 +111,22 @@ class VerificationController extends Controller
 
             // Format Nomor Anggota: ISNU-SBY-26-XXXXXX
             if (! $member->member_number) {
-                $nextId = Member::whereNotNull('member_number')->count() + 1;
+                $maxNumber = Member::withTrashed()
+                    ->whereNotNull('member_number')
+                    ->get()
+                    ->map(function ($m) {
+                        if (preg_match('/(\d+)$/', $m->member_number, $matches)) {
+                            return (int) $matches[1];
+                        }
+
+                        return 0;
+                    })
+                    ->max() ?? 0;
+
+                $nextId = $maxNumber + 1;
                 $memberNumber = sprintf('ISNU-SBY-%s-%06d', $currentYearShort, $nextId);
 
-                // Pastikan unik
-                while (Member::where('member_number', $memberNumber)->exists()) {
+                while (Member::withTrashed()->where('member_number', $memberNumber)->exists()) {
                     $nextId++;
                     $memberNumber = sprintf('ISNU-SBY-%s-%06d', $currentYearShort, $nextId);
                 }
