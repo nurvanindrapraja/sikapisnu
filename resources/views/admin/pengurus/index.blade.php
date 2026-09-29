@@ -248,10 +248,12 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <form id="formDemoteOfficer" action="" method="POST" class="d-inline">
+                    <form id="formDemoteOfficer" action="" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
-                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
-                            <i class="bi bi-x-circle me-1"></i> Ya, Batalkan Status Pengurus
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-x-circle me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Memproses...' : 'Ya, Batalkan Status Pengurus'"></span>
                         </button>
                     </form>
                 </div>

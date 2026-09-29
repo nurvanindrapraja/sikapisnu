@@ -118,10 +118,12 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <form :action="restoreUrl" method="POST" class="d-inline">
+                    <form :action="restoreUrl" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
-                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> Ya, Pulihkan Data
+                        <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-arrow-counterclockwise me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Memulihkan...' : 'Ya, Pulihkan Data'"></span>
                         </button>
                     </form>
                 </div>
@@ -151,11 +153,13 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <form :action="forceDeleteUrl" method="POST" class="d-inline">
+                    <form :action="forceDeleteUrl" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4">
-                            <i class="bi bi-trash-fill me-1"></i> Ya, Hapus Permanen
+                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-trash-fill me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus Permanen'"></span>
                         </button>
                     </form>
                 </div>

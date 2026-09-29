@@ -177,10 +177,12 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                    <form action="{{ route('logout') }}" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
-                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4">
-                            <i class="bi bi-box-arrow-right me-1"></i> Ya, Keluar
+                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-box-arrow-right me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Keluar...' : 'Ya, Keluar'"></span>
                         </button>
                     </form>
                 </div>

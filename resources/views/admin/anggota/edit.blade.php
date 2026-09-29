@@ -759,8 +759,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-danger fw-bold rounded-pill px-4" @click="executeDelete()">
-                        <i class="bi bi-trash me-1"></i> Ya, Hapus Data
+                    <button type="button" class="btn btn-danger fw-bold rounded-pill px-4" :disabled="loading" @click="executeDelete()">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-trash me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus Data'"></span>
                     </button>
                 </div>
             </div>

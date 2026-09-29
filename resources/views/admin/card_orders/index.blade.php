@@ -237,8 +237,10 @@
                         <form :action="deleteUrl" method="POST" class="d-inline" @submit.prevent="deleteOrderAjax($event)">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
-                                <i class="bi bi-trash me-1"></i> Ya, Hapus Data
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                                <i class="bi bi-trash me-1" x-show="!loading"></i>
+                                <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus Data'"></span>
                             </button>
                         </form>
                     </div>

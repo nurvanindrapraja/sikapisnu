@@ -222,10 +222,12 @@
                                 <i class="bi bi-person-badge me-1"></i> Dashboard
                             </a>
                         @endif
-                        <form action="{{ route('logout') }}" method="POST" class="w-100 w-lg-auto">
+                        <form action="{{ route('logout') }}" method="POST" class="w-100 w-lg-auto" x-data="{ loading: false }" @submit="loading = true">
                             @csrf
-                            <button type="submit" class="btn btn-outline-danger w-100 w-lg-auto rounded-pill px-4 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5">
-                                <i class="bi bi-box-arrow-right"></i> Logout
+                            <button type="submit" class="btn btn-outline-danger w-100 w-lg-auto rounded-pill px-4 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5" :disabled="loading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                                <i class="bi bi-box-arrow-right" x-show="!loading"></i>
+                                <span x-text="loading ? 'Logout...' : 'Logout'"></span>
                             </button>
                         </form>
                     @else

@@ -252,7 +252,7 @@
 <!-- Modal Verify Account -->
 <div class="modal fade" id="modalVerifyAccount" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('admin.verifikasi.verify_account', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4">
+        <form action="{{ route('admin.verifikasi.verify_account', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4" x-data="{ loading: false }" @submit="loading = true">
             @csrf
             <div class="modal-header bg-primary text-white border-0 rounded-top-4">
                 <h5 class="modal-title fw-bold">
@@ -272,8 +272,10 @@
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">
-                    <i class="bi bi-person-check-fill me-1"></i> Ya, Aktifkan Login Akun
+                <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4" :disabled="loading">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                    <i class="bi bi-person-check-fill me-1" x-show="!loading"></i>
+                    <span x-text="loading ? 'Memproses...' : 'Ya, Aktifkan Login Akun'"></span>
                 </button>
             </div>
         </form>
@@ -283,7 +285,7 @@
 <!-- Modal Approve Member & Issue Card -->
 <div class="modal fade" id="modalApprove" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('admin.verifikasi.approve', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4">
+        <form action="{{ route('admin.verifikasi.approve', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4" x-data="{ loading: false }" @submit="loading = true">
             @csrf
             <div class="modal-header bg-success text-white border-0 rounded-top-4">
                 <h5 class="modal-title fw-bold">
@@ -302,8 +304,10 @@
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">
-                    <i class="bi bi-card-checklist me-1"></i> Ya, Terbitkan Kartu Anggota
+                <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                    <i class="bi bi-card-checklist me-1" x-show="!loading"></i>
+                    <span x-text="loading ? 'Menerbitkan...' : 'Ya, Terbitkan Kartu Anggota'"></span>
                 </button>
             </div>
         </form>
@@ -313,7 +317,7 @@
 <!-- Modal Revision -->
 <div class="modal fade" id="modalRevision" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('admin.verifikasi.revision', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4">
+        <form action="{{ route('admin.verifikasi.revision', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4" x-data="{ loading: false }" @submit="loading = true">
             @csrf
             <div class="modal-header bg-warning text-dark border-0 rounded-top-4">
                 <h5 class="modal-title fw-bold"><i class="bi bi-arrow-counterclockwise me-1"></i> Kembalikan untuk Perbaikan Data</h5>
@@ -325,7 +329,10 @@
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4">
                 <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark">Kirim Catatan Perbaikan</button>
+                <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark" :disabled="loading">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                    <span x-text="loading ? 'Mengirim...' : 'Kirim Catatan Perbaikan'"></span>
+                </button>
             </div>
         </form>
     </div>
@@ -334,7 +341,7 @@
 <!-- Modal Reject -->
 <div class="modal fade" id="modalReject" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('admin.verifikasi.reject', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4">
+        <form action="{{ route('admin.verifikasi.reject', $member->id) }}" method="POST" class="modal-content border-0 shadow-lg rounded-4" x-data="{ loading: false }" @submit="loading = true">
             @csrf
             <div class="modal-header bg-danger text-white border-0 rounded-top-4">
                 <h5 class="modal-title fw-bold"><i class="bi bi-x-circle me-1"></i> Tolak Pendaftaran Anggota</h5>
@@ -346,7 +353,10 @@
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4">
                 <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">Tolak Pendaftaran</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                    <span x-text="loading ? 'Menolak...' : 'Tolak Pendaftaran'"></span>
+                </button>
             </div>
         </form>
     </div>

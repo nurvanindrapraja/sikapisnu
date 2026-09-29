@@ -261,7 +261,7 @@
                 <h6 class="fw-bold text-dark border-bottom pb-3 mb-3">
                     <i class="bi bi-plus-circle-fill text-success me-2"></i> Tambah PAC ISNU
                 </h6>
-                <form action="{{ route('admin.pac.store') }}" method="POST">
+                <form action="{{ route('admin.pac.store') }}" method="POST" x-data="{ loading: false }" @submit="loading = true">
                     @csrf
 
                     <!-- Selection Location Berjenjang -->
@@ -311,8 +311,10 @@
                         </span>
                     </div>
 
-                    <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2.5 shadow-sm">
-                        <i class="bi bi-plus-lg me-1"></i> Simpan PAC Baru
+                    <button type="submit" class="btn btn-success w-100 rounded-pill fw-bold py-2.5 shadow-sm" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-plus-lg me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan PAC Baru'"></span>
                     </button>
                 </form>
             </div>
@@ -464,8 +466,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">
-                        <i class="bi bi-save me-1"></i> Simpan Perubahan
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-save me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
                     </button>
                 </div>
             </form>
@@ -494,11 +498,13 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <form :action="deleteUrl" method="POST" class="d-inline">
+                    <form :action="deleteUrl" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4">
-                            <i class="bi bi-trash me-1"></i> Ya, Hapus PAC
+                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-trash me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus PAC'"></span>
                         </button>
                     </form>
                 </div>

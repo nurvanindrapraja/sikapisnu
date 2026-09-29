@@ -358,8 +358,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">
-                        <i class="bi bi-save me-1"></i> Simpan Lokasi
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-save me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Simpan...' : 'Simpan Lokasi'"></span>
                     </button>
                 </div>
             </form>
@@ -369,7 +371,7 @@
     <!-- Modal Edit Lokasi -->
     <div class="modal fade" id="modalEditLocation" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form :action="editUrl" method="POST" class="modal-content border-0 shadow-lg rounded-4">
+            <form :action="editUrl" method="POST" class="modal-content border-0 shadow-lg rounded-4" x-data="{ loading: false }" @submit="loading = true">
                 @csrf
                 @method('PUT')
                 <div class="modal-header bg-success text-white border-0 rounded-top-4">
@@ -391,8 +393,10 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">
-                        <i class="bi bi-save me-1"></i> Simpan Perubahan
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-save me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
                     </button>
                 </div>
             </form>
@@ -421,11 +425,13 @@
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                     <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                    <form :action="deleteUrl" method="POST" class="d-inline">
+                    <form :action="deleteUrl" method="POST" class="d-inline" x-data="{ loading: false }" @submit="loading = true">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4">
-                            <i class="bi bi-trash me-1"></i> Ya, Hapus Lokasi
+                        <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-trash me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus Lokasi'"></span>
                         </button>
                     </form>
                 </div>
