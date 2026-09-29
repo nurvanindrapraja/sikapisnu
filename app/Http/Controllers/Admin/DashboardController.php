@@ -36,20 +36,23 @@ class DashboardController extends Controller
             ->take(8)
             ->get();
 
-        // Breakdown by Education / Pendidikan
-        $educationStats = MemberEducation::select('level', DB::raw('count(distinct member_id) as total'))
+        // Breakdown by Education / Pendidikan (hanya member aktif, data sampah/soft-deleted tidak direkap)
+        $educationStats = MemberEducation::whereHas('member')
+            ->select('level', DB::raw('count(distinct member_id) as total'))
             ->groupBy('level')
             ->orderByDesc('total')
             ->get();
 
-        // Breakdown by NU Training / Kaderisasi NU
-        $nuTrainingStats = MemberNuTraining::select('training_type', DB::raw('count(distinct member_id) as total'))
+        // Breakdown by NU Training / Kaderisasi NU (hanya member aktif)
+        $nuTrainingStats = MemberNuTraining::whereHas('member')
+            ->select('training_type', DB::raw('count(distinct member_id) as total'))
             ->groupBy('training_type')
             ->orderByDesc('total')
             ->get();
 
-        // Breakdown by Skills Field / Sertifikasi
-        $certificationStats = MemberCertification::select('field', DB::raw('count(distinct member_id) as total'))
+        // Breakdown by Skills Field / Sertifikasi (hanya member aktif)
+        $certificationStats = MemberCertification::whereHas('member')
+            ->select('field', DB::raw('count(distinct member_id) as total'))
             ->whereNotNull('field')
             ->groupBy('field')
             ->orderByDesc('total')

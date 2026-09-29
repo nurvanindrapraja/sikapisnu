@@ -1,58 +1,197 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIKAP ISNU — Sistem Informasi Keanggotaan dan Potensi ISNU Kota Surabaya
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com)
+[![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?style=for-the-badge&logo=alpine.js&logoColor=white)](https://alpinejs.dev)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
 
-## About Laravel
+**SIKAP ISNU** adalah Sistem Informasi Keanggotaan dan Potensi Kader milik **Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya**. Aplikasi berbasis web ini dibangun untuk melakukan pendataan anggota secara terstruktur, terverifikasi, dan berkelanjutan, serta menyediakan layanan **Kartu Anggota Digital** berbasis **QR Code**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 1. Latar Belakang & Tujuan
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Ikatan Sarjana Nahdlatul Ulama (ISNU) Kota Surabaya membutuhkan basis data terintegrasi yang tidak hanya mencakup identitas dasar anggota, tetapi juga rekam jejak pendidikan, pekerjaan, pengalaman organisasi, kaderisasi NU, dan sertifikasi keahlian. 
 
-## Learning Laravel
+### Tujuan Utama Aplikasi:
+1. **Pendaftaran Online**: Menyediakan sistem pendaftaran mandiri bagi calon anggota ISNU Kota Surabaya.
+2. **Database Terstruktur & Terverifikasi**: Membangun basis data potensi sumber daya manusia sarjana NU di Kota Surabaya.
+3. **Verifikasi Admin**: Proses pemeriksaan, persetujuan, penolakan, atau pengembalian perbaikan data pendaftar oleh admin.
+4. **Kartu Anggota Digital**: Penerbitan kartu identitas digital dengan desain khusus untuk **Anggota** dan **Pengurus**.
+5. **Validasi QR Code**: Pemindaian QR Code kartu yang mengarah ke halaman verifikasi publik untuk memeriksa keaslian kartu secara realtime.
+6. **Manajemen Organisasi**: Memungkinkan penetapan pengurus MWC (Kecamatan) dan PAC (Kelurahan/Wilayah), pencatatan jabatan, dan histori periode kepengurusan.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 2. Sasaran Pengguna & Hak Akses (Roles)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Role Pengguna | Deskripsi & Hak Akses |
+|:---|:---|
+| **Super Admin** | Akses penuh seluruh sistem, pengelolaan user admin, audit log, dan pengaturan konfigurasi. |
+| **Admin Kota (PC)** | Memverifikasi pendaftar baru, mengelola data anggota, menetapkan pengurus, menerbitkan kartu, serta mengeksport laporan. |
+| **Admin MWC / PAC** | Mengelola dan memantau data anggota di wilayah MWC (Kecamatan) atau PAC terkait. |
+| **Pengurus** | Anggota yang ditetapkan dalam kepengurusan PC/MWC/PAC, memiliki Kartu Pengurus Digital khusus. |
+| **Anggota / Calon Anggota** | Mendaftar akun, melengkapi biodata & potensi (pendidikan, pekerjaan, organisasi, kaderisasi, sertifikasi), dan mengunduh Kartu Digital/CV. |
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 3. Konsep Keanggotaan & Workflow Verifikasi
 
-```bash
-composer require laravel/boost --dev
+Alur status keanggotaan dalam sistem SIKAP ISNU:
 
-php artisan boost:install
+```
+[ Pendaftaran Online ]
+         │
+         ▼
+[ Calon Anggota ] ──► [ Melengkapi Profil & Data Potensi ]
+         │
+         ▼
+[ Menunggu Verifikasi Admin ]
+         │
+         ├───► [ Ditolak / Perbaikan Data ] ──► [ Verifikasi Ulang ]
+         │
+         ▼
+[ Terverifikasi / ANGGOTA ] ──► [ Menerbitkan Kartu Digital (MEMBER) ]
+         │
+         ▼ (Ditetapkan Admin)
+[ PENGURUS ] ──► [ Menerbitkan Kartu Pengurus (OFFICER) ]
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 4. Ruang Lingkup Sistem & Fitur Utama
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Public Website & Direktori**:
+  - Halaman Beranda (Landing Page) & Profil ISNU Surabaya.
+  - Direktori Kader / Katalog Anggota Terverifikasi.
+  - Halaman Verifikasi Publik Kartu Anggota (via scan QR Code).
 
-## Code of Conduct
+- **Member Area**:
+  - Dashboard Anggota & Status Verifikasi Akun.
+  - Form Edit Profil & Upload Pas Foto Formal.
+  - Input Riwayat Pendidikan (SD hingga S3).
+  - Input Riwayat Organisasi & Pengalaman Kepengurusan.
+  - Input Riwayat Pekerjaan & Kategori Bidang Kerja (ASN, TNI/Polri, BUMN, Swasta, Akademisi, Tenaga Pendidik, Dokter/Kesehatan, Jurnalis, Aktivis NGO, Wirausaha, Freelancer).
+  - Input Riwayat Kaderisasi NU (MAKESTA, PKD, PKL, PKN, PKMNU).
+  - Input Sertifikasi Keahlian & Bidang Kompetensi.
+  - Pratinsjau & Unduh Kartu Anggota Digital (PDF/Image) & Curriculum Vitae (CV PDF).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Admin Area**:
+  - Dashboard Analytics & Rekapitulasi Statistik (Total Anggota, Status Verifikasi, Sebaran MWC/Kecamatan, Distribusi Profesi, Jenjang Pendidikan, dan Kaderisasi NU).
+  - Verifikasi Pendaftar Baru (Setujui, Minta Perbaikan + Catatan, atau Tolak).
+  - Manajemen Data Anggota & Penetapan Status Pengurus (Jabatan, SK, dan Periode).
+  - Manajemen Data Sampah (Soft Deletes & Pemulihan Data).
+  - Pemesanan & Tracking Kartu Fisik (Card Orders).
+  - Export Laporan Data Anggota & Potensi (CSV / Excel).
+  - Audit Log Trail Aktivitas Sistem.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 5. Kartu Anggota Digital & Keamanan QR Code
 
-## License
+Kartu Anggota Digital mengikuti proporsi standar kartu ID-1 (ATM/KTP: **85,60 × 53,98 mm**).
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- **Kartu Anggota (MEMBER)**: Desain hijau khas ISNU dengan identitas visual anggota, nomor anggota resmi (`ISNU-SBY-YY-XXXXXX`), foto profil, dan QR Code.
+- **Kartu Pengurus (OFFICER)**: Desain khusus pengurus yang memuat Jabatan, Periode Kepengurusan, dan aksen emas visual.
+- **Keamanan QR Code**: QR Code tidak menyimpan data pribadi secara mentah (seperti NIK/No HP), melainkan menggunakan **UUID / Random Token** terenkripsi yang berfungsi sebagai *pointer* menuju halaman verifikasi publik.
+
+---
+
+## 6. Arsitektur Teknologi
+
+- **Backend Framework**: [Laravel 11](https://laravel.com) (PHP 8.2+)
+- **Frontend Engine**: Blade Templates + Vanilla CSS + [Bootstrap 5.3](https://getbootstrap.com) + [Alpine.js 3.x](https://alpinejs.dev)
+- **Database**: [MySQL 8.0+](https://mysql.com) / MariaDB (dengan Eloquent ORM & Soft Deletes)
+- **PDF & QR Code Generator**: `barryvdh/laravel-dompdf` & `simplesoftwareio/simple-qrcode`
+
+---
+
+## 7. Struktur Data Utama
+
+```
+users
+ └── members
+      ├── member_educations
+      ├── member_organizations
+      ├── member_employments
+      ├── member_nu_trainings
+      ├── member_certifications
+      ├── membership_status_histories
+      ├── positions
+      └── cards ──► card_verifications
+```
+
+---
+
+## 8. Panduan Instalasi Lokal (Development Setup)
+
+### Requirement:
+- PHP >= 8.2 (dengan ekstensi `pdo_mysql`, `mbstring`, `gd`, `xml`, `zip`)
+- Composer >= 2.x
+- Node.js >= 18.x & NPM
+- MySQL Database
+
+### Langkah-langkah:
+
+1. **Clone Repository**:
+   ```bash
+   git clone https://github.com/nurvanindrapraja/sikapisnu.git
+   cd sikapisnu
+   ```
+
+2. **Install Dependensi PHP & JavaScript**:
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Konfigurasi Lingkungan (`.env`)**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   Sesuaikan konfigurasi database MySQL pada file `.env`:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=u6225576_sikapisnu
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+4. **Jalankan Migrasi Database & Seeder**:
+   ```bash
+   php artisan migrate --seed
+   ```
+
+5. **Kompilasi Aset Frontend & Symlink Storage**:
+   ```bash
+   npm run build
+   php artisan storage:link
+   ```
+
+6. **Jalankan Server Lokal**:
+   ```bash
+   php artisan serve
+   ```
+   Akses aplikasi di [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+---
+
+## 9. Akun Default Pengujian
+
+| Email | Password | Role | Keterangan |
+|:---|:---:|:---:|:---|
+| `superadmin@isnu-surabaya.or.id` | `password` | Super Admin | Akses Penuh Sistem |
+| `admin@isnu-surabaya.or.id` | `password` | Admin Kota | Admin PC ISNU Surabaya |
+| `ahmad.bashri@isnu-surabaya.or.id` | `password` | Member | Status: Pengurus (Ketua Umum) |
+| `ahmad.husein@example.com` | `password` | Member | Status: Anggota Terverifikasi |
+
+---
+
+## 10. Lisensi & Hak Cipta
+
+© **PC ISNU Kota Surabaya**. Hak Cipta Dilindungi Undang-Undang.  
+Dikembangkan untuk penguatan konsolidasi dan optimalisasi potensi intelektual sarjana Nahdlatul Ulama Kota Surabaya.
