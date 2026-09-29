@@ -1,0 +1,424 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Card;
+use App\Models\CardOrder;
+use App\Models\CustomLocation;
+use App\Models\Member;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class SikapIsnuTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
+
+    public function test_home_page_is_accessible()
+    {
+        $response = $this->get('/');
+        $response->assertStatus(200);
+        $response->assertSee('SIKAP ISNU');
+    }
+
+    public function test_public_member_directory_is_accessible()
+    {
+        $response = $this->get('/daftar-anggota');
+        $response->assertStatus(200);
+        $response->assertSee('Katalog Anggota');
+    }
+
+    public function test_public_qr_verification_is_accessible()
+    {
+        $card = Card::first();
+        $this->assertNotNull($card);
+
+        $response = $this->get('/verify/'.$card->qr_token);
+        $response->assertStatus(200);
+        $response->assertSee('KARTU TERVERIFIKASI SAH');
+    }
+
+    public function test_member_registration_flow()
+    {
+        $response = $this->post('/register', [
+            'name' => 'Budi Utomo, S.T.',
+            'email' => 'budi.utomo@example.com',
+            'phone' => '081299998888',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'nik' => '3578999900001111',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1995-04-10',
+            'gender' => 'L',
+            'address' => 'Jl. Ketintang No. 10',
+            'kelurahan' => 'Ketintang',
+            'kecamatan' => 'Gayungan',
+            'occupation' => 'Software Developer',
+        ]);
+
+        $response->assertRedirect('/login');
+        $this->assertDatabaseHas('users', ['email' => 'budi.utomo@example.com', 'is_active' => false]);
+        $this->assertDatabaseHas('members', ['nik' => '3578999900001111', 'membership_status' => 'menunggu_verifikasi']);
+
+        $user = User::where('email', 'budi.utomo@example.com')->first();
+        $this->assertNotNull($user->activation_token);
+
+        $activateResponse = $this->get('/activate/'.$user->activation_token);
+        $activateResponse->assertRedirect('/member/dashboard');
+
+        $user->refresh();
+        $this->assertTrue((bool) $user->is_active);
+        $this->assertNull($user->activation_token);
+    }
+
+    public function test_admin_verification_approves_applicant()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $pendingMember = Member::where('membership_status', 'menunggu_verifikasi')->first();
+
+        $response = $this->actingAs($admin)
+            ->post('/admin/verifikasi/'.$pendingMember->id.'/approve');
+
+        $response->assertRedirect('/admin/verifikasi');
+        $this->assertDatabaseHas('members', [
+            'id' => $pendingMember->id,
+            'membership_status' => 'terverifikasi',
+        ]);
+        $this->assertDatabaseHas('cards', [
+            'member_id' => $pendingMember->id,
+            'card_type' => 'MEMBER',
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_admin_promotes_member_to_officer()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::where('membership_status', 'terverifikasi')->first();
+
+        $response = $this->actingAs($admin)
+            ->post('/admin/pengurus/'.$member->id.'/promote', [
+                'position_title' => 'Wakil Ketua',
+                'level' => 'Kota',
+                'period' => '2026-2030',
+                'sk_number' => 'SK-001/2026',
+            ]);
+
+        $response->assertStatus(302);
+        $this->assertDatabaseHas('members', [
+            'id' => $member->id,
+            'membership_status' => 'pengurus',
+        ]);
+        $this->assertDatabaseHas('cards', [
+            'member_id' => $member->id,
+            'card_type' => 'OFFICER',
+        ]);
+    }
+
+    public function test_admin_can_edit_member_profile()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::first();
+
+        $response = $this->actingAs($admin)
+            ->get('/admin/anggota/'.$member->id.'/edit');
+
+        $response->assertStatus(200);
+        $response->assertSee('Edit Profil Anggota');
+
+        $updateResponse = $this->actingAs($admin)
+            ->put('/admin/anggota/'.$member->id, [
+                'full_name' => 'Updated Name Admin',
+                'nik' => '3578999900002222',
+                'email' => 'updated.email@example.com',
+                'phone' => '08123456789',
+                'occupation' => 'Dosen Pengajar',
+                'membership_status' => 'terverifikasi',
+                'birth_place' => 'Surabaya',
+                'birth_date' => '1990-01-01',
+                'gender' => 'L',
+                'address' => 'Jl. Pemuda No. 1',
+                'province' => 'JAWA TIMUR',
+                'city' => 'KOTA SURABAYA',
+                'kecamatan' => 'Gubeng',
+                'kelurahan' => 'Airlangga',
+            ]);
+
+        $updateResponse->assertRedirect('/admin/anggota');
+        $this->assertDatabaseHas('members', [
+            'id' => $member->id,
+            'full_name' => 'Updated Name Admin',
+            'email' => 'updated.email@example.com',
+        ]);
+    }
+
+    public function test_admin_can_soft_delete_and_restore_member()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::latest()->first();
+        $memberId = $member->id;
+
+        // 1. Soft Delete
+        $response = $this->actingAs($admin)
+            ->delete('/admin/anggota/'.$memberId);
+
+        $response->assertRedirect('/admin/anggota');
+
+        // Member is soft-deleted (deleted_at is not null)
+        $this->assertSoftDeleted('members', ['id' => $memberId]);
+
+        // 2. View Trash Page
+        $trashResponse = $this->actingAs($admin)
+            ->get('/admin/sampah');
+        $trashResponse->assertStatus(200);
+        $trashResponse->assertSee($member->full_name);
+
+        // 3. Restore Member
+        $restoreResponse = $this->actingAs($admin)
+            ->post('/admin/sampah/'.$memberId.'/restore');
+
+        $restoreResponse->assertRedirect('/admin/sampah');
+        $this->assertDatabaseHas('members', [
+            'id' => $memberId,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_admin_can_force_delete_member()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::latest()->first();
+        $memberId = $member->id;
+
+        // Soft delete first
+        $member->delete();
+        $this->assertSoftDeleted('members', ['id' => $memberId]);
+
+        // Force delete
+        $forceResponse = $this->actingAs($admin)
+            ->delete('/admin/sampah/'.$memberId.'/force-delete');
+
+        $forceResponse->assertRedirect('/admin/sampah');
+        $this->assertDatabaseMissing('members', ['id' => $memberId]);
+    }
+
+    public function test_admin_location_duplicate_validation_and_deletion()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+
+        // 1. Add valid custom location
+        $response = $this->actingAs($admin)->post('/admin/locations', [
+            'level' => 'province',
+            'code' => '99',
+            'name' => 'PROVINSI BARU CUSTOM',
+        ]);
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('custom_locations', ['code' => '99', 'name' => 'PROVINSI BARU CUSTOM']);
+
+        // 2. Try adding duplicate code (should fail)
+        $dupCodeResponse = $this->actingAs($admin)->post('/admin/locations', [
+            'level' => 'province',
+            'code' => '99',
+            'name' => 'NAMA LAIN',
+        ]);
+        $dupCodeResponse->assertSessionHasErrors(['code']);
+
+        // 3. Try adding duplicate name (should fail)
+        $dupNameResponse = $this->actingAs($admin)->post('/admin/locations', [
+            'level' => 'province',
+            'code' => '98',
+            'name' => 'PROVINSI BARU CUSTOM',
+        ]);
+        $dupNameResponse->assertSessionHasErrors(['name']);
+
+        // 4. Delete location
+        $loc = CustomLocation::where('code', '99')->first();
+        $delResponse = $this->actingAs($admin)->delete('/admin/locations/'.$loc->id);
+        $delResponse->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('custom_locations', ['id' => $loc->id]);
+    }
+
+    public function test_member_can_submit_card_order_via_ajax()
+    {
+        Storage::fake('public');
+        $verifiedMember = Member::where('membership_status', 'terverifikasi')->first();
+        $user = $verifiedMember->user;
+
+        $file = UploadedFile::fake()->create('bukti_transfer.jpg', 200, 'image/jpeg');
+
+        $response = $this->actingAs($user)
+            ->postJson('/member/card-order', [
+                'shipping_address' => 'Jl. Mawar No. 123',
+                'phone' => '081234567890',
+                'notes' => 'Catatan tes',
+                'payment_proof' => $file,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        $this->assertDatabaseHas('card_orders', [
+            'member_id' => $verifiedMember->id,
+            'status' => 'pending',
+            'shipping_address' => 'Jl. Mawar No. 123',
+        ]);
+
+        // Duplicate active order check via AJAX
+        $dupResponse = $this->actingAs($user)
+            ->postJson('/member/card-order', [
+                'shipping_address' => 'Jl. Mawar No. 123',
+                'phone' => '081234567890',
+                'payment_proof' => $file,
+            ]);
+
+        $dupResponse->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
+    }
+
+    public function test_member_can_confirm_card_receipt_and_reorder()
+    {
+        Storage::fake('public');
+        $verifiedMember = Member::where('membership_status', 'terverifikasi')->first();
+        $user = $verifiedMember->user;
+
+        $file = UploadedFile::fake()->create('bukti_transfer.jpg', 200, 'image/jpeg');
+
+        // 1. Initial Order
+        $orderResponse = $this->actingAs($user)->postJson('/member/card-order', [
+            'shipping_address' => 'Jl. Mawar No. 123',
+            'phone' => '081234567890',
+            'payment_proof' => $file,
+        ]);
+        $orderResponse->assertStatus(200);
+
+        $order = CardOrder::where('member_id', $verifiedMember->id)->latest()->first();
+        $this->assertEquals('pending', $order->status);
+
+        // 2. Member confirms receipt
+        $receiveResponse = $this->actingAs($user)->postJson('/member/card-order/'.$order->id.'/receive');
+        $receiveResponse->assertStatus(200)->assertJson(['success' => true]);
+
+        $order->refresh();
+        $this->assertEquals('received', $order->status);
+        $this->assertNotNull($order->received_at);
+
+        // 3. After received, member can order again!
+        $reorderResponse = $this->actingAs($user)->postJson('/member/card-order', [
+            'shipping_address' => 'Jl. Anggrek No. 456',
+            'phone' => '081299990000',
+            'payment_proof' => $file,
+        ]);
+        $reorderResponse->assertStatus(200)->assertJson(['success' => true]);
+
+        $this->assertEquals(2, CardOrder::where('member_id', $verifiedMember->id)->count());
+    }
+
+    public function test_admin_can_delete_card_order()
+    {
+        Storage::fake('public');
+        $admin = User::where('role', 'admin_kota')->first();
+        $verifiedMember = Member::where('membership_status', 'terverifikasi')->first();
+
+        $file = UploadedFile::fake()->create('bukti_transfer.jpg', 200, 'image/jpeg');
+        $path = $file->store('payment_proofs', 'public');
+
+        $order = CardOrder::create([
+            'member_id' => $verifiedMember->id,
+            'status' => 'pending',
+            'shipping_address' => 'Jl. Mawar No. 123',
+            'phone' => '081234567890',
+            'payment_proof' => $path,
+            'ordered_at' => now(),
+        ]);
+
+        Storage::disk('public')->assertExists($path);
+
+        $response = $this->actingAs($admin)
+            ->deleteJson('/admin/card-orders/'.$order->id);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Data pemesanan kartu fisik berhasil dihapus.',
+            ]);
+
+        $this->assertDatabaseMissing('card_orders', [
+            'id' => $order->id,
+        ]);
+
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_admin_can_demote_officer_to_regular_member()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $officerMember = Member::where('membership_status', 'pengurus')->first();
+
+        $response = $this->actingAs($admin)
+            ->post('/admin/pengurus/'.$officerMember->id.'/demote');
+
+        $response->assertRedirect();
+
+        $officerMember->refresh();
+        $this->assertEquals('terverifikasi', $officerMember->membership_status);
+
+        $activeCard = $officerMember->activeCard;
+        if ($activeCard) {
+            $this->assertEquals('MEMBER', $activeCard->card_type);
+        }
+
+        $this->assertDatabaseHas('membership_status_histories', [
+            'member_id' => $officerMember->id,
+            'status_from' => 'pengurus',
+            'status_to' => 'terverifikasi',
+        ]);
+    }
+
+    public function test_registration_allows_reusing_soft_deleted_data()
+    {
+        $member = Member::first();
+        $user = $member->user;
+        $email = $user->email;
+        $phone = $user->phone;
+        $nik = $member->nik;
+
+        // Soft delete user and member
+        $user->delete();
+        $member->delete();
+
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertSoftDeleted('members', ['id' => $member->id]);
+
+        // Attempt new registration with the trashed email, phone, and NIK
+        $response = $this->post('/register', [
+            'name' => 'Member Baru',
+            'email' => $email,
+            'phone' => $phone,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'nik' => $nik,
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Rungkut Asri No. 5',
+            'kelurahan' => 'Rungkut',
+            'kecamatan' => 'Rungkut',
+            'occupation' => 'Jurnalis',
+        ]);
+
+        $response->assertRedirect('/login');
+        $this->assertDatabaseHas('users', ['email' => $email, 'phone' => $phone, 'name' => 'Member Baru']);
+    }
+}
