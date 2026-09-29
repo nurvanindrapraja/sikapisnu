@@ -44,13 +44,42 @@ class HomeController extends Controller
             });
         }
 
-        if ($request->filled('mwc_id')) {
+        if ($request->filled('kecamatan')) {
+            $kec = $request->kecamatan;
+            $query->where(function ($q) use ($kec) {
+                $q->where('kecamatan', $kec)
+                    ->orWhereHas('mwc', function ($mq) use ($kec) {
+                        $mq->where('name', 'like', "%{$kec}%");
+                    });
+            });
+        } elseif ($request->filled('mwc_id')) {
             $query->where('mwc_id', $request->mwc_id);
         }
 
         $members = $query->latest('verified_at')->paginate(12);
-        $mwcs = Mwc::orderBy('name')->get();
 
-        return view('daftar_anggota', compact('members', 'mwcs'));
+        $fileSby = base_path('data/master_lokasi_sby.csv');
+        $kecamatans = [];
+        if (file_exists($fileSby)) {
+            foreach (file($fileSby, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $i => $line) {
+                if ($i === 0) {
+                    continue;
+                }
+                $parts = explode(';', $line);
+                if (count($parts) >= 2) {
+                    $code = trim($parts[0], ' "');
+                    $name = trim($parts[1], ' "');
+                    if (strlen($code) === 8 && str_starts_with($code, '35.78')) {
+                        $kecamatans[] = strtoupper($name);
+                    }
+                }
+            }
+        }
+        $fromMembers = Member::whereNotNull('kecamatan')->pluck('kecamatan')->toArray();
+        $fromMwc = Mwc::pluck('name')->map(fn ($n) => strtoupper(str_replace('MWC NU ', '', $n)))->toArray();
+        $kecamatans = array_values(array_unique(array_filter(array_map('trim', array_merge($kecamatans, $fromMembers, $fromMwc)))));
+        sort($kecamatans);
+
+        return view('daftar_anggota', compact('members', 'kecamatans'));
     }
 }

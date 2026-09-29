@@ -25,12 +25,12 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label fw-bold text-muted small">Kecamatan / MWC NU</label>
-                        <select name="mwc_id" class="form-select">
-                            <option value="">-- Semua MWC Kecamatan --</option>
-                            @foreach($mwcs as $mwc)
-                                <option value="{{ $mwc->id }}" {{ request('mwc_id') == $mwc->id ? 'selected' : '' }}>
-                                    {{ $mwc->name }}</option>
+                        <label class="form-label fw-bold text-muted small">Kecamatan</label>
+                        <select name="kecamatan" class="form-select">
+                            <option value="">-- Semua Kecamatan --</option>
+                            @foreach($kecamatans as $kec)
+                                <option value="{{ $kec }}" {{ request('kecamatan') == $kec ? 'selected' : '' }}>
+                                    {{ $kec }}</option>
                             @endforeach
                         </select>
                     </div>
