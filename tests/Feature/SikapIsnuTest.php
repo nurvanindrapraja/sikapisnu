@@ -9,6 +9,7 @@ use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -62,6 +63,9 @@ class SikapIsnuTest extends TestCase
             'kelurahan' => 'Ketintang',
             'kecamatan' => 'Gayungan',
             'occupation' => 'Software Developer',
+            'education_level' => 'S1',
+            'education_institution' => 'ITS Surabaya',
+            'education_major' => 'Teknik Informatika',
         ]);
 
         $response->assertRedirect('/login');
@@ -416,9 +420,42 @@ class SikapIsnuTest extends TestCase
             'kelurahan' => 'Rungkut',
             'kecamatan' => 'Rungkut',
             'occupation' => 'Jurnalis',
+            'education_level' => 'S1',
+            'education_institution' => 'UNAIR Surabaya',
+            'education_major' => 'Ilmu Komunikasi',
         ]);
 
         $response->assertRedirect('/login');
         $this->assertDatabaseHas('users', ['email' => $email, 'phone' => $phone, 'name' => 'Member Baru']);
+    }
+
+    public function test_member_can_change_password()
+    {
+        $user = User::where('role', 'member')->first();
+        $this->actingAs($user);
+
+        $response = $this->post('/member/profile/change-password', [
+            'current_password' => 'password',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertTrue(Hash::check('newpassword123', $user->fresh()->password));
+    }
+
+    public function test_admin_can_change_password()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $this->actingAs($admin);
+
+        $response = $this->post('/admin/profile/change-password', [
+            'current_password' => 'password',
+            'password' => 'newadminpassword123',
+            'password_confirmation' => 'newadminpassword123',
+        ]);
+
+        $response->assertSessionHas('success');
+        $this->assertTrue(Hash::check('newadminpassword123', $admin->fresh()->password));
     }
 }

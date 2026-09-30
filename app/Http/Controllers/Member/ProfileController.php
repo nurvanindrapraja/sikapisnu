@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Mwc;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
@@ -377,5 +378,41 @@ class ProfileController extends Controller
         }
 
         return back()->with('success', 'Sertifikasi keahlian dihapus.');
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = auth()->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password saat ini yang Anda masukkan salah.',
+                ], 422);
+            }
+
+            return back()->withErrors(['current_password' => 'Password saat ini yang Anda masukkan salah.']);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        AuditLog::record($user->id, 'Ubah Password', 'Berhasil mengubah password akun member.');
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Password akun Anda berhasil diperbarui!',
+            ]);
+        }
+
+        return back()->with('success', 'Password akun Anda berhasil diperbarui!');
     }
 }

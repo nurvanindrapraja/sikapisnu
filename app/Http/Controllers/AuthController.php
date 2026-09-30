@@ -125,10 +125,10 @@ class AuthController extends Controller
             'pac_id' => ['nullable', 'exists:pac,id'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:10240'],
 
-            // Opsional Array Step 3
-            'education_level' => ['nullable', 'string'],
-            'education_institution' => ['nullable', 'string'],
-            'education_major' => ['nullable', 'string'],
+            // Step 3: Pendidikan Terakhir (Wajib)
+            'education_level' => ['required', 'string', 'max:50'],
+            'education_institution' => ['required', 'string', 'max:255'],
+            'education_major' => ['required', 'string', 'max:255'],
             'education_start_year' => ['nullable', 'numeric'],
             'education_end_year' => ['nullable', 'numeric'],
 

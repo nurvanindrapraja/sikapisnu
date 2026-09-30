@@ -301,6 +301,24 @@
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 },
 
+                validateStep3() {
+                    this.stepError = '';
+                    const eduLevel = this.$refs.eduLevelInput ? this.$refs.eduLevelInput.value.trim() : '';
+                    const eduInst = this.$refs.eduInstInput ? this.$refs.eduInstInput.value.trim() : '';
+                    const eduMajor = this.$refs.eduMajorInput ? this.$refs.eduMajorInput.value.trim() : '';
+
+                    if (!eduLevel || !eduInst || !eduMajor) {
+                        this.stepError = 'Mohon lengkapi data Pendidikan Terakhir (Jenjang, Nama Kampus/Institusi, dan Program Studi/Jurusan) terlebih dahulu.';
+                        const firstEmpty = [this.$refs.eduLevelInput, this.$refs.eduInstInput, this.$refs.eduMajorInput].find(el => el && !el.value.trim());
+                        if (firstEmpty) {
+                            firstEmpty.focus();
+                            firstEmpty.reportValidity();
+                        }
+                        return false;
+                    }
+                    return true;
+                },
+
                 handlePhotoChange(event) {
                     const file = event.target.files[0];
                     if (!file) {
@@ -415,7 +433,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('register') }}" method="POST" enctype="multipart/form-data" @submit="loading = true" @keydown.enter.prevent="if (step === 1) { validateStep1(); } else if (step === 2) { validateStep2(); }">
+                    <form action="{{ route('register') }}" method="POST" enctype="multipart/form-data" @submit="if (!validateStep3()) { $event.preventDefault(); loading = false; } else { loading = true; }" @keydown.enter.prevent="if (step === 1) { validateStep1(); } else if (step === 2) { validateStep2(); }">
                         @csrf
 
                         <!-- STEP 1: AKUN LOGIN -->
@@ -597,18 +615,27 @@
                             </div>
                         </div>
 
-                        <!-- STEP 3: POTENSI & REKAM JEJAK (OPSIONAL) -->
+                        <!-- STEP 3: POTENSI & REKAM JEJAK -->
                         <div x-show="step === 3" class="space-y-4" style="display: none;">
                             <h5 class="fw-bold text-success border-bottom pb-2 mb-4">
-                                <i class="bi bi-briefcase-fill me-2"></i> Langkah 3: Potensi & Rekam Jejak (Opsional)
+                                <i class="bi bi-briefcase-fill me-2"></i> Langkah 3: Potensi & Rekam Jejak
                             </h5>
+
+                            <template x-if="stepError">
+                                <div class="alert alert-danger rounded-3 small mb-4 shadow-sm border-danger border-start border-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-exclamation-octagon-fill fs-5 me-2"></i>
+                                        <span x-text="stepError" class="fw-semibold"></span>
+                                    </div>
+                                </div>
+                            </template>
 
                             <div class="row g-3">
                                 <!-- Pendidikan Terakhir -->
-                                <div class="col-12"><h6 class="fw-bold text-dark mb-0"><i class="bi bi-mortarboard-fill text-success me-1"></i> Pendidikan Terakhir</h6></div>
+                                <div class="col-12"><h6 class="fw-bold text-dark mb-0"><i class="bi bi-mortarboard-fill text-success me-1"></i> Pendidikan Terakhir <span class="text-danger small">* (Wajib)</span></h6></div>
                                 <div class="col-md-3">
-                                    <label class="form-label small text-muted">Jenjang</label>
-                                    <select name="education_level" class="form-select form-select-sm">
+                                    <label class="form-label small text-muted">Jenjang <span class="text-danger">*</span></label>
+                                    <select name="education_level" x-ref="eduLevelInput" class="form-select form-select-sm" required>
                                         <option value="">-- Pilih Jenjang --</option>
                                         <option value="S1">S1 (Sarjana)</option>
                                         <option value="S2">S2 (Magister)</option>
@@ -618,12 +645,12 @@
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small text-muted">Nama Kampus / Institusi</label>
-                                    <input type="text" name="education_institution" class="form-control form-control-sm" placeholder="Universitas Airlangga, ITS, UIN...">
+                                    <label class="form-label small text-muted">Nama Kampus / Institusi <span class="text-danger">*</span></label>
+                                    <input type="text" name="education_institution" x-ref="eduInstInput" class="form-control form-control-sm" placeholder="Universitas Airlangga, ITS, UIN..." required>
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label small text-muted">Program Studi / Jurusan</label>
-                                    <input type="text" name="education_major" class="form-control form-control-sm" placeholder="Teknik Informatika, Hukum...">
+                                    <label class="form-label small text-muted">Program Studi / Jurusan <span class="text-danger">*</span></label>
+                                    <input type="text" name="education_major" x-ref="eduMajorInput" class="form-control form-control-sm" placeholder="Teknik Informatika, Hukum..." required>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label small text-muted">Periode (Tahun Masuk - Lulus)</label>

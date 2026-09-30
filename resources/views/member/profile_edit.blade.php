@@ -514,6 +514,60 @@
                     </div>
                 </form>
             </div>
+
+            <!-- Card Pengaturan Keamanan Akun / Ubah Password -->
+            <div class="card card-custom p-3 p-md-4 mb-3 mb-lg-4">
+                <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
+                    <i class="bi bi-shield-lock-fill me-2"></i> Pengaturan Akun & Keamanan
+                </h5>
+
+                <div class="bg-light p-3 rounded-3 mb-3 border">
+                    <div class="row g-2 text-dark small">
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Email Akun:</span>
+                            <strong class="text-break">{{ auth()->user()->email }}</strong>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted d-block">Nomor HP / WhatsApp:</span>
+                            <strong>{{ auth()->user()->phone ?? '-' }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-dark mb-2">
+                    <i class="bi bi-key-fill text-warning me-1"></i> Ubah Password Akun
+                </h6>
+                <p class="small text-muted mb-3">
+                    Gunakan password minimal 8 karakter agar akun Anda tetap aman.
+                </p>
+
+                <form action="{{ route('member.profile.change_password') }}" method="POST" x-data="{ loading: false }" @submit="loading = true">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Password Saat Ini <span class="text-danger">*</span></label>
+                        <input type="password" name="current_password" class="form-control form-control-sm" placeholder="Masukkan password saat ini" required>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Password Baru <span class="text-danger">*</span></label>
+                            <input type="password" name="password" class="form-control form-control-sm" placeholder="Minimal 8 karakter" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Konfirmasi Password Baru <span class="text-danger">*</span></label>
+                            <input type="password" name="password_confirmation" class="form-control form-control-sm" placeholder="Ulangi password baru" required>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-warning btn-sm rounded-pill fw-bold text-dark px-4 shadow-sm" :disabled="loading">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                            <i class="bi bi-shield-check me-1" x-show="!loading"></i>
+                            <span x-text="loading ? 'Memperbarui...' : 'Simpan Password Baru'"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Right Column: Add Potensi Items -->

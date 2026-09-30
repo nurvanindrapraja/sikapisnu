@@ -307,6 +307,11 @@
 
             <li class="sidebar-header mt-3">Situs & Akun</li>
             <li>
+                <a href="{{ route('admin.profile.index') }}" class="sidebar-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-circle"></i> Profil & Ubah Password
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('home') }}" target="_blank" class="sidebar-link text-warning" @click="sidebarOpen = false">
                     <i class="bi bi-box-arrow-up-right"></i> Lihat Situs Publik
                 </a>
@@ -335,12 +340,15 @@
             </div>
 
             <div class="d-none d-lg-flex align-items-center gap-3">
-                <div class="text-end">
+                <a href="{{ route('admin.profile.index') }}" class="text-decoration-none text-end" title="Pengaturan Profil Admin">
                     <span class="fw-semibold d-block text-dark small">{{ auth()->user()->name }}</span>
                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1" style="font-size: 0.65rem;">
-                        {{ strtoupper(auth()->user()->role) }}
+                        {{ strtoupper(str_replace('_', ' ', auth()->user()->role)) }}
                     </span>
-                </div>
+                </a>
+                <a href="{{ route('admin.profile.index') }}" class="btn btn-outline-success btn-sm rounded-circle" title="Profil & Ubah Password">
+                    <i class="bi bi-person-gear"></i>
+                </a>
                 <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" data-bs-toggle="modal" data-bs-target="#modalConfirmLogoutAdmin" title="Keluar">
                     <i class="bi bi-box-arrow-right"></i>
                 </button>

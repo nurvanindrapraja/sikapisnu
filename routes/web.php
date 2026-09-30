@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\LocationController as AdminLocation;
 use App\Http\Controllers\Admin\MemberController as AdminMember;
 use App\Http\Controllers\Admin\MwcController as AdminMwc;
 use App\Http\Controllers\Admin\OfficerController as AdminOfficer;
+use App\Http\Controllers\Admin\ProfileController as AdminProfile;
 use App\Http\Controllers\Admin\ReportController as AdminReport;
 use App\Http\Controllers\Admin\VerificationController as AdminVerification;
 use App\Http\Controllers\AuthController;
@@ -53,6 +54,7 @@ Route::middleware(['auth'])->prefix('member')->name('member.')->group(function (
     // Profile Management
     Route::get('/profile/edit', [MemberProfile::class, 'edit'])->name('profile.edit');
     Route::post('/profile/update', [MemberProfile::class, 'update'])->name('profile.update');
+    Route::post('/profile/change-password', [MemberProfile::class, 'changePassword'])->name('profile.change_password');
 
     Route::post('/profile/education', [MemberProfile::class, 'addEducation'])->name('profile.education.add');
     Route::put('/profile/education/{id}', [MemberProfile::class, 'updateEducation'])->name('profile.education.update');
@@ -78,6 +80,11 @@ Route::middleware(['auth'])->prefix('member')->name('member.')->group(function (
 // 4. Admin Area Routes
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
+
+    // Admin Profile & Change Password
+    Route::get('/profile', [AdminProfile::class, 'index'])->name('profile.index');
+    Route::put('/profile', [AdminProfile::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/change-password', [AdminProfile::class, 'changePassword'])->name('profile.change_password');
 
     // Verifikasi Anggota
     Route::get('/verifikasi', [AdminVerification::class, 'index'])->name('verifikasi.index');

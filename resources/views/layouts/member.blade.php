@@ -87,7 +87,9 @@
                 <a href="{{ route('daftar.anggota') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-people-fill me-1"></i> Katalog Anggota
                 </a>
-                <span class="text-white small">Halo, <strong>{{ auth()->user()->name }}</strong></span>
+                <a href="{{ route('member.profile.edit') }}" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold text-success shadow-sm">
+                    <i class="bi bi-person-circle me-1"></i> Profil & Akun
+                </a>
                 <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout">
                     <i class="bi bi-box-arrow-right me-1"></i> Keluar
                 </button>
@@ -114,6 +116,9 @@
                         <small class="text-muted d-block" style="font-size: 0.75rem;">Masuk sebagai</small>
                         <strong class="text-dark d-block text-truncate" style="font-size: 0.88rem;">{{ auth()->user()->name }}</strong>
                     </div>
+                    <a href="{{ route('member.profile.edit') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-person-circle text-success fs-5"></i> Profil & Ubah Password
+                    </a>
                     @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                     <a href="{{ route('member.cv.download') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i> Download CV (PDF)
