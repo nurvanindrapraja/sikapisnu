@@ -442,6 +442,10 @@
                                 <i class="bi bi-key-fill me-2"></i> Langkah 1: Informasi Akun
                             </h5>
 
+                            <div x-show="isCheckingEmail" class="progress mb-3" style="height: 4px;" x-cloak>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
+                            </div>
+
                             <template x-if="stepError">
                                 <div class="alert alert-danger rounded-3 small mb-4 shadow-sm border-danger border-start border-4">
                                     <div class="d-flex align-items-center">
@@ -476,9 +480,12 @@
                             </div>
 
                             <div class="mt-4 pt-3 border-top text-end">
-                                <button type="button" class="btn btn-sm btn-isnu-primary px-3 px-md-4 py-2 rounded-pill" @click="validateStep1()" :disabled="isCheckingEmail">
-                                    <span x-show="!isCheckingEmail">Lanjut ke Biodata <i class="bi bi-arrow-right ms-1"></i></span>
-                                    <span x-show="isCheckingEmail"><span class="spinner-border spinner-border-sm me-1"></i> Memeriksa Email...</span>
+                                <button type="button" class="btn btn-sm btn-isnu-primary px-3 px-md-4 py-2 rounded-pill d-inline-flex align-items-center justify-content-center" @click="validateStep1()" :disabled="isCheckingEmail">
+                                    <span x-show="!isCheckingEmail" class="d-inline-flex align-items-center">Lanjut ke Biodata <i class="bi bi-arrow-right ms-1"></i></span>
+                                    <span x-show="isCheckingEmail" class="d-inline-flex align-items-center" x-cloak>
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Memeriksa Email...
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -620,6 +627,10 @@
                             <h5 class="fw-bold text-success border-bottom pb-2 mb-4">
                                 <i class="bi bi-briefcase-fill me-2"></i> Langkah 3: Potensi & Rekam Jejak
                             </h5>
+
+                            <div x-show="loading" class="progress mb-3" style="height: 4px;" x-cloak>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 100%"></div>
+                            </div>
 
                             <template x-if="stepError">
                                 <div class="alert alert-danger rounded-3 small mb-4 shadow-sm border-danger border-start border-4">
