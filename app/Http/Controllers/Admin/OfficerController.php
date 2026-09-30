@@ -10,6 +10,7 @@ use App\Models\MembershipStatusHistory;
 use App\Models\Pac;
 use App\Models\Position;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -150,6 +151,9 @@ class OfficerController extends Controller
 
             DB::commit();
 
+            Cache::forget('home_stats_metrics');
+            Cache::forget('admin_dashboard_stats');
+
             return redirect()->route('admin.pengurus.index')->with('success', "{$member->full_name} berhasil ditetapkan sebagai Pengurus ({$request->position_title})!");
 
         } catch (\Exception $e) {
@@ -191,6 +195,9 @@ class OfficerController extends Controller
             AuditLog::record(auth()->id(), 'Pembatalan Pengurus', "Status kepengurusan {$member->full_name} dibatalkan (kembali menjadi Anggota Terverifikasi).");
 
             DB::commit();
+
+            Cache::forget('home_stats_metrics');
+            Cache::forget('admin_dashboard_stats');
 
             return redirect()->back()->with('success', "Status kepengurusan {$member->full_name} berhasil dibatalkan. Anggota kembali ke status Terverifikasi.");
         } catch (\Exception $e) {

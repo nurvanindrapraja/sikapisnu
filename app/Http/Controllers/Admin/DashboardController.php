@@ -8,71 +8,76 @@ use App\Models\MemberCertification;
 use App\Models\MemberEducation;
 use App\Models\MemberNuTraining;
 use App\Models\Mwc;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $stats = [
-            'total' => Member::count(),
-            'terverifikasi' => Member::where('membership_status', 'terverifikasi')->count(),
-            'pengurus' => Member::where('membership_status', 'pengurus')->count(),
-            'pending' => Member::where('membership_status', 'menunggu_verifikasi')->count(),
-            'perbaikan' => Member::where('membership_status', 'perbaikan')->count(),
-            'ditolak' => Member::where('membership_status', 'ditolak')->count(),
-        ];
+        $dashboardData = Cache::remember('admin_dashboard_stats', 120, function () {
+            $stats = [
+                'total' => Member::count(),
+                'terverifikasi' => Member::where('membership_status', 'terverifikasi')->count(),
+                'pengurus' => Member::where('membership_status', 'pengurus')->count(),
+                'pending' => Member::where('membership_status', 'menunggu_verifikasi')->count(),
+                'perbaikan' => Member::where('membership_status', 'perbaikan')->count(),
+                'ditolak' => Member::where('membership_status', 'ditolak')->count(),
+            ];
 
-        // Breakdown by MWC
-        $mwcStats = Mwc::withCount(['members' => function ($q) {
-            $q->whereIn('membership_status', ['terverifikasi', 'pengurus']);
-        }])->get();
+            // Breakdown by MWC
+            $mwcStats = Mwc::withCount(['members' => function ($q) {
+                $q->whereIn('membership_status', ['terverifikasi', 'pengurus']);
+            }])->get();
 
-        // Breakdown by Occupation / Pekerjaan
-        $occupationStats = Member::select('occupation', DB::raw('count(*) as total'))
-            ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->groupBy('occupation')
-            ->orderByDesc('total')
-            ->take(8)
-            ->get();
+            // Breakdown by Occupation / Pekerjaan
+            $occupationStats = Member::select('occupation', DB::raw('count(*) as total'))
+                ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
+                ->groupBy('occupation')
+                ->orderByDesc('total')
+                ->take(8)
+                ->get();
 
-        // Breakdown by Education / Pendidikan (hanya member aktif, data sampah/soft-deleted tidak direkap)
-        $educationStats = MemberEducation::whereHas('member')
-            ->select('level', DB::raw('count(distinct member_id) as total'))
-            ->groupBy('level')
-            ->orderByDesc('total')
-            ->get();
+            // Breakdown by Education / Pendidikan (hanya member aktif, data sampah/soft-deleted tidak direkap)
+            $educationStats = MemberEducation::whereHas('member')
+                ->select('level', DB::raw('count(distinct member_id) as total'))
+                ->groupBy('level')
+                ->orderByDesc('total')
+                ->get();
 
-        // Breakdown by NU Training / Kaderisasi NU (hanya member aktif)
-        $nuTrainingStats = MemberNuTraining::whereHas('member')
-            ->select('training_type', DB::raw('count(distinct member_id) as total'))
-            ->groupBy('training_type')
-            ->orderByDesc('total')
-            ->get();
+            // Breakdown by NU Training / Kaderisasi NU (hanya member aktif)
+            $nuTrainingStats = MemberNuTraining::whereHas('member')
+                ->select('training_type', DB::raw('count(distinct member_id) as total'))
+                ->groupBy('training_type')
+                ->orderByDesc('total')
+                ->get();
 
-        // Breakdown by Skills Field / Sertifikasi (hanya member aktif)
-        $certificationStats = MemberCertification::whereHas('member')
-            ->select('field', DB::raw('count(distinct member_id) as total'))
-            ->whereNotNull('field')
-            ->groupBy('field')
-            ->orderByDesc('total')
-            ->take(8)
-            ->get();
+            // Breakdown by Skills Field / Sertifikasi (hanya member aktif)
+            $certificationStats = MemberCertification::whereHas('member')
+                ->select('field', DB::raw('count(distinct member_id) as total'))
+                ->whereNotNull('field')
+                ->groupBy('field')
+                ->orderByDesc('total')
+                ->take(8)
+                ->get();
 
-        // Recent Registration Queue
-        $pendingMembers = Member::where('membership_status', 'menunggu_verifikasi')
-            ->latest()
-            ->take(5)
-            ->get();
+            // Recent Registration Queue
+            $pendingMembers = Member::where('membership_status', 'menunggu_verifikasi')
+                ->latest()
+                ->take(5)
+                ->get();
 
-        return view('admin.dashboard', compact(
-            'stats',
-            'mwcStats',
-            'occupationStats',
-            'educationStats',
-            'nuTrainingStats',
-            'certificationStats',
-            'pendingMembers'
-        ));
+            return compact(
+                'stats',
+                'mwcStats',
+                'occupationStats',
+                'educationStats',
+                'nuTrainingStats',
+                'certificationStats',
+                'pendingMembers'
+            );
+        });
+
+        return view('admin.dashboard', $dashboardData);
     }
 }

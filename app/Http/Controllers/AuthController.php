@@ -13,6 +13,7 @@ use App\Models\Mwc;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -96,7 +97,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('member.dashboard');
         }
-        $mwcs = Mwc::with('pacs')->orderBy('name')->get();
+        $mwcs = Cache::remember('master_mwc_pacs', 3600, fn () => Mwc::with('pacs')->orderBy('name')->get());
 
         return view('auth.register', compact('mwcs'));
     }
@@ -251,6 +252,8 @@ class AuthController extends Controller
             AuditLog::record($user->id, 'Registrasi Anggota', 'Calon anggota mendaftar ke sistem.');
 
             DB::commit();
+
+            Cache::forget('admin_dashboard_stats');
 
             // Send Notification Email to user (informational)
             try {

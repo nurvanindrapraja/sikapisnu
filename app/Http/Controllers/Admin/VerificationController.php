@@ -8,6 +8,7 @@ use App\Models\Card;
 use App\Models\Member;
 use App\Models\MembershipStatusHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -91,6 +92,9 @@ class VerificationController extends Controller
 
             DB::commit();
 
+            Cache::forget('home_stats_metrics');
+            Cache::forget('admin_dashboard_stats');
+
             return redirect()->route('admin.verifikasi.show', $member->id)
                 ->with('success', "Akun Pendaftaran {$member->full_name} berhasil diverifikasi! User kini telah dapat masuk (login) ke aplikasi.");
 
@@ -172,6 +176,9 @@ class VerificationController extends Controller
 
             DB::commit();
 
+            Cache::forget('home_stats_metrics');
+            Cache::forget('admin_dashboard_stats');
+
             return redirect()->route('admin.verifikasi.index')
                 ->with('success', "Anggota {$member->full_name} berhasil diverifikasi! Nomor Anggota: {$member->member_number}");
 
@@ -211,6 +218,9 @@ class VerificationController extends Controller
 
         AuditLog::record(auth()->id(), 'Minta Perbaikan', "Dikembalikan untuk perbaikan: {$member->full_name}");
 
+        Cache::forget('home_stats_metrics');
+        Cache::forget('admin_dashboard_stats');
+
         return redirect()->route('admin.verifikasi.index')
             ->with('info', "Pendaftaran {$member->full_name} dikembalikan ke anggota untuk perbaikan data.");
     }
@@ -243,6 +253,9 @@ class VerificationController extends Controller
         ]);
 
         AuditLog::record(auth()->id(), 'Tolak Pendaftaran', "Ditolak: {$member->full_name}");
+
+        Cache::forget('home_stats_metrics');
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->route('admin.verifikasi.index')
             ->with('warning', "Pendaftaran {$member->full_name} telah ditolak.");

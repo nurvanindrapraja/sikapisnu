@@ -4,27 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        $totalMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])->count();
-        $totalPengurus = Member::where('membership_status', 'pengurus')->count();
-        $totalPacMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->where(function ($q) {
-                $q->whereNotNull('pac_id')
-                    ->orWhereNotNull('mwc_id')
-                    ->orWhere(function ($sq) {
-                        $sq->whereNotNull('kecamatan')->where('kecamatan', '!=', '');
-                    });
-            })
-            ->count();
+        $stats = Cache::remember('home_stats_metrics', 300, function () {
+            return [
+                'totalMembers' => Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])->count(),
+                'totalPengurus' => Member::where('membership_status', 'pengurus')->count(),
+                'totalPacMembers' => Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
+                    ->where(function ($q) {
+                        $q->whereNotNull('pac_id')
+                            ->orWhereNotNull('mwc_id')
+                            ->orWhere(function ($sq) {
+                                $sq->whereNotNull('kecamatan')->where('kecamatan', '!=', '');
+                            });
+                    })
+                    ->count(),
+                'recentMembers' => Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
+                    ->latest('verified_at')
+                    ->take(6)
+                    ->get(),
+            ];
+        });
 
-        $recentMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->latest('verified_at')
-            ->take(6)
-            ->get();
+        $totalMembers = $stats['totalMembers'];
+        $totalPengurus = $stats['totalPengurus'];
+        $totalPacMembers = $stats['totalPacMembers'];
+        $recentMembers = $stats['recentMembers'];
 
         return view('home', compact('totalMembers', 'totalPengurus', 'totalPacMembers', 'recentMembers'));
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Mwc;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,7 +15,7 @@ class ProfileController extends Controller
     public function edit()
     {
         $member = auth()->user()->member()->with(['educations', 'organizations', 'employments', 'nuTrainings', 'certifications'])->firstOrFail();
-        $mwcs = Mwc::with('pacs')->orderBy('name')->get();
+        $mwcs = Cache::remember('master_mwc_pacs', 3600, fn () => Mwc::with('pacs')->orderBy('name')->get());
 
         return view('member.profile_edit', compact('member', 'mwcs'));
     }

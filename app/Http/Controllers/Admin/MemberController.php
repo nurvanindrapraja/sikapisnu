@@ -9,6 +9,7 @@ use App\Models\Pac;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -94,7 +95,7 @@ class MemberController extends Controller
         }
 
         $members = $query->latest()->paginate(15)->withQueryString();
-        $mwcs = Mwc::with('pacs')->orderBy('name')->get();
+        $mwcs = Cache::remember('master_mwc_pacs', 3600, fn () => Mwc::with('pacs')->orderBy('name')->get());
 
         if ($request->ajax()) {
             return view('admin.anggota.partials.member_list', compact('members'));
