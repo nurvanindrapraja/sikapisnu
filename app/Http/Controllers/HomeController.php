@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
-use App\Models\Mwc;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -12,14 +11,22 @@ class HomeController extends Controller
     {
         $totalMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])->count();
         $totalPengurus = Member::where('membership_status', 'pengurus')->count();
-        $totalMwc = Mwc::count();
+        $totalPacMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
+            ->where(function ($q) {
+                $q->whereNotNull('pac_id')
+                    ->orWhereNotNull('mwc_id')
+                    ->orWhere(function ($sq) {
+                        $sq->whereNotNull('kecamatan')->where('kecamatan', '!=', '');
+                    });
+            })
+            ->count();
 
         $recentMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
             ->latest('verified_at')
             ->take(6)
             ->get();
 
-        return view('home', compact('totalMembers', 'totalPengurus', 'totalMwc', 'recentMembers'));
+        return view('home', compact('totalMembers', 'totalPengurus', 'totalPacMembers', 'recentMembers'));
     }
 
     public function tentang()

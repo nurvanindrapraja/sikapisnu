@@ -87,19 +87,19 @@
                     </div>
                 </div>
 
-                <!-- Card 3: MWC NU Kecamatan -->
+                <!-- Card 3: Anggota Terdaftar di PAC -->
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white hover-shadow transition-all">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-primary-subtle text-primary p-3 rounded-circle fs-2 d-flex align-items-center justify-content-center flex-shrink-0"
                                 style="width: 64px; height: 64px;">
-                                <i class="bi bi-geo-alt-fill"></i>
+                                <i class="bi bi-person-lines-fill"></i>
                             </div>
                             <div>
                                 <h2 class="fw-extrabold text-dark m-0" style="letter-spacing: -0.5px;">
-                                    {{ number_format($totalMwc) }}
+                                    {{ number_format($totalPacMembers) }}
                                 </h2>
-                                <span class="text-secondary fw-semibold small">MWC NU Kecamatan</span>
+                                <span class="text-secondary fw-semibold small">Anggota Terdaftar di PAC</span>
                             </div>
                         </div>
                     </div>
