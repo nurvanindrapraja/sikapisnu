@@ -23,17 +23,17 @@ class HomeController extends Controller
                             });
                     })
                     ->count(),
-                'recentMembers' => Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-                    ->latest('verified_at')
-                    ->take(6)
-                    ->get(),
             ];
         });
 
         $totalMembers = $stats['totalMembers'];
         $totalPengurus = $stats['totalPengurus'];
         $totalPacMembers = $stats['totalPacMembers'];
-        $recentMembers = $stats['recentMembers'];
+
+        $recentMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
+            ->latest('verified_at')
+            ->take(6)
+            ->get();
 
         return view('home', compact('totalMembers', 'totalPengurus', 'totalPacMembers', 'recentMembers'));
     }
