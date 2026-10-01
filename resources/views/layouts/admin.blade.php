@@ -288,6 +288,16 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-diagram-2-fill"></i> Master Seksi
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.events.index') }}" class="sidebar-link {{ request()->routeIs('admin.events.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-calendar-event-fill"></i> Kegiatan & Presensi
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.locations.index') }}" class="sidebar-link {{ request()->routeIs('admin.locations.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-geo-alt-fill"></i> Master Lokasi
                 </a>

@@ -200,7 +200,26 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Jabatan Pengurus <span class="text-danger">*</span></label>
-                            <input type="text" name="position_title" class="form-control" placeholder="Contoh: Ketua III / Sekretaris / Wakil Ketua" required>
+                            <input type="text" name="position_title" class="form-control" placeholder="Contoh: Ketua / Sekretaris / Anggota Seksi" required>
+                        </div>
+
+                        <!-- Seksi / Bidang Dropdown (Opsional) -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Pilih Seksi / Bidang <span class="text-secondary font-normal">(Opsional)</span></label>
+                            <select name="section_id" class="form-select">
+                                <option value="">-- Tanpa Seksi (Ketua/Sekretaris/Bendahara) --</option>
+                                <optgroup label="Seksi PC ISNU Kota Surabaya" x-show="levelChoice === 'PC ISNU'">
+                                    @foreach($sections->where('level', 'PC ISNU') as $sec)
+                                        <option value="{{ $sec->id }}">{{ $sec->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Seksi PAC ISNU" x-show="levelChoice === 'PAC ISNU'">
+                                    @foreach($sections->where('level', 'PAC ISNU') as $sec)
+                                        <option value="{{ $sec->id }}">{{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif</option>
+                                    @endforeach
+                                </optgroup>
+                            </select>
+                            <div class="form-text small">Bagi Ketua/Sekretaris/Bendahara tidak perlu memilih Seksi.</div>
                         </div>
 
                         <div class="col-md-6">

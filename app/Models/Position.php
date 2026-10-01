@@ -17,6 +17,7 @@ class Position extends Model
         'level',
         'mwc_id',
         'pac_id',
+        'section_id',
         'period',
         'period_start',
         'period_end',
@@ -44,5 +45,10 @@ class Position extends Model
     public function pac()
     {
         return $this->belongsTo(Pac::class, 'pac_id');
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(Section::class, 'section_id');
     }
 }

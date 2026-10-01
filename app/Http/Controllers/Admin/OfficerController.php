@@ -9,6 +9,7 @@ use App\Models\Member;
 use App\Models\MembershipStatusHistory;
 use App\Models\Pac;
 use App\Models\Position;
+use App\Models\Section;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class OfficerController extends Controller
     public function index(Request $request)
     {
         $query = Member::where('membership_status', 'pengurus')
-            ->with(['activePosition.pac', 'activeCard']);
+            ->with(['activePosition.pac', 'activePosition.section', 'activeCard']);
 
         // Search Text
         if ($request->filled('search')) {
@@ -62,6 +63,7 @@ class OfficerController extends Controller
 
         $officers = $query->latest()->paginate(15)->withQueryString();
         $pacs = Pac::orderBy('name')->get();
+        $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
         $eligibleMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
             ->orderBy('full_name')
             ->get();
@@ -70,7 +72,7 @@ class OfficerController extends Controller
             return view('admin.pengurus.partials.officer_list', compact('officers'));
         }
 
-        return view('admin.pengurus.index', compact('officers', 'pacs', 'eligibleMembers'));
+        return view('admin.pengurus.index', compact('officers', 'pacs', 'sections', 'eligibleMembers'));
     }
 
     public function promote(Request $request, $member_id)
@@ -79,6 +81,7 @@ class OfficerController extends Controller
             'position_title' => 'required|string|max:255',
             'level' => 'required|in:PC ISNU,PAC ISNU,Kota,PAC',
             'pac_id' => 'nullable|exists:pac,id',
+            'section_id' => 'nullable|exists:sections,id',
             'period' => 'required|string|max:100', // e.g. 2026-2030
             'sk_number' => 'nullable|string|max:100',
             'sk_file' => 'nullable|file|mimes:pdf,jpg,png|max:5048',
@@ -106,6 +109,7 @@ class OfficerController extends Controller
                 'position_title' => $request->position_title,
                 'level' => $levelDb,
                 'pac_id' => $levelDb === 'PAC' ? $request->pac_id : null,
+                'section_id' => $request->section_id,
                 'period' => $request->period,
                 'sk_number' => $request->sk_number,
                 'sk_file' => $skPath,

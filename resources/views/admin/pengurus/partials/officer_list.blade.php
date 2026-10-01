@@ -26,7 +26,12 @@
                             </div>
                         </div>
                     </td>
-                    <td><strong class="text-success">{{ $pos ? $pos->position_title : 'Pengurus' }}</strong></td>
+                    <td>
+                        <strong class="text-success">{{ $pos ? $pos->position_title : 'Pengurus' }}</strong>
+                        @if($pos && $pos->section)
+                            <small class="d-block text-muted mt-0.5"><i class="bi bi-diagram-2 me-1"></i> {{ $pos->section->name }}</small>
+                        @endif
+                    </td>
                     <td>
                         <span class="badge bg-dark me-1">{{ $pos ? $pos->level : 'PC ISNU' }}</span>
                         <small class="text-muted">{{ $pos ? $pos->period : '-' }}</small>
@@ -82,6 +87,11 @@
                     {{ $pos ? $pos->position_title : 'Pengurus' }}
                 </span>
             </div>
+            @if($pos && $pos->section)
+                <div class="mb-2 text-secondary small">
+                    <i class="bi bi-diagram-2 me-1"></i> Seksi: <strong>{{ $pos->section->name }}</strong>
+                </div>
+            @endif
 
             <div class="bg-light p-2.5 rounded-3 mb-3 small">
                 <div class="d-flex justify-content-between mb-1">

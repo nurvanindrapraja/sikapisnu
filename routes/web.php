@@ -3,14 +3,17 @@
 use App\Http\Controllers\Admin\AuditLogController as AdminAuditLog;
 use App\Http\Controllers\Admin\CardOrderController as AdminCardOrder;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\EventController as AdminEvent;
 use App\Http\Controllers\Admin\LocationController as AdminLocation;
 use App\Http\Controllers\Admin\MemberController as AdminMember;
 use App\Http\Controllers\Admin\MwcController as AdminMwc;
 use App\Http\Controllers\Admin\OfficerController as AdminOfficer;
 use App\Http\Controllers\Admin\ProfileController as AdminProfile;
 use App\Http\Controllers\Admin\ReportController as AdminReport;
+use App\Http\Controllers\Admin\SectionController as AdminSection;
 use App\Http\Controllers\Admin\VerificationController as AdminVerification;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EventPresenceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Member\CardOrderController as MemberCardOrder;
@@ -31,6 +34,10 @@ Route::get('/daftar-anggota', [HomeController::class, 'daftarAnggota'])->name('d
 Route::get('/verify/{qr_token}', [VerificationController::class, 'verify'])->name('verify.card');
 Route::get('/card/{qr_token}', [VerificationController::class, 'verify']);
 Route::get('/qr-code/{qr_token}.png', [VerificationController::class, 'qrImage'])->name('verify.qr');
+
+// Public Event Presensi Link Route
+Route::get('/presensi/{code}', [EventPresenceController::class, 'showPresenceForm'])->name('event.presence.show');
+Route::post('/presensi/{code}', [EventPresenceController::class, 'submitPresence'])->name('event.presence.submit');
 
 // 2. Auth Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -150,6 +157,21 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/locations', [AdminLocation::class, 'store'])->name('locations.store');
     Route::put('/locations/{id}', [AdminLocation::class, 'update'])->name('locations.update');
     Route::delete('/locations/{id}', [AdminLocation::class, 'destroy'])->name('locations.destroy');
+
+    // Master Seksi PC & PAC ISNU
+    Route::get('/sections', [AdminSection::class, 'index'])->name('sections.index');
+    Route::post('/sections', [AdminSection::class, 'store'])->name('sections.store');
+    Route::put('/sections/{id}', [AdminSection::class, 'update'])->name('sections.update');
+    Route::delete('/sections/{id}', [AdminSection::class, 'destroy'])->name('sections.destroy');
+
+    // Kegiatan & Presensi ISNU
+    Route::get('/events', [AdminEvent::class, 'index'])->name('events.index');
+    Route::post('/events', [AdminEvent::class, 'store'])->name('events.store');
+    Route::get('/events/{id}', [AdminEvent::class, 'show'])->name('events.show');
+    Route::put('/events/{id}', [AdminEvent::class, 'update'])->name('events.update');
+    Route::post('/events/{id}/report', [AdminEvent::class, 'uploadReport'])->name('events.upload_report');
+    Route::delete('/events/{id}/photo/{index}', [AdminEvent::class, 'deletePhoto'])->name('events.delete_photo');
+    Route::delete('/events/{id}', [AdminEvent::class, 'destroy'])->name('events.destroy');
 
     // Laporan & Export
     Route::get('/laporan', [AdminReport::class, 'index'])->name('laporan.index');
