@@ -20,7 +20,7 @@
                         <i class="bi bi-qr-code-scan me-1 text-success"></i> FORM PRESENSI KEHADIRAN
                     </span>
                     <h4 class="fw-bold text-white mb-2">{{ $event->title }}</h4>
-                    <div class="d-flex justify-content-center flex-wrap gap-2 text-white-50 small">
+                    <div class="d-flex justify-content-center flex-wrap gap-2 text-white opacity-75 small">
                         <span><i class="bi bi-geo-alt me-1"></i> {{ ucfirst($event->method) }} - {{ $event->location }}</span>
                         <span>•</span>
                         <span><i class="bi bi-calendar-event me-1"></i> {{ $event->event_date->translatedFormat('l, d F Y') }}</span>

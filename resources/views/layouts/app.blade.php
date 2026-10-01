@@ -104,6 +104,10 @@
             color: white;
         }
 
+        .bg-isnu {
+            background: linear-gradient(135deg, var(--isnu-green), var(--isnu-green-dark)) !important;
+        }
+
         /* Mobile Collapsed Navbar Styling */
         @media (max-width: 991.98px) {
             .navbar-isnu .navbar-collapse {
