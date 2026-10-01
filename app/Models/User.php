@@ -40,6 +40,11 @@ class User extends Authenticatable
         return $this->hasOne(Member::class);
     }
 
+    public function presences()
+    {
+        return $this->hasMany(EventPresence::class, 'user_id');
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';

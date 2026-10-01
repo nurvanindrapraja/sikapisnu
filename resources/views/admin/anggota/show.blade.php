@@ -210,6 +210,32 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 6. Kehadiran Presensi Kegiatan -->
+                <div class="accordion-item border-0 mb-2 rounded-3 bg-light">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button bg-transparent fw-bold text-success collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePresences">
+                            <i class="bi bi-calendar-check-fill me-2"></i> Kehadiran Presensi Kegiatan ({{ $member->presences->count() }})
+                        </button>
+                    </h2>
+                    <div id="collapsePresences" class="accordion-collapse collapse" data-bs-parent="#accordionPotensi">
+                        <div class="accordion-body pt-0">
+                            @forelse($member->presences->load('event') as $p)
+                                <div class="border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="text-dark d-block">{{ $p->event->title ?? 'Kegiatan ISNU' }}</strong>
+                                        <small class="text-muted"><i class="bi bi-clock me-1"></i> {{ $p->attended_at ? $p->attended_at->translatedFormat('d F Y H:i') : '-' }} WIB</small>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill small">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Hadir
+                                    </span>
+                                </div>
+                            @empty
+                                <p class="text-muted small mb-0 fst-italic">Belum ada riwayat presensi kegiatan yang dicatat.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

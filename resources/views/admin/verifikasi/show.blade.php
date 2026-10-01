@@ -244,6 +244,41 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 6. Kehadiran Presensi Kegiatan -->
+                <div class="border rounded-4 bg-light overflow-hidden transition-all">
+                    <button type="button" 
+                            @click="openSection = openSection === 'presence' ? null : 'presence'" 
+                            class="w-100 p-3 bg-light border-0 d-flex align-items-center justify-content-between text-start transition-all">
+                        <div class="d-flex align-items-center gap-2 text-success fw-bold">
+                            <i class="bi bi-calendar-check-fill"></i>
+                            <span>Kehadiran Presensi Kegiatan ({{ $member->presences->count() }})</span>
+                        </div>
+                        <i class="bi text-secondary transition-all fs-6" :class="openSection === 'presence' ? 'bi-chevron-up text-success' : 'bi-chevron-down'"></i>
+                    </button>
+                    <div x-show="openSection === 'presence'" class="px-3 pb-3 border-top bg-white" style="display: none;">
+                        <div class="pt-3">
+                            @forelse($member->presences->load('event') as $p)
+                                <div class="p-3 bg-light rounded-3 mb-2 border-start border-4 border-success d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong class="text-dark fs-6 d-block">{{ $p->event->title ?? 'Kegiatan ISNU' }}</strong>
+                                        <div class="text-secondary small">
+                                            <i class="bi bi-clock me-1"></i> {{ $p->attended_at ? $p->attended_at->translatedFormat('d F Y H:i') : '-' }} WIB
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Hadir
+                                    </span>
+                                </div>
+                            @empty
+                                <div class="text-center py-3 text-muted">
+                                    <i class="bi bi-calendar-x display-6 d-block mb-1 text-secondary opacity-50"></i>
+                                    Belum ada riwayat presensi kegiatan.
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

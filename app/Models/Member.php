@@ -115,6 +115,11 @@ class Member extends Model
         return $this->hasMany(CardOrder::class);
     }
 
+    public function presences()
+    {
+        return $this->hasMany(EventPresence::class, 'member_id');
+    }
+
     public function getPhotoUrlAttribute()
     {
         if ($this->photo) {
