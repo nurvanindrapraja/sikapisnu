@@ -152,6 +152,7 @@
             <form id="formPromoteOfficer" action="#" method="POST" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4" x-data="{
                 selectedMemberId: '',
                 levelChoice: 'PC ISNU',
+                selectedPacId: '',
                 updateAction() {
                     if (this.selectedMemberId) {
                         $el.action = '{{ url('admin/pengurus') }}/' + this.selectedMemberId + '/promote';
@@ -190,7 +191,7 @@
                         <!-- 4.7.2 PAC List dropdown if PAC ISNU selected -->
                         <div class="col-md-6" x-show="levelChoice === 'PAC ISNU'" x-transition>
                             <label class="form-label fw-bold small">List PAC ISNU <span class="text-danger">*</span></label>
-                            <select name="pac_id" class="form-select" :required="levelChoice === 'PAC ISNU'">
+                            <select name="pac_id" class="form-select" x-model="selectedPacId" :required="levelChoice === 'PAC ISNU'">
                                 <option value="">-- Pilih PAC ISNU --</option>
                                 @foreach($pacs as $p)
                                     <option value="{{ $p->id }}">PAC {{ $p->name }} ({{ $p->kecamatan }})</option>
@@ -208,16 +209,17 @@
                             <label class="form-label fw-bold small">Pilih Seksi / Bidang <span class="text-secondary font-normal">(Opsional)</span></label>
                             <select name="section_id" class="form-select">
                                 <option value="">-- Tanpa Seksi (Ketua/Sekretaris/Bendahara) --</option>
-                                <optgroup label="Seksi PC ISNU Kota Surabaya" x-show="levelChoice === 'PC ISNU'">
-                                    @foreach($sections->where('level', 'PC ISNU') as $sec)
-                                        <option value="{{ $sec->id }}">{{ $sec->name }}</option>
-                                    @endforeach
-                                </optgroup>
-                                <optgroup label="Seksi PAC ISNU" x-show="levelChoice === 'PAC ISNU'">
-                                    @foreach($sections->where('level', 'PAC ISNU') as $sec)
-                                        <option value="{{ $sec->id }}">{{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif</option>
-                                    @endforeach
-                                </optgroup>
+                                @foreach($sections as $sec)
+                                    @if($sec->level === 'PC ISNU')
+                                        <option value="{{ $sec->id }}" x-show="levelChoice === 'PC ISNU'">
+                                            {{ $sec->name }}
+                                        </option>
+                                    @else
+                                        <option value="{{ $sec->id }}" x-show="levelChoice === 'PAC ISNU' && selectedPacId == '{{ $sec->pac_id }}'">
+                                            {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                        </option>
+                                    @endif
+                                @endforeach
                             </select>
                             <div class="form-text small">Bagi Ketua/Sekretaris/Bendahara tidak perlu memilih Seksi.</div>
                         </div>

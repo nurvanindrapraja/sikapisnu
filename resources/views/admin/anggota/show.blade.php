@@ -218,7 +218,10 @@
 <!-- Modal Promote Officer -->
 <div class="modal fade" id="modalPromote" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <form action="{{ route('admin.pengurus.promote', $member->id) }}" method="POST" enctype="multipart/form-data" class="modal-content" x-data="{ levelChoice: '{{ (optional($member->activePosition)->level === 'PAC' || optional($member->activePosition)->level === 'PAC ISNU') ? 'PAC ISNU' : 'PC ISNU' }}' }">
+        <form action="{{ route('admin.pengurus.promote', $member->id) }}" method="POST" enctype="multipart/form-data" class="modal-content" x-data="{
+            levelChoice: '{{ (optional($member->activePosition)->level === 'PAC' || optional($member->activePosition)->level === 'PAC ISNU') ? 'PAC ISNU' : 'PC ISNU' }}',
+            selectedPacId: '{{ optional($member->activePosition)->pac_id ?? $member->pac_id ?? '' }}'
+        }">
             @csrf
             <div class="modal-header bg-warning">
                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-award-fill me-1"></i> Form Penetapan Pengurus ISNU</h5>
@@ -239,7 +242,7 @@
                     </div>
                     <div class="col-md-6" x-show="levelChoice === 'PAC ISNU'" x-transition>
                         <label class="form-label fw-semibold">List PAC ISNU <span class="text-danger">*</span></label>
-                        <select name="pac_id" class="form-select" :required="levelChoice === 'PAC ISNU'">
+                        <select name="pac_id" class="form-select" x-model="selectedPacId" :required="levelChoice === 'PAC ISNU'">
                             <option value="">-- Pilih PAC ISNU --</option>
                             @foreach($pacs as $p)
                                 <option value="{{ $p->id }}" {{ (optional($member->activePosition)->pac_id == $p->id || $member->pac_id == $p->id) ? 'selected' : '' }}>PAC {{ $p->name }} (Kec. {{ $p->kecamatan ?? $p->name }})</option>
@@ -250,20 +253,21 @@
                         <label class="form-label fw-semibold">Pilih Seksi / Bidang <span class="text-secondary font-normal">(Opsional)</span></label>
                         <select name="section_id" class="form-select">
                             <option value="">-- Tanpa Seksi (Ketua/Sekretaris/Bendahara) --</option>
-                            <optgroup label="Seksi PC ISNU Kota Surabaya" x-show="levelChoice === 'PC ISNU'">
-                                @foreach($sections->where('level', 'PC ISNU') as $sec)
-                                    <option value="{{ $sec->id }}" {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
+                            @foreach($sections as $sec)
+                                @if($sec->level === 'PC ISNU')
+                                    <option value="{{ $sec->id }}" 
+                                            x-show="levelChoice === 'PC ISNU'"
+                                            {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
                                         {{ $sec->name }}
                                     </option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Seksi PAC ISNU" x-show="levelChoice === 'PAC ISNU'">
-                                @foreach($sections->where('level', 'PAC ISNU') as $sec)
-                                    <option value="{{ $sec->id }}" {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
+                                @else
+                                    <option value="{{ $sec->id }}" 
+                                            x-show="levelChoice === 'PAC ISNU' && selectedPacId == '{{ $sec->pac_id }}'"
+                                            {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
                                         {{ $sec->name }} @if($sec->pac) (PAC {{ $sec->pac->name }}) @endif
                                     </option>
-                                @endforeach
-                            </optgroup>
+                                @endif
+                            @endforeach
                         </select>
                         <div class="form-text small text-muted">Bagi Ketua/Sekretaris/Bendahara tidak perlu memilih Seksi.</div>
                     </div>
