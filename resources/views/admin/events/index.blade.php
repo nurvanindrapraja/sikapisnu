@@ -54,7 +54,7 @@
             this.loading = false;
         });
     }
-}">
+}" @refresh-events.window="fetchEvents()">
     <div class="card-header bg-white border-0 p-3 p-md-4">
         <div class="row g-3 align-items-center">
             <div class="col-md-4">
@@ -98,39 +98,73 @@
 <!-- Modal Tambah Kegiatan Baru -->
 <div class="modal fade" id="modalAddEvent" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-isnu text-white border-0 p-3">
-                <h6 class="modal-title fw-bold"><i class="bi bi-calendar-plus-fill me-1"></i> Rencanakan Kegiatan ISNU Baru</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('admin.events.store') }}" method="POST">
-                @csrf
-                <div class="modal-body p-4" x-data="{
-                    method: 'luring',
-                    eventDate: '{{ date('Y-m-d') }}',
-                    startTime: '08:00',
-                    endTime: '12:00',
-                    updatePresenceTimes() {
-                        if (this.eventDate) {
-                            this.$refs.presenceStart.value = `${this.eventDate}T${this.startTime}`;
-                            this.$refs.presenceEnd.value = `${this.eventDate}T${this.endTime}`;
-                        }
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <form action="{{ route('admin.events.store') }}" method="POST" x-data="{
+                method: 'luring',
+                eventDate: '{{ date('Y-m-d') }}',
+                startTime: '08:00',
+                endTime: '12:00',
+                loading: false,
+                updatePresenceTimes() {
+                    if (this.eventDate) {
+                        this.$refs.presenceStart.value = `${this.eventDate}T${this.startTime}`;
+                        this.$refs.presenceEnd.value = `${this.eventDate}T${this.endTime}`;
                     }
-                }" x-init="updatePresenceTimes()">
+                },
+                async submitForm() {
+                    this.loading = true;
+                    const formData = new FormData(this.$el);
+                    try {
+                        const res = await fetch(this.$el.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: formData
+                        });
+                        const data = await res.json();
+                        this.loading = false;
+                        if (res.ok && data.success) {
+                            const modalEl = document.getElementById('modalAddEvent');
+                            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                            modal.hide();
+                            this.$el.reset();
+                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
+                            window.dispatchEvent(new CustomEvent('refresh-events'));
+                        } else {
+                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
+                        }
+                    } catch (err) {
+                        this.loading = false;
+                        console.error(err);
+                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: 'Terjadi kesalahan server.', type: 'error' } }));
+                    }
+                }
+            }" x-init="updatePresenceTimes()" @submit.prevent="submitForm()">
+                @csrf
+                <div class="modal-header bg-isnu text-white border-0 p-3">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-calendar-plus-fill me-1"></i> Rencanakan Kegiatan ISNU Baru</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
+                </div>
+                <div x-show="loading" class="progress rounded-0" style="height: 3px;" x-cloak>
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
+                </div>
+                <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Nama Kegiatan / Acara <span class="text-danger">*</span></label>
-                            <input type="text" name="title" class="form-control" placeholder="Contoh: Majelis Ta'lim & Halqah Kebangsaan ISNU Kota Surabaya" required>
+                            <input type="text" name="title" class="form-control" placeholder="Contoh: Majelis Ta'lim & Halqah Kebangsaan ISNU Kota Surabaya" required :disabled="loading">
                         </div>
 
                         <div class="col-12">
                             <label class="form-label fw-semibold">Deskripsi Singkat Kegiatan</label>
-                            <textarea name="description" class="form-control" rows="2" placeholder="Tuliskan tujuan / tema / ringkasan agenda kegiatan..."></textarea>
+                            <textarea name="description" class="form-control" rows="2" placeholder="Tuliskan tujuan / tema / ringkasan agenda kegiatan..." :disabled="loading"></textarea>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Metode Pelaksanaan <span class="text-danger">*</span></label>
-                            <select name="method" class="form-select" x-model="method" required>
+                            <select name="method" class="form-select" x-model="method" required :disabled="loading">
                                 <option value="luring">Luring (Tatap Muka / Offline)</option>
                                 <option value="daring">Daring (Virtual / Online)</option>
                             </select>
@@ -138,27 +172,27 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Lokasi Pelaksanaan <span class="text-danger">*</span></label>
-                            <input type="text" name="location" class="form-control" placeholder="Contoh: Gedung PCNU Surabaya / Zoom Meeting" required>
+                            <input type="text" name="location" class="form-control" placeholder="Contoh: Gedung PCNU Surabaya / Zoom Meeting" required :disabled="loading">
                         </div>
 
                         <div class="col-12" x-show="method === 'daring'" x-cloak>
                             <label class="form-label fw-semibold">Link Meeting Daring (Zoom / Google Meet) <span class="text-danger">*</span></label>
-                            <input type="url" name="meeting_link" class="form-control" placeholder="https://us02web.zoom.us/j/... atau https://meet.google.com/..." :required="method === 'daring'">
+                            <input type="url" name="meeting_link" class="form-control" placeholder="https://us02web.zoom.us/j/... atau https://meet.google.com/..." :required="method === 'daring'" :disabled="loading">
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Tanggal Pelaksanaan <span class="text-danger">*</span></label>
-                            <input type="date" name="event_date" class="form-control" x-model="eventDate" @change="updatePresenceTimes()" required>
+                            <input type="date" name="event_date" class="form-control" x-model="eventDate" @change="updatePresenceTimes()" required :disabled="loading">
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Jam Mulai <span class="text-danger">*</span></label>
-                            <input type="time" name="start_time" class="form-control" x-model="startTime" @change="updatePresenceTimes()" required>
+                            <input type="time" name="start_time" class="form-control" x-model="startTime" @change="updatePresenceTimes()" required :disabled="loading">
                         </div>
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Jam Selesai <span class="text-danger">*</span></label>
-                            <input type="time" name="end_time" class="form-control" x-model="endTime" @change="updatePresenceTimes()" required>
+                            <input type="time" name="end_time" class="form-control" x-model="endTime" @change="updatePresenceTimes()" required :disabled="loading">
                         </div>
 
                         <div class="col-12"><hr class="my-2 text-secondary"></div>
@@ -169,17 +203,17 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Waktu Mulai Presensi Aktif <span class="text-danger">*</span></label>
-                            <input type="datetime-local" name="presence_start_at" x-ref="presenceStart" class="form-control" required>
+                            <input type="datetime-local" name="presence_start_at" x-ref="presenceStart" class="form-control" required :disabled="loading">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Waktu Berakhir Presensi <span class="text-danger">*</span></label>
-                            <input type="datetime-local" name="presence_end_at" x-ref="presenceEnd" class="form-control" required>
+                            <input type="datetime-local" name="presence_end_at" x-ref="presenceEnd" class="form-control" required :disabled="loading">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Status Kegiatan <span class="text-danger">*</span></label>
-                            <select name="status" class="form-select" required>
+                            <select name="status" class="form-select" required :disabled="loading">
                                 <option value="planned">Direncana (Mendatang)</option>
                                 <option value="completed">Terlaksana (Selesai)</option>
                                 <option value="cancelled">Dibatalkan</option>
@@ -188,8 +222,12 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0 px-4 py-3">
-                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-isnu-primary fw-bold rounded-pill px-4">Simpan Kegiatan</button>
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-isnu-primary fw-bold rounded-pill px-4" :disabled="loading">
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                        <i class="bi bi-check-lg me-1" x-show="!loading"></i>
+                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Kegiatan'"></span>
+                    </button>
                 </div>
             </form>
         </div>

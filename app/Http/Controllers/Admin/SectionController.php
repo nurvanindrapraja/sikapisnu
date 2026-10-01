@@ -35,7 +35,7 @@ class SectionController extends Controller
         $pacs = Pac::orderBy('name')->get();
 
         if ($request->ajax()) {
-            return view('admin.sections.partials.section_list', compact('sections'));
+            return view('admin.sections.partials.section_list', compact('sections', 'pacs'));
         }
 
         return view('admin.sections.index', compact('sections', 'pacs'));
@@ -57,6 +57,13 @@ class SectionController extends Controller
 
         $section = Section::create($validated);
         AuditLog::record(auth()->id(), 'Master Seksi', "Menambahkan Seksi Baru [{$section->level}]: {$section->name}");
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Seksi '{$section->name}' berhasil ditambahkan.",
+            ]);
+        }
 
         return back()->with('success', "Seksi '{$section->name}' berhasil ditambahkan.");
     }
@@ -80,16 +87,30 @@ class SectionController extends Controller
         $section->update($validated);
         AuditLog::record(auth()->id(), 'Master Seksi', "Memperbarui Seksi [{$section->level}]: {$section->name}");
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Seksi '{$section->name}' berhasil diperbarui.",
+            ]);
+        }
+
         return back()->with('success', "Seksi '{$section->name}' berhasil diperbarui.");
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $section = Section::findOrFail($id);
         $name = $section->name;
         $section->delete();
 
         AuditLog::record(auth()->id(), 'Master Seksi', "Menghapus Seksi: {$name}");
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Seksi '{$name}' berhasil dihapus.",
+            ]);
+        }
 
         return back()->with('success', "Seksi '{$name}' berhasil dihapus.");
     }

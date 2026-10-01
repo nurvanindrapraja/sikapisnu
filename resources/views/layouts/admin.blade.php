@@ -39,6 +39,43 @@
             animation: toastSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
+        .btn-isnu-primary {
+            background: linear-gradient(135deg, var(--isnu-green), var(--isnu-green-dark));
+            color: #ffffff !important;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 4px 14px rgba(0, 104, 55, 0.25);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-isnu-primary:hover, .btn-isnu-primary:focus {
+            background: linear-gradient(135deg, var(--isnu-green-dark), #00361c);
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 104, 55, 0.35);
+        }
+
+        .btn-isnu-outline {
+            border: 2px solid var(--isnu-green);
+            color: var(--isnu-green);
+            font-weight: 600;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .btn-isnu-outline:hover {
+            background-color: var(--isnu-green);
+            color: #ffffff !important;
+        }
+
+        .bg-isnu {
+            background: linear-gradient(135deg, var(--isnu-green), var(--isnu-green-dark));
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #f8fafc;
@@ -378,7 +415,9 @@
             removeToast(id) {
                 this.toasts = this.toasts.filter(t => t.id !== id);
             }
-        }" x-init="
+        }"
+        @show-toast.window="addToast($event.detail.title, $event.detail.message, $event.detail.type)"
+        x-init="
         @if (session('success'))
             addToast('Berhasil!', '{{ session('success') }}');
         @endif

@@ -64,6 +64,13 @@ class EventController extends Controller
 
         AuditLog::record(auth()->id(), 'Tambah Kegiatan', "Menambahkan Kegiatan: {$event->title}");
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Kegiatan '{$event->title}' berhasil dibuat. Link presensi siap diakses.",
+            ]);
+        }
+
         return back()->with('success', "Kegiatan '{$event->title}' berhasil dibuat. Link presensi siap diakses.");
     }
 
@@ -96,6 +103,13 @@ class EventController extends Controller
         $event->update($validated);
 
         AuditLog::record(auth()->id(), 'Edit Kegiatan', "Memperbarui Kegiatan: {$event->title}");
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Data kegiatan '{$event->title}' berhasil diperbarui.",
+            ]);
+        }
 
         return back()->with('success', "Data kegiatan '{$event->title}' berhasil diperbarui.");
     }
@@ -157,7 +171,7 @@ class EventController extends Controller
         return back()->with('success', 'Foto dokumentasi berhasil dihapus.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $event = Event::findOrFail($id);
         $title = $event->title;
@@ -179,6 +193,13 @@ class EventController extends Controller
         $event->delete();
 
         AuditLog::record(auth()->id(), 'Hapus Kegiatan', "Menghapus kegiatan: {$title}");
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Kegiatan '{$title}' berhasil dihapus.",
+            ]);
+        }
 
         return redirect()->route('admin.events.index')->with('success', "Kegiatan '{$title}' berhasil dihapus.");
     }
