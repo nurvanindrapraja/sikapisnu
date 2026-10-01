@@ -128,7 +128,7 @@
 
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Asal Utusan / PAC ISNU / Instansi <span class="text-danger">*</span></label>
-                                        <input type="text" name="institution_or_pac" class="form-control" value="{{ old('institution_or_pac', $member?->pac?->name ? 'PAC ISNU '.$member->pac->name : ($member?->mwc?->name ?? '')) }}" placeholder="Contoh: PAC ISNU Gayungan / Universitas Airlangga / Umum" required>
+                                        <input type="text" name="institution_or_pac" class="form-control" value="{{ old('institution_or_pac', $defaultInstitution) }}" placeholder="Contoh: PAC ISNU Gayungan / Universitas Airlangga / Umum" required>
                                     </div>
 
                                     <div class="mb-4">

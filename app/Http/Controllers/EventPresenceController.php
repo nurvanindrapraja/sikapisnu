@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\EventPresence;
 use App\Models\Member;
+use App\Models\Pac;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,7 +19,49 @@ class EventPresenceController extends Controller
         $message = $event->presence_message;
 
         $user = Auth::user();
-        $member = $user ? $user->member : null;
+        $member = null;
+        $defaultInstitution = '';
+
+        if ($user) {
+            $member = Member::where('user_id', $user->id)
+                ->with(['pac', 'mwc', 'activePosition.pac', 'activePosition.section'])
+                ->first();
+
+            if ($member) {
+                $pos = $member->activePosition;
+                if ($pos) {
+                    if (in_array($pos->level, ['PC ISNU', 'Kota', 'PC'])) {
+                        $defaultInstitution = 'PC ISNU Kota Surabaya';
+                        if ($pos->section) {
+                            $defaultInstitution .= ' - '.$pos->section->name;
+                        }
+                    } elseif (in_array($pos->level, ['PAC ISNU', 'PAC'])) {
+                        $pacName = $pos->pac ? $pos->pac->name : ($member->pac ? $member->pac->name : $member->kecamatan);
+                        $defaultInstitution = 'PAC ISNU '.$pacName;
+                        if ($pos->section) {
+                            $defaultInstitution .= ' - '.$pos->section->name;
+                        }
+                    } else {
+                        $defaultInstitution = 'PC ISNU Kota Surabaya';
+                    }
+                } else {
+                    if ($member->pac) {
+                        $defaultInstitution = 'PAC ISNU '.$member->pac->name;
+                    } elseif ($member->kecamatan) {
+                        $pac = Pac::where('kecamatan', 'like', "%{$member->kecamatan}%")
+                            ->orWhere('name', 'like', "%{$member->kecamatan}%")
+                            ->first();
+                        $defaultInstitution = 'PAC ISNU '.($pac ? $pac->name : ucfirst(strtolower($member->kecamatan)));
+                    } elseif ($member->mwc) {
+                        $defaultInstitution = 'MWC NU '.$member->mwc->name;
+                    } else {
+                        $defaultInstitution = 'PC ISNU Kota Surabaya';
+                    }
+                }
+            } else {
+                $defaultInstitution = 'PC ISNU Kota Surabaya';
+            }
+        }
 
         $alreadyAttended = false;
         if ($user && $member) {
@@ -30,7 +73,7 @@ class EventPresenceController extends Controller
                 ->exists();
         }
 
-        return view('events.presence', compact('event', 'status', 'message', 'user', 'member', 'alreadyAttended'));
+        return view('events.presence', compact('event', 'status', 'message', 'user', 'member', 'alreadyAttended', 'defaultInstitution'));
     }
 
     public function submitPresence(Request $request, $code)
