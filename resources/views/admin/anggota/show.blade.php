@@ -247,6 +247,27 @@
                         </select>
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label fw-semibold">Pilih Seksi / Bidang <span class="text-secondary font-normal">(Opsional)</span></label>
+                        <select name="section_id" class="form-select">
+                            <option value="">-- Tanpa Seksi (Ketua/Sekretaris/Bendahara) --</option>
+                            <optgroup label="Seksi PC ISNU Kota Surabaya" x-show="levelChoice === 'PC ISNU'">
+                                @foreach($sections->where('level', 'PC ISNU') as $sec)
+                                    <option value="{{ $sec->id }}" {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
+                                        {{ $sec->name }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                            <optgroup label="Seksi PAC ISNU" x-show="levelChoice === 'PAC ISNU'">
+                                @foreach($sections->where('level', 'PAC ISNU') as $sec)
+                                    <option value="{{ $sec->id }}" {{ optional($member->activePosition)->section_id == $sec->id ? 'selected' : '' }}>
+                                        {{ $sec->name }} @if($sec->pac) (PAC {{ $sec->pac->name }}) @endif
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        </select>
+                        <div class="form-text small text-muted">Bagi Ketua/Sekretaris/Bendahara tidak perlu memilih Seksi.</div>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold">Periode Kepengurusan <span class="text-danger">*</span></label>
                         <input type="text" name="period" class="form-control" placeholder="Contoh: 2026-2030" value="{{ optional($member->activePosition)->period ?? '2026-2030' }}" required>
                     </div>

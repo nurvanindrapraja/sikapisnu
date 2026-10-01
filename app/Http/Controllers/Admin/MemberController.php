@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\Mwc;
 use App\Models\Pac;
+use App\Models\Section;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -122,8 +123,9 @@ class MemberController extends Controller
 
         $mwcs = Mwc::orderBy('name')->get();
         $pacs = Pac::orderBy('name')->get();
+        $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
 
-        return view('admin.anggota.show', compact('member', 'mwcs', 'pacs'));
+        return view('admin.anggota.show', compact('member', 'mwcs', 'pacs', 'sections'));
     }
 
     public function edit($id)
