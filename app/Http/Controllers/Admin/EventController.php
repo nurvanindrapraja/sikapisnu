@@ -63,7 +63,16 @@ class EventController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('membership_status', $request->status);
+            $status = strtolower($request->status);
+            if ($status === 'anggota' || $status === 'terverifikasi') {
+                $query->whereIn('membership_status', ['terverifikasi', 'anggota']);
+            } elseif ($status === 'pengurus') {
+                $query->where('membership_status', 'pengurus');
+            } elseif (str_contains($status, 'calon') || $status === 'menunggu_verifikasi') {
+                $query->whereIn('membership_status', ['calon', 'menunggu_verifikasi']);
+            } else {
+                $query->where('membership_status', $request->status);
+            }
         }
 
         if ($request->filled('pac_id')) {
