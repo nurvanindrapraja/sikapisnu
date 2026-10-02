@@ -335,6 +335,11 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.presensi.rekap') }}" class="sidebar-link {{ request()->routeIs('admin.presensi.rekap') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-graph-up-arrow"></i> Rekap Presensi Kader
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.locations.index') }}" class="sidebar-link {{ request()->routeIs('admin.locations.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-geo-alt-fill"></i> Master Lokasi
                 </a>

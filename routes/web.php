@@ -167,6 +167,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Kegiatan & Presensi ISNU
     Route::get('/events', [AdminEvent::class, 'index'])->name('events.index');
     Route::post('/events', [AdminEvent::class, 'store'])->name('events.store');
+    Route::get('/presensi/rekap', [AdminEvent::class, 'rekapPresensi'])->name('presensi.rekap');
+    Route::get('/presensi/detail-kader/{member_id}', [AdminEvent::class, 'detailPresensiKader'])->name('presensi.detail_kader');
     Route::get('/events/{id}', [AdminEvent::class, 'show'])->name('events.show');
     Route::put('/events/{id}', [AdminEvent::class, 'update'])->name('events.update');
     Route::post('/events/{id}/report', [AdminEvent::class, 'uploadReport'])->name('events.upload_report');
