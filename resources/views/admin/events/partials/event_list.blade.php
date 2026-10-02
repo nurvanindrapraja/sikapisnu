@@ -37,7 +37,7 @@
                     </td>
                     <td>
                         @if($evt->method === 'daring')
-                            <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-2.5 py-1 rounded-pill d-inline-block mb-1">
+                            <span class="badge px-2.5 py-1 rounded-pill d-inline-block mb-1 fw-semibold" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
                                 <i class="bi bi-camera-video-fill me-1"></i> Daring (Online)
                             </span>
                             @if($evt->meeting_link)
@@ -46,7 +46,7 @@
                                 </a>
                             @endif
                         @else
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill d-inline-block mb-1">
+                            <span class="badge px-2.5 py-1 rounded-pill d-inline-block mb-1 fw-semibold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac;">
                                 <i class="bi bi-geo-alt-fill me-1"></i> Luring (Offline)
                             </span>
                             <small class="d-block text-dark font-semibold">{{ $evt->location }}</small>
