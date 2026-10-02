@@ -259,12 +259,12 @@ class SikapIsnuTest extends TestCase
             'name' => 'Testing User CRUD Updated',
             'email' => 'testusercrud@isnusurabaya.or.id',
             'phone' => '081234567899',
-            'role' => 'admin_mwc',
+            'role' => 'admin_kota',
             'is_active' => true,
         ]);
 
         $updateResponse->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertDatabaseHas('users', ['name' => 'Testing User CRUD Updated', 'role' => 'admin_mwc']);
+        $this->assertDatabaseHas('users', ['name' => 'Testing User CRUD Updated', 'role' => 'admin_kota']);
 
         // 4. Toggle Status
         $toggleResponse = $this->actingAs($admin)->patchJson('/admin/users/'.$newUser->id.'/toggle-status');

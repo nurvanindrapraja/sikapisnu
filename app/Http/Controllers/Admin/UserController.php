@@ -49,7 +49,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:30|unique:users,phone',
-            'role' => 'required|in:super_admin,admin_kota,admin_mwc,admin_pac,member',
+            'role' => 'required|in:super_admin,admin_kota,admin_pac,member',
             'password' => 'required|string|min:8',
             'is_active' => 'nullable|boolean',
         ]);
@@ -78,7 +78,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,'.$id,
             'phone' => 'nullable|string|max:30|unique:users,phone,'.$id,
-            'role' => 'required|in:super_admin,admin_kota,admin_mwc,admin_pac,member',
+            'role' => 'required|in:super_admin,admin_kota,admin_pac,member',
             'password' => 'nullable|string|min:8',
             'is_active' => 'nullable|boolean',
         ]);

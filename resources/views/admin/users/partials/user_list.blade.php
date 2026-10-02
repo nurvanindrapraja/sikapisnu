@@ -30,15 +30,13 @@
                         @php
                             $roleName = match($u->role) {
                                 'super_admin' => 'Super Admin',
-                                'admin_kota' => 'Admin PC Kota',
-                                'admin_mwc' => 'Admin MWC',
+                                'admin_kota' => 'Admin PC ISNU',
                                 'admin_pac' => 'Admin PAC',
                                 default => 'Anggota (Member)',
                             };
                             $roleBadge = match($u->role) {
                                 'super_admin' => 'bg-danger text-white',
                                 'admin_kota' => 'bg-success text-white',
-                                'admin_mwc' => 'bg-primary text-white',
                                 'admin_pac' => 'bg-info text-dark',
                                 default => 'bg-secondary-subtle text-secondary border',
                             };
@@ -122,15 +120,13 @@
         @php
             $roleName = match($u->role) {
                 'super_admin' => 'Super Admin',
-                'admin_kota' => 'Admin PC Kota',
-                'admin_mwc' => 'Admin MWC',
+                'admin_kota' => 'Admin PC ISNU',
                 'admin_pac' => 'Admin PAC',
                 default => 'Anggota (Member)',
             };
             $roleBadge = match($u->role) {
                 'super_admin' => 'bg-danger text-white',
                 'admin_kota' => 'bg-success text-white',
-                'admin_mwc' => 'bg-primary text-white',
                 'admin_pac' => 'bg-info text-dark',
                 default => 'bg-secondary-subtle text-secondary border',
             };
