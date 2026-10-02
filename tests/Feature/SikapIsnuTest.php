@@ -214,6 +214,22 @@ class SikapIsnuTest extends TestCase
         $this->assertDatabaseMissing('members', ['id' => $memberId]);
     }
 
+    public function test_admin_can_view_presensi_rekap_and_kader_detail()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::first();
+
+        $rekapResponse = $this->actingAs($admin)->get('/admin/presensi/rekap');
+        $rekapResponse->assertStatus(200);
+        $rekapResponse->assertSee('Rekap Tingkat Kehadiran Kegiatan');
+
+        $detailResponse = $this->actingAs($admin)->get('/admin/presensi/detail-kader/'.$member->id);
+        $detailResponse->assertStatus(200);
+        $detailResponse->assertJson([
+            'success' => true,
+        ]);
+    }
+
     public function test_admin_location_duplicate_validation_and_deletion()
     {
         $admin = User::where('role', 'admin_kota')->first();

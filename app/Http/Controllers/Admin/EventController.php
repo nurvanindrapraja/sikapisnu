@@ -73,6 +73,10 @@ class EventController extends Controller
         $sort = $request->get('sort', 'most_active');
         if ($sort === 'most_active') {
             $query->orderByDesc('presences_count')->latest();
+        } elseif ($sort === 'least_active') {
+            $query->orderBy('presences_count', 'asc')->latest();
+        } elseif ($sort === 'name_asc') {
+            $query->orderBy('full_name', 'asc');
         } else {
             $query->latest();
         }
@@ -80,17 +84,15 @@ class EventController extends Controller
         $members = $query->paginate(15)->withQueryString();
         $pacs = Pac::orderBy('name')->get();
 
-        $stats = [
-            'total_kader_hadir' => Member::has('presences')->count(),
-            'total_presences' => EventPresence::count(),
-            'top_member' => Member::withCount('presences')->orderByDesc('presences_count')->first(),
-        ];
+        $totalKaderCount = Member::has('presences')->count();
+        $totalPresensiCount = EventPresence::count();
+        $topParticipant = Member::withCount('presences')->orderByDesc('presences_count')->first();
 
         if ($request->ajax()) {
             return view('admin.presensi.partials.rekap_list', compact('members'));
         }
 
-        return view('admin.presensi.rekap', compact('members', 'pacs', 'stats'));
+        return view('admin.presensi.rekap', compact('members', 'pacs', 'totalKaderCount', 'totalPresensiCount', 'topParticipant'));
     }
 
     public function detailPresensiKader($member_id)
@@ -109,21 +111,21 @@ class EventController extends Controller
             'success' => true,
             'member' => [
                 'id' => $member->id,
-                'full_name' => $member->full_name,
-                'member_number' => $member->member_number ?? 'NIK: '.$member->nik,
+                'name' => $member->full_name ?? $member->name,
+                'nik' => $member->nik ?? $member->member_number,
                 'photo_url' => $member->photo_url,
-                'membership_status' => $member->membership_status,
-                'position_title' => $member->activePosition ? $member->activePosition->position_title : null,
-                'pac_name' => $member->pac ? $member->pac->name : ($member->kecamatan ? $member->kecamatan : '-'),
-                'presences_count' => $member->presences->count(),
+                'membership_status' => ucfirst($member->membership_status ?? 'Anggota'),
+                'position_title' => $member->activePosition ? ($member->activePosition->position_name ?? 'Pengurus') : null,
+                'pac_name' => $member->pac ? $member->pac->name : ($member->activePosition && $member->activePosition->pac ? $member->activePosition->pac->name : '-'),
+                'total_presences' => $member->presences->count(),
             ],
             'presences' => $member->presences->map(function ($p) {
                 return [
                     'id' => $p->id,
                     'event_title' => $p->event->title ?? 'Kegiatan ISNU',
-                    'event_date' => $p->event ? $p->event->event_date->translatedFormat('d F Y') : '-',
-                    'attended_at' => $p->attended_at ? $p->attended_at->translatedFormat('d F Y H:i') : '-',
-                    'method' => $p->event->method ?? 'luring',
+                    'presence_date' => $p->attended_at ? $p->attended_at->format('d/m/Y') : ($p->created_at ? $p->created_at->format('d/m/Y') : '-'),
+                    'presence_time' => $p->attended_at ? $p->attended_at->format('H:i').' WIB' : ($p->created_at ? $p->created_at->format('H:i').' WIB' : '-'),
+                    'method' => ucfirst($p->event->method ?? 'luring'),
                     'location' => $p->event->location ?? '-',
                     'institution_or_pac' => $p->institution_or_pac,
                     'notes' => $p->notes,
