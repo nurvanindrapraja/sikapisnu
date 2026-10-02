@@ -356,6 +356,13 @@
                     <i class="bi bi-shield-lock-fill"></i> Audit Log System
                 </a>
             </li>
+            @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota()))
+            <li>
+                <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-gear"></i> Kelola Akun User
+                </a>
+            </li>
+            @endif
 
             <li class="sidebar-header mt-3">Situs & Akun</li>
             <li>

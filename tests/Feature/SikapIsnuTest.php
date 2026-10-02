@@ -230,6 +230,53 @@ class SikapIsnuTest extends TestCase
         ]);
     }
 
+    public function test_admin_user_crud()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+
+        // 1. List users
+        $response = $this->actingAs($admin)->get('/admin/users');
+        $response->assertStatus(200);
+        $response->assertSee('Manajemen Akun User');
+
+        // 2. Create User
+        $createResponse = $this->actingAs($admin)->postJson('/admin/users', [
+            'name' => 'Testing User CRUD',
+            'email' => 'testusercrud@isnusurabaya.or.id',
+            'phone' => '089988776655',
+            'role' => 'admin_pac',
+            'password' => 'secret12345',
+            'is_active' => true,
+        ]);
+
+        $createResponse->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertDatabaseHas('users', ['email' => 'testusercrud@isnusurabaya.or.id']);
+
+        $newUser = User::where('email', 'testusercrud@isnusurabaya.or.id')->first();
+
+        // 3. Update User
+        $updateResponse = $this->actingAs($admin)->putJson('/admin/users/'.$newUser->id, [
+            'name' => 'Testing User CRUD Updated',
+            'email' => 'testusercrud@isnusurabaya.or.id',
+            'phone' => '081234567899',
+            'role' => 'admin_mwc',
+            'is_active' => true,
+        ]);
+
+        $updateResponse->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertDatabaseHas('users', ['name' => 'Testing User CRUD Updated', 'role' => 'admin_mwc']);
+
+        // 4. Toggle Status
+        $toggleResponse = $this->actingAs($admin)->patchJson('/admin/users/'.$newUser->id.'/toggle-status');
+        $toggleResponse->assertStatus(200)->assertJson(['success' => true, 'is_active' => false]);
+        $this->assertDatabaseHas('users', ['id' => $newUser->id, 'is_active' => false]);
+
+        // 5. Delete User
+        $deleteResponse = $this->actingAs($admin)->deleteJson('/admin/users/'.$newUser->id);
+        $deleteResponse->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertSoftDeleted('users', ['id' => $newUser->id]);
+    }
+
     public function test_admin_location_duplicate_validation_and_deletion()
     {
         $admin = User::where('role', 'admin_kota')->first();

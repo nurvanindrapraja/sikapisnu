@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\OfficerController as AdminOfficer;
 use App\Http\Controllers\Admin\ProfileController as AdminProfile;
 use App\Http\Controllers\Admin\ReportController as AdminReport;
 use App\Http\Controllers\Admin\SectionController as AdminSection;
+use App\Http\Controllers\Admin\UserController as AdminUser;
 use App\Http\Controllers\Admin\VerificationController as AdminVerification;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventPresenceController;
@@ -181,4 +182,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Audit Log
     Route::get('/audit-log', [AdminAuditLog::class, 'index'])->name('audit.index');
+
+    // Manajemen Akun User
+    Route::get('/users', [AdminUser::class, 'index'])->name('users.index');
+    Route::post('/users', [AdminUser::class, 'store'])->name('users.store');
+    Route::put('/users/{id}', [AdminUser::class, 'update'])->name('users.update');
+    Route::patch('/users/{id}/toggle-status', [AdminUser::class, 'toggleStatus'])->name('users.toggle_status');
+    Route::delete('/users/{id}', [AdminUser::class, 'destroy'])->name('users.destroy');
 });
