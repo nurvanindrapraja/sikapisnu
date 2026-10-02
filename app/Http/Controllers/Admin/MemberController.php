@@ -20,6 +20,19 @@ class MemberController extends Controller
     {
         $query = Member::with(['user', 'mwc', 'pac', 'activePosition']);
 
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId);
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+
         // Search Multi-Parameter
         if ($request->filled('search')) {
             $search = $request->search;
@@ -121,6 +134,10 @@ class MemberController extends Controller
             'statusHistories.changer',
         ])->findOrFail($id);
 
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
         $mwcs = Mwc::orderBy('name')->get();
         $pacs = Pac::orderBy('name')->get();
         $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
@@ -131,6 +148,10 @@ class MemberController extends Controller
     public function edit($id)
     {
         $member = Member::with(['user', 'mwc', 'pac', 'educations', 'organizations', 'employments', 'nuTrainings', 'certifications'])->findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
         $mwcs = Mwc::orderBy('name')->get();
 
         return view('admin.anggota.edit', compact('member', 'mwcs'));
@@ -449,6 +470,10 @@ class MemberController extends Controller
     {
         $member = Member::findOrFail($id);
 
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'nik' => ['nullable', 'string', 'max:20', Rule::unique('members', 'nik')->ignore($member->id)->withoutTrashed()],
@@ -492,6 +517,11 @@ class MemberController extends Controller
     public function destroy($id)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
         $name = $member->full_name;
 
         if ($member->user) {
@@ -505,6 +535,19 @@ class MemberController extends Controller
     public function trash(Request $request)
     {
         $query = Member::onlyTrashed()->with(['user', 'mwc']);
+
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId);
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -529,6 +572,11 @@ class MemberController extends Controller
     public function restore($id)
     {
         $member = Member::onlyTrashed()->findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
         $name = $member->full_name;
 
         // Requirement 5.7: Check email duplicate against active members
@@ -553,6 +601,11 @@ class MemberController extends Controller
     public function forceDelete($id)
     {
         $member = Member::onlyTrashed()->findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
         $name = $member->full_name;
 
         if ($member->user_id) {
@@ -575,6 +628,10 @@ class MemberController extends Controller
             'nuTrainings',
             'certifications',
         ])->findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
 
         $currentUser = auth()->user();
         $downloadTimestamp = now()->translatedFormat('d F Y, H:i:s').' WIB';

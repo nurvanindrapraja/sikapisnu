@@ -74,4 +74,43 @@ class User extends Authenticatable
     {
         return $this->role === 'member';
     }
+
+    public function getManagedPacId(): ?int
+    {
+        if ($this->member?->pac_id) {
+            return $this->member->pac_id;
+        }
+
+        if ($this->member?->activePosition?->pac_id) {
+            return $this->member->activePosition->pac_id;
+        }
+
+        return null;
+    }
+
+    public function canManageMember(?Member $member): bool
+    {
+        if (! $member) {
+            return false;
+        }
+
+        if ($this->isSuperAdmin() || $this->isAdminKota()) {
+            return true;
+        }
+
+        if ($this->isAdminPac()) {
+            $pacId = $this->getManagedPacId();
+            if ($pacId && $member->pac_id) {
+                return (int) $member->pac_id === (int) $pacId;
+            }
+
+            if ($this->member?->kecamatan && $member->kecamatan) {
+                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
+            }
+
+            return false;
+        }
+
+        return false;
+    }
 }

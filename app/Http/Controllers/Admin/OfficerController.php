@@ -22,6 +22,19 @@ class OfficerController extends Controller
         $query = Member::where('membership_status', 'pengurus')
             ->with(['activePosition.pac', 'activePosition.section', 'activeCard']);
 
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+
         // Search Text
         if ($request->filled('search')) {
             $search = $request->search;
@@ -64,9 +77,21 @@ class OfficerController extends Controller
         $officers = $query->latest()->paginate(15)->withQueryString();
         $pacs = Pac::orderBy('name')->get();
         $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
-        $eligibleMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->orderBy('full_name')
-            ->get();
+
+        $eligibleQuery = Member::whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $eligibleQuery->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+        $eligibleMembers = $eligibleQuery->orderBy('full_name')->get();
 
         if ($request->ajax()) {
             return view('admin.pengurus.partials.officer_list', compact('officers'));
@@ -88,6 +113,10 @@ class OfficerController extends Controller
         ]);
 
         $member = Member::findOrFail($member_id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola pengurus di luar wilayah PAC Anda.');
+        }
 
         DB::beginTransaction();
         try {
@@ -170,6 +199,10 @@ class OfficerController extends Controller
     public function demote(Request $request, $member_id)
     {
         $member = Member::findOrFail($member_id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola pengurus di luar wilayah PAC Anda.');
+        }
 
         DB::beginTransaction();
         try {

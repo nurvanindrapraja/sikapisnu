@@ -6,6 +6,7 @@ use App\Models\Card;
 use App\Models\CardOrder;
 use App\Models\CustomLocation;
 use App\Models\Member;
+use App\Models\Pac;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -275,6 +276,98 @@ class SikapIsnuTest extends TestCase
         $deleteResponse = $this->actingAs($admin)->deleteJson('/admin/users/'.$newUser->id);
         $deleteResponse->assertStatus(200)->assertJson(['success' => true]);
         $this->assertSoftDeleted('users', ['id' => $newUser->id]);
+    }
+
+    public function test_admin_pac_scoped_permissions()
+    {
+        $pac1 = Pac::first();
+        $pac2 = Pac::skip(1)->first();
+
+        $adminPacUser = User::create([
+            'name' => 'Admin PAC Rungkut',
+            'email' => 'adminpac1@example.com',
+            'phone' => '081122334455',
+            'role' => 'admin_pac',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+
+        $adminPacMember = Member::create([
+            'user_id' => $adminPacUser->id,
+            'full_name' => 'Admin PAC Rungkut',
+            'nik' => '3578010101010001',
+            'phone' => '081122334455',
+            'email' => 'adminpac1@example.com',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Rungkut No. 1',
+            'kecamatan' => $pac1->name,
+            'kelurahan' => 'Rungkut',
+            'occupation' => 'Dosen',
+            'pac_id' => $pac1->id,
+            'membership_status' => 'pengurus',
+        ]);
+
+        $user1 = User::create([
+            'name' => 'Member PAC 1',
+            'email' => 'memberpac1@example.com',
+            'phone' => '081122334456',
+            'role' => 'member',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+
+        $memberInPac1 = Member::create([
+            'user_id' => $user1->id,
+            'full_name' => 'Member PAC 1',
+            'nik' => '3578010101010002',
+            'phone' => '081122334456',
+            'email' => 'memberpac1@example.com',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1992-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Rungkut No. 2',
+            'kecamatan' => $pac1->name,
+            'kelurahan' => 'Rungkut',
+            'occupation' => 'Guru',
+            'pac_id' => $pac1->id,
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        $user2 = User::create([
+            'name' => 'Member PAC 2',
+            'email' => 'memberpac2@example.com',
+            'phone' => '081122334457',
+            'role' => 'member',
+            'password' => 'password123',
+            'is_active' => true,
+        ]);
+
+        $memberInPac2 = Member::create([
+            'user_id' => $user2->id,
+            'full_name' => 'Member PAC 2',
+            'nik' => '3578010101010003',
+            'phone' => '081122334457',
+            'email' => 'memberpac2@example.com',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1993-01-01',
+            'gender' => 'P',
+            'address' => 'Jl. Wonokromo No. 1',
+            'kecamatan' => $pac2->name,
+            'kelurahan' => 'Wonokromo',
+            'occupation' => 'Pengusaha',
+            'pac_id' => $pac2->id,
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        // Admin PAC can view member in their own PAC
+        $response1 = $this->actingAs($adminPacUser)->get('/admin/anggota/'.$memberInPac1->id);
+        $response1->assertStatus(200);
+
+        // Admin PAC cannot view/manage member outside their PAC (gets 403)
+        $response2 = $this->actingAs($adminPacUser)->get('/admin/anggota/'.$memberInPac2->id);
+        $response2->assertStatus(403);
     }
 
     public function test_admin_location_duplicate_validation_and_deletion()

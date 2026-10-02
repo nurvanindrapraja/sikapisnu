@@ -20,6 +20,19 @@ class VerificationController extends Controller
 
         $query = Member::with(['user', 'mwc', 'pac']);
 
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId);
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+
         if ($status !== 'all') {
             $query->where('membership_status', $status);
         }
@@ -57,12 +70,20 @@ class VerificationController extends Controller
             'statusHistories.changer',
         ])->findOrFail($id);
 
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        }
+
         return view('admin.verifikasi.show', compact('member'));
     }
 
     public function verifyAccount(Request $request, $id)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        }
 
         DB::beginTransaction();
         try {
@@ -108,6 +129,10 @@ class VerificationController extends Controller
     public function approve(Request $request, $id)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        }
 
         DB::beginTransaction();
         try {
@@ -196,6 +221,11 @@ class VerificationController extends Controller
         ]);
 
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        }
+
         $oldStatus = $member->membership_status;
 
         $member->membership_status = 'perbaikan';
@@ -232,6 +262,11 @@ class VerificationController extends Controller
         ]);
 
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        }
+
         $oldStatus = $member->membership_status;
 
         $member->membership_status = 'ditolak';

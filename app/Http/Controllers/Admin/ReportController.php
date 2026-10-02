@@ -21,6 +21,19 @@ class ReportController extends Controller
 
         $query = Member::with(['mwc', 'pac', 'educations', 'employments', 'nuTrainings', 'certifications', 'activePosition']);
 
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId);
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+
         if ($type === 'pengurus') {
             $query->where('membership_status', 'pengurus');
         } elseif ($type === 'terverifikasi') {

@@ -51,6 +51,19 @@ class EventController extends Controller
                 $q->with('event')->latest('attended_at');
             }]);
 
+        if (auth()->user()->isAdminPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $kecamatan = auth()->user()->member?->kecamatan;
+            $query->where(function ($q) use ($pacId, $kecamatan) {
+                if ($pacId) {
+                    $q->where('pac_id', $pacId);
+                }
+                if ($kecamatan) {
+                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                }
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -115,6 +128,13 @@ class EventController extends Controller
                 $q->with('event')->latest('attended_at');
             },
         ])->findOrFail($member_id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki wewenang untuk melihat detail kader di luar wilayah PAC Anda.',
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
