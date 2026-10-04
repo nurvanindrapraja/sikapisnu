@@ -100,6 +100,25 @@
                             <form action="{{ route('event.presence.submit', $event->unique_code) }}" method="POST" x-data="{ loading: false }" @submit="loading = true">
                                 @csrf
                                 <div class="space-y-4">
+                                    @guest
+                                        <div class="alert alert-info border-info-subtle bg-info-subtle text-dark rounded-4 p-3 mb-4 shadow-sm">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-flex align-items-center gap-2.5">
+                                                    <div class="bg-info text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+                                                        <i class="bi bi-person-lock fs-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <strong class="d-block text-dark small">Sudah Memiliki Akun SIKAP ISNU?</strong>
+                                                        <span class="text-secondary extra-small">Silakan <a href="{{ route('login') }}" class="fw-bold text-info text-decoration-underline">Login terlebih dahulu</a> sebelum mengisi form agar presensi ini otomatis terhubung dengan profil Anda.</span>
+                                                    </div>
+                                                </div>
+                                                <a href="{{ route('login') }}" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1.5 fw-bold shadow-sm ms-auto ms-sm-0">
+                                                    <i class="bi bi-box-arrow-in-right me-1"></i> Login Akun
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endguest
+
                                     @if($member)
                                         <div class="alert alert-success-subtle border border-success-subtle rounded-3 p-3 d-flex align-items-center gap-3 mb-4">
                                             <img src="{{ $member->photo_url }}" alt="" class="rounded-circle object-fit-cover border border-success" style="width: 48px; height: 48px;">
