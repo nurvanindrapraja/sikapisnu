@@ -62,18 +62,18 @@
 <!-- Mobile View: Card List View (Only Visible on Mobile) -->
 <div class="d-md-none">
     @forelse($members as $index => $m)
-        <div class="card border border-light-subtle shadow-sm rounded-4 p-3 mb-3">
-            <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
-                <div class="d-flex align-items-center gap-2">
-                    <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover border" style="width: 44px; height: 44px;">
-                    <div>
-                        <strong class="d-block text-dark lh-sm" style="font-size: 0.95rem;">{{ $m->full_name }}</strong>
-                        <small class="font-monospace text-success fw-bold">{{ $m->member_number ?? '-' }}</small>
-                    </div>
+        <div class="card border border-light-subtle shadow-sm rounded-4 p-3 mb-3 position-relative">
+            <!-- Badge Status di Pojok Kanan Atas -->
+            <span class="badge position-absolute top-0 end-0 m-3 @if($m->membership_status === 'menunggu_verifikasi') bg-secondary text-white @elseif($m->membership_status === 'terverifikasi') bg-success text-white @elseif($m->membership_status === 'pengurus') bg-warning text-dark @elseif($m->membership_status === 'perbaikan') bg-info text-white @elseif($m->membership_status === 'ditolak') bg-danger text-white @else bg-secondary text-white @endif px-2 py-1 text-wrap" style="max-width: 120px; font-size: 0.65rem; z-index: 1;">
+                {{ strtoupper($m->membership_status) }}
+            </span>
+
+            <div class="d-flex align-items-start gap-3 mb-3" style="padding-right: 110px;">
+                <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover border flex-shrink-0" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; border-radius: 50%;">
+                <div class="flex-grow-1 min-w-0" style="word-break: break-word; overflow-wrap: break-word;">
+                    <h6 class="fw-bold text-dark mb-1 text-wrap text-break lh-sm" style="font-size: 0.95rem;">{{ $m->full_name }}</h6>
+                    <small class="font-monospace text-success fw-bold d-block text-break">{{ $m->member_number ?? '-' }}</small>
                 </div>
-                <span class="badge @if($m->membership_status === 'menunggu_verifikasi') bg-secondary text-white @elseif($m->membership_status === 'terverifikasi') bg-success text-white @elseif($m->membership_status === 'pengurus') bg-warning text-dark @elseif($m->membership_status === 'perbaikan') bg-info text-white @elseif($m->membership_status === 'ditolak') bg-danger text-white @else bg-secondary text-white @endif px-2 py-1" style="font-size: 0.65rem;">
-                    {{ strtoupper($m->membership_status) }}
-                </span>
             </div>
 
             <div class="small mb-3">

@@ -131,16 +131,11 @@
                 default => 'bg-secondary-subtle text-secondary border',
             };
         @endphp
-        <div class="card border shadow-sm rounded-3 mb-3 bg-white">
+        <div class="card border shadow-sm rounded-3 mb-3 bg-white position-relative">
             <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <span class="badge bg-light text-secondary border me-1">#{{ $users->firstItem() + $index }}</span>
-                        <span class="badge {{ $roleBadge }} px-2 py-0.5 rounded-pill">
-                            {{ $roleName }}
-                        </span>
-                    </div>
-                    <div>
+                <!-- Status & Role Badge di Pojok Kanan Atas -->
+                <div class="position-absolute top-0 end-0 m-3 text-end" style="z-index: 1;">
+                    <div class="mb-1">
                         @if($u->is_active)
                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5">
                                 <i class="bi bi-check-circle-fill me-1"></i> Aktif
@@ -151,10 +146,16 @@
                             </span>
                         @endif
                     </div>
+                    <span class="badge {{ $roleBadge }} px-2 py-0.5 rounded-pill">
+                        {{ $roleName }}
+                    </span>
                 </div>
 
-                <h6 class="fw-bold text-dark mb-1">{{ $u->name }}</h6>
-                <div class="font-monospace small text-primary mb-2">{{ $u->email }}</div>
+                <div style="padding-right: 120px;">
+                    <span class="badge bg-light text-secondary border mb-1">#{{ $users->firstItem() + $index }}</span>
+                    <h6 class="fw-bold text-dark mb-1 text-wrap text-break lh-sm">{{ $u->name }}</h6>
+                    <div class="font-monospace small text-primary mb-2 text-break">{{ $u->email }}</div>
+                </div>
 
                 <div class="row g-2 pt-2 border-top fs-xs">
                     <div class="col-6">

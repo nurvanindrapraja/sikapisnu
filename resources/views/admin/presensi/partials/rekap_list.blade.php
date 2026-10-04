@@ -109,41 +109,47 @@
             $lastPresence = $member->presences->sortByDesc('created_at')->first();
             $status = strtolower($member->membership_status ?? '');
         @endphp
-        <div class="card border shadow-sm rounded-3 mb-3 bg-white">
+        <div class="card border shadow-sm rounded-3 mb-3 bg-white position-relative">
             <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <span class="badge bg-light text-secondary border me-1">#{{ $members->firstItem() + $index }}</span>
-                        @if(str_contains($status, 'pengurus'))
-                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5">
-                                <i class="bi bi-shield-check me-1"></i> Pengurus
-                            </span>
-                        @elseif(str_contains($status, 'calon') || str_contains($status, 'menunggu'))
-                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-0.5">
-                                <i class="bi bi-clock-history me-1"></i> Calon
-                            </span>
+                <!-- Status Badge di Pojok Kanan Atas -->
+                <div class="position-absolute top-0 end-0 m-3" style="z-index: 1;">
+                    @if(str_contains($status, 'pengurus'))
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">
+                            <i class="bi bi-shield-check me-1"></i> Pengurus
+                        </span>
+                    @elseif(str_contains($status, 'calon') || str_contains($status, 'menunggu'))
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1">
+                            <i class="bi bi-clock-history me-1"></i> Calon
+                        </span>
+                    @else
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1">
+                            <i class="bi bi-person me-1"></i> Anggota
+                        </span>
+                    @endif
+                </div>
+
+                <div style="padding-right: 110px;">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-light text-secondary border">#{{ $members->firstItem() + $index }}</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1 text-wrap text-break lh-sm">{{ $member->full_name ?? $member->name }}</h6>
+                    <div class="text-muted small mb-2 text-break">
+                        @if($member->nik)
+                            NIK: {{ $member->nik }}
+                        @elseif($member->member_number)
+                            No: {{ $member->member_number }}
                         @else
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0.5">
-                                <i class="bi bi-person me-1"></i> Anggota
-                            </span>
+                            ID: #{{ $member->id }}
                         @endif
                     </div>
+                </div>
+
+                <div class="d-flex justify-content-end mb-2">
                     <button type="button" 
                             class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-sm" 
                             @click="openDetail({{ $member->id }})">
-                        <i class="bi bi-eye-fill"></i> Detail
+                        <i class="bi bi-eye-fill"></i> Detail Kehadiran
                     </button>
-                </div>
-
-                <h6 class="fw-bold text-dark mb-1">{{ $member->full_name ?? $member->name }}</h6>
-                <div class="text-muted small mb-3">
-                    @if($member->nik)
-                        NIK: {{ $member->nik }}
-                    @elseif($member->member_number)
-                        No: {{ $member->member_number }}
-                    @else
-                        ID: #{{ $member->id }}
-                    @endif
                 </div>
 
                 <div class="row g-2 pt-2 border-top fs-xs">

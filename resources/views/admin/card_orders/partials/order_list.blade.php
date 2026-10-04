@@ -94,28 +94,29 @@
 <!-- Mobile Card View -->
 <div class="d-block d-md-none space-y-3">
     @forelse($orders as $o)
-        <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
-            <div class="d-flex align-items-center gap-3 mb-2">
-                <img src="{{ $o->member->photo_url }}" alt="" class="rounded-circle object-fit-cover border border-2 border-success" style="width: 44px; height: 44px;">
-                <div class="flex-grow-1 min-w-0">
-                    <h6 class="fw-bold text-dark mb-0 text-truncate">{{ $o->member->full_name }}</h6>
-                    <small class="text-muted d-block font-monospace">{{ $o->member->member_number ?? '-' }}</small>
+        <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white position-relative">
+            <!-- Badge Status di Pojok Kanan Atas -->
+            <div class="position-absolute top-0 end-0 m-3" style="z-index: 1;">
+                @if($o->status === 'pending')
+                    <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill">Dalam Pemesanan</span>
+                @elseif($o->status === 'printed')
+                    <span class="badge bg-info text-white px-2.5 py-1 rounded-pill">Sudah Jadi</span>
+                @elseif($o->status === 'shipped' || $o->status === 'delivered')
+                    <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill">Kartu Dikirim</span>
+                @elseif($o->status === 'received')
+                    <span class="badge bg-success px-2.5 py-1 rounded-pill">Kartu Diterima</span>
+                @endif
+            </div>
+
+            <div class="d-flex align-items-start gap-3 mb-3" style="padding-right: 120px;">
+                <img src="{{ $o->member->photo_url }}" alt="" class="rounded-circle object-fit-cover border border-2 border-success flex-shrink-0" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; border-radius: 50%;">
+                <div class="flex-grow-1 min-w-0" style="word-break: break-word; overflow-wrap: break-word;">
+                    <h6 class="fw-bold text-dark mb-1 text-wrap text-break lh-sm">{{ $o->member->full_name }}</h6>
+                    <small class="text-muted d-block font-monospace text-wrap text-break">{{ $o->member->member_number ?? '-' }}</small>
                 </div>
             </div>
 
             <div class="bg-light p-2.5 rounded-3 mb-3 small">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">Status:</span>
-                    @if($o->status === 'pending')
-                        <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill">Dalam Pemesanan</span>
-                    @elseif($o->status === 'printed')
-                        <span class="badge bg-info text-white px-2.5 py-1 rounded-pill">Sudah Jadi</span>
-                    @elseif($o->status === 'shipped' || $o->status === 'delivered')
-                        <span class="badge bg-primary text-white px-2.5 py-1 rounded-pill">Kartu Dikirim</span>
-                    @elseif($o->status === 'received')
-                        <span class="badge bg-success px-2.5 py-1 rounded-pill">Kartu Diterima</span>
-                    @endif
-                </div>
                 <div class="extra-small mb-2 p-2 bg-white rounded-2 border">
                     <div class="d-flex justify-content-between mb-0.5"><span class="text-muted">Tgl Pesan:</span> <span class="text-dark fw-semibold">{{ $o->ordered_at ? $o->ordered_at->translatedFormat('d M Y H:i') : '-' }}</span></div>
                     <div class="d-flex justify-content-between mb-0.5"><span class="text-muted">Tgl Jadi:</span> <span class="text-dark fw-semibold">{{ $o->printed_at ? $o->printed_at->translatedFormat('d M Y H:i') : '-' }}</span></div>
@@ -124,7 +125,7 @@
                 </div>
                 <div class="mb-1">
                     <span class="text-muted d-block">Alamat Pengiriman:</span>
-                    <strong class="text-dark d-block">{{ $o->shipping_address ?? $o->member->address }}</strong>
+                    <strong class="text-dark d-block text-break">{{ $o->shipping_address ?? $o->member->address }}</strong>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>

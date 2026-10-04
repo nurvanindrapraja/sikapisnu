@@ -61,11 +61,11 @@
 <div class="d-block d-md-none space-y-3">
     @forelse($trashedMembers as $m)
         <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
-            <div class="d-flex align-items-center gap-3 mb-2">
-                <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover grayscale" style="width: 44px; height: 44px; filter: grayscale(100%);">
-                <div class="flex-grow-1 min-w-0">
-                    <h6 class="fw-bold text-dark mb-0 text-truncate">{{ $m->full_name }}</h6>
-                    <small class="text-muted d-block text-truncate">{{ $m->email }}</small>
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover grayscale flex-shrink-0" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; border-radius: 50%; filter: grayscale(100%);">
+                <div class="flex-grow-1 min-w-0" style="word-break: break-word; overflow-wrap: break-word;">
+                    <h6 class="fw-bold text-dark mb-1 text-wrap text-break lh-sm">{{ $m->full_name }}</h6>
+                    <small class="text-muted d-block text-wrap text-break">{{ $m->email }}</small>
                 </div>
             </div>
 
