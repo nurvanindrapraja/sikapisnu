@@ -360,8 +360,8 @@
                                 <span class="text-muted d-block extra-small mb-1">Silakan transfer pembayaran ke rekening Bendahara:</span>
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <strong class="text-dark font-monospace d-block" style="font-size: 0.95rem; letter-spacing: 0.5px;">1234567890</strong>
-                                        <small class="text-muted fw-semibold d-block">Bank BSI a.n. <strong>Bendahara ISNU Kota Surabaya</strong></small>
+                                        <strong class="text-dark font-monospace d-block" style="font-size: 0.95rem; letter-spacing: 0.5px;">2117301763</strong>
+                                        <small class="text-muted fw-semibold d-block">Bank BNI a.n. <strong>Mohammad Taufiq</strong></small>
                                     </div>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">Rp 100.000</span>
                                 </div>
