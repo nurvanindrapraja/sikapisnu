@@ -78,7 +78,7 @@ class OfficerController extends Controller
         $pacs = Pac::orderBy('name')->get();
         $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
 
-        $eligibleQuery = Member::whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        $eligibleQuery = Member::where('membership_status', 'terverifikasi')->whereDoesntHave('activePosition');
         if (auth()->user()->isAdminPac()) {
             $pacId = auth()->user()->getManagedPacId();
             $kecamatan = auth()->user()->member?->kecamatan;

@@ -614,4 +614,18 @@ class SikapIsnuTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertTrue(Hash::check('newadminpassword123', $admin->fresh()->password));
     }
+
+    public function test_eligible_members_excludes_active_pengurus()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $officerMember = Member::where('membership_status', 'pengurus')->first();
+        $regularMember = Member::where('membership_status', 'terverifikasi')->whereDoesntHave('activePosition')->first();
+
+        $response = $this->actingAs($admin)->get('/admin/pengurus');
+        $response->assertStatus(200);
+
+        $eligibleMembers = $response->viewData('eligibleMembers');
+        $this->assertFalse($eligibleMembers->contains('id', $officerMember->id));
+        $this->assertTrue($eligibleMembers->contains('id', $regularMember->id));
+    }
 }
