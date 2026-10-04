@@ -23,10 +23,16 @@ use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
-    public function showLoginForm()
+    public function showLoginForm(Request $request)
     {
         if (Auth::check()) {
             return Auth::user()->isAdmin() ? redirect()->route('admin.dashboard') : redirect()->route('member.dashboard');
+        }
+
+        if ($request->has('redirect')) {
+            session()->put('url.intended', $request->query('redirect'));
+        } elseif (url()->previous() && str_contains(url()->previous(), '/presensi/')) {
+            session()->put('url.intended', url()->previous());
         }
 
         return view('auth.login');

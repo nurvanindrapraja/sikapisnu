@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Card;
 use App\Models\CardOrder;
 use App\Models\CustomLocation;
+use App\Models\Event;
 use App\Models\Member;
 use App\Models\Pac;
 use App\Models\User;
@@ -627,5 +628,38 @@ class SikapIsnuTest extends TestCase
         $eligibleMembers = $response->viewData('eligibleMembers');
         $this->assertFalse($eligibleMembers->contains('id', $officerMember->id));
         $this->assertTrue($eligibleMembers->contains('id', $regularMember->id));
+    }
+
+    public function test_login_redirects_back_to_presence_page_when_coming_from_presence()
+    {
+        $event = Event::firstOrCreate(
+            ['unique_code' => 'TEST-PRESENCE-CODE'],
+            [
+                'title' => 'Kegiatan Uji Presensi',
+                'event_date' => now(),
+                'start_time' => '08:00',
+                'end_time' => '12:00',
+                'method' => 'luring',
+                'location' => 'Surabaya',
+                'presence_start_at' => now()->subHour(),
+                'presence_end_at' => now()->addHour(),
+                'created_by' => 1,
+            ]
+        );
+
+        $presenceUrl = route('event.presence.show', $event->unique_code);
+
+        $loginPageResponse = $this->get('/login?redirect='.urlencode($presenceUrl));
+        $loginPageResponse->assertStatus(200);
+        $this->assertEquals($presenceUrl, session('url.intended'));
+
+        $memberUser = User::where('role', 'member')->first();
+
+        $response = $this->post('/login', [
+            'email' => $memberUser->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect($presenceUrl);
     }
 }

@@ -109,10 +109,10 @@
                                                     </div>
                                                     <div>
                                                         <strong class="d-block text-dark small">Sudah Memiliki Akun SIKAP ISNU?</strong>
-                                                        <span class="text-secondary extra-small">Silakan <a href="{{ route('login') }}" class="fw-bold text-info text-decoration-underline">Login terlebih dahulu</a> sebelum mengisi form agar presensi ini otomatis terhubung dengan profil Anda.</span>
+                                                        <span class="text-secondary extra-small">Silakan <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="fw-bold text-info text-decoration-underline">Login terlebih dahulu</a> sebelum mengisi form agar presensi ini otomatis terhubung dengan profil Anda.</span>
                                                     </div>
                                                 </div>
-                                                <a href="{{ route('login') }}" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1.5 fw-bold shadow-sm ms-auto ms-sm-0">
+                                                <a href="{{ route('login', ['redirect' => url()->current()]) }}" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1.5 fw-bold shadow-sm ms-auto ms-sm-0">
                                                     <i class="bi bi-box-arrow-in-right me-1"></i> Login Akun
                                                 </a>
                                             </div>
