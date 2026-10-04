@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pendaftaran Anggota Baru')
+@section('title', 'Pendaftaran Anggota')
 
 @php
     $initialStep = 1;
@@ -481,8 +481,8 @@
 
                             <div class="mt-4 pt-3 border-top text-end">
                                 <button type="button" class="btn btn-sm btn-isnu-primary px-3 px-md-4 py-2 rounded-pill d-inline-flex align-items-center justify-content-center" @click="validateStep1()" :disabled="isCheckingEmail">
-                                    <span x-show="!isCheckingEmail" class="d-inline-flex align-items-center">Lanjut ke Biodata <i class="bi bi-arrow-right ms-1"></i></span>
-                                    <span x-show="isCheckingEmail" class="d-inline-flex align-items-center" x-cloak>
+                                    <span x-show="!isCheckingEmail">Lanjut ke Biodata <i class="bi bi-arrow-right ms-1"></i></span>
+                                    <span x-show="isCheckingEmail" x-cloak style="display: none;">
                                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                         Memeriksa Email...
                                     </span>

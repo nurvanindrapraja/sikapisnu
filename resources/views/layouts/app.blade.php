@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'SIKAP ISNU Kota Surabaya') - Sistem Informasi Keanggotaan & Potensi</title>
     
+    <!-- Open Graph / Social Share Meta Tags -->
+    <meta property="og:title" content="@yield('title', 'SIKAP ISNU Kota Surabaya') - SIKAP ISNU Kota Surabaya">
+    <meta property="og:description" content="Sistem Informasi Keanggotaan & Potensi PC ISNU Kota Surabaya">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SIKAP ISNU Kota Surabaya">
+    
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
@@ -269,7 +275,7 @@
                         <li><a href="{{ route('home') }}"><i class="bi bi-chevron-right text-success me-1"></i> Beranda</a></li>
                         <li><a href="{{ route('tentang') }}"><i class="bi bi-chevron-right text-success me-1"></i> Profil ISNU Surabaya</a></li>
                         <li><a href="{{ route('daftar.anggota') }}"><i class="bi bi-chevron-right text-success me-1"></i> Direktori Kader</a></li>
-                        <li><a href="{{ route('register') }}"><i class="bi bi-chevron-right text-success me-1"></i> Pendaftaran Anggota Baru</a></li>
+                        <li><a href="{{ route('register') }}"><i class="bi bi-chevron-right text-success me-1"></i> Pendaftaran Anggota</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-6">
