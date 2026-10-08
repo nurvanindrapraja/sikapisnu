@@ -8,7 +8,6 @@ use App\Models\Mwc;
 use App\Models\Pac;
 use App\Models\Section;
 use App\Models\User;
-use App\Services\CardImageService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -657,17 +656,6 @@ class MemberController extends Controller
 
         if (! in_array($member->membership_status, ['terverifikasi', 'pengurus']) || ! $member->activeCard) {
             return back()->with('error', 'Kartu Digital belum tersedia karena status anggota belum terverifikasi.');
-        }
-
-        $format = strtolower($request->query('format', 'pdf'));
-
-        if ($format === 'png') {
-            $pngData = CardImageService::generatePng($member);
-            $filename = 'Kartu_Digital_ISNU_'.Str::slug($member->full_name).'.png';
-
-            return response($pngData, 200)
-                ->header('Content-Type', 'image/png')
-                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
         }
 
         $card = $member->activeCard;

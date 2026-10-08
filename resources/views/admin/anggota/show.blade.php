@@ -8,9 +8,9 @@
     <h5 class="fw-bold text-dark m-0"><i class="bi bi-person-badge text-success me-2"></i> Detail Profil Kader</h5>
     <div class="d-flex gap-2">
         @if(in_array($member->membership_status, ['terverifikasi', 'pengurus']))
-            <button type="button" class="btn btn-outline-success rounded-pill btn-sm px-2.5 px-md-3 shadow-sm fw-semibold" title="Download Kartu Digital (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $member->id) }}', '{{ addslashes($member->full_name) }}', '{{ $member->member_number ?? '' }}')">
+            <button type="button" class="btn btn-outline-success rounded-pill btn-sm px-2.5 px-md-3 shadow-sm fw-semibold" title="Download Kartu Digital (PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $member->id) }}', '{{ addslashes($member->full_name) }}', '{{ $member->member_number ?? '' }}')">
                 <i class="bi bi-person-vcard-fill me-1"></i>
-                <span class="d-none d-md-inline">Kartu Digital (PNG/PDF)</span>
+                <span class="d-none d-md-inline">Kartu Digital (PDF)</span>
             </button>
         @endif
         <a href="{{ route('admin.anggota.cv.download', $member->id) }}" class="btn btn-outline-danger rounded-pill btn-sm px-2.5 px-md-3 shadow-sm fw-semibold" title="Download CV (PDF)">

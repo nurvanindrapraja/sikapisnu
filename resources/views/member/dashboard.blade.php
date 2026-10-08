@@ -55,7 +55,7 @@
                     </div>
                     <div class="mt-3">
                         <button type="button" class="btn btn-isnu w-100 py-2.5 rounded-pill shadow-sm fw-bold" onclick="openCardDownloadModal('{{ route('member.card.download') }}', '{{ addslashes($member->full_name) }}', '{{ $member->member_number ?? '' }}')">
-                            <i class="bi bi-person-vcard-fill me-1"></i> Unduh Kartu Digital (PNG / PDF)
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Unduh Kartu Digital (PDF)
                         </button>
                     </div>
                 @else

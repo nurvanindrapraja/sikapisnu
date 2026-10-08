@@ -503,38 +503,32 @@
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <div class="modal-header bg-success text-white p-3 border-0">
                     <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2" id="cardDownloadModalLabel">
-                        <i class="bi bi-person-vcard-fill fs-5"></i> Download Kartu Anggota Digital
+                        <i class="bi bi-person-vcard-fill fs-5"></i> Download Kartu Anggota Digital (PDF)
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4 text-center">
                     <div class="bg-success-subtle text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3 p-3" style="width: 70px; height: 70px;">
-                        <i class="bi bi-card-heading display-6"></i>
+                        <i class="bi bi-file-earmark-pdf display-6 text-danger"></i>
                     </div>
                     
                     <h6 class="fw-bold text-dark mb-1" id="cardMemberName">Nama Anggota</h6>
                     <small class="font-monospace text-muted d-block mb-3" id="cardMemberNumber">ISNU-SBY-26-XXXXXX</small>
 
                     <p class="text-secondary small mb-4">
-                        Pilih format berkas kartu anggota digital yang ingin Anda unduh:
+                        Klik tombol di bawah ini untuk mengunduh Kartu Anggota Digital dalam format PDF resmi:
                     </p>
 
                     <div class="d-grid gap-2 col-11 mx-auto">
-                        <!-- Tombol PNG -->
-                        <a id="btnDownloadPng" href="#" class="btn btn-success btn-lg rounded-pill fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                            <i class="bi bi-file-earmark-image-fill fs-5"></i>
-                            <span>Download Gambar Kartu (.PNG)</span>
-                        </a>
-
                         <!-- Tombol PDF -->
-                        <a id="btnDownloadPdf" href="#" class="btn btn-outline-danger btn-lg rounded-pill fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm mt-1">
-                            <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                        <a id="btnDownloadPdf" href="#" target="_blank" class="btn btn-success btn-lg rounded-pill fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" onclick="const mEl = document.getElementById('cardDownloadModal'); if (mEl) { const m = bootstrap.Modal.getInstance(mEl); if (m) m.hide(); }">
+                            <i class="bi bi-file-earmark-pdf-fill fs-5 text-warning"></i>
                             <span>Download Dokumen Kartu (.PDF)</span>
                         </a>
                     </div>
                 </div>
                 <div class="modal-footer bg-light p-2.5 border-0 justify-content-center">
-                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
                 </div>
             </div>
         </div>
@@ -545,14 +539,10 @@
             document.getElementById('cardMemberName').innerText = name || 'Kartu Anggota Digital';
             document.getElementById('cardMemberNumber').innerText = number ? number : 'SIKAP ISNU Kota Surabaya';
             
-            const pngUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'format=png';
-            const pdfUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'format=pdf';
-            
-            document.getElementById('btnDownloadPng').setAttribute('href', pngUrl);
-            document.getElementById('btnDownloadPdf').setAttribute('href', pdfUrl);
+            document.getElementById('btnDownloadPdf').setAttribute('href', baseUrl);
             
             const modalEl = document.getElementById('cardDownloadModal');
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.show();
         }
     </script>
