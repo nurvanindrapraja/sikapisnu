@@ -8,11 +8,13 @@ use App\Models\Mwc;
 use App\Models\Pac;
 use App\Models\Section;
 use App\Models\User;
+use App\Services\CardImageService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class MemberController extends Controller
 {
@@ -641,6 +643,77 @@ class MemberController extends Controller
             ->setPaper('a4', 'portrait');
 
         $filename = 'CV_ISNU_'.Str::slug($member->full_name).'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function downloadCard($id, Request $request)
+    {
+        $member = Member::withTrashed()->with(['activeCard', 'activePosition', 'mwc', 'pac'])->findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        }
+
+        if (! in_array($member->membership_status, ['terverifikasi', 'pengurus']) || ! $member->activeCard) {
+            return back()->with('error', 'Kartu Digital belum tersedia karena status anggota belum terverifikasi.');
+        }
+
+        $format = strtolower($request->query('format', 'pdf'));
+
+        if ($format === 'png') {
+            $pngData = CardImageService::generatePng($member);
+            $filename = 'Kartu_Digital_ISNU_'.Str::slug($member->full_name).'.png';
+
+            return response($pngData, 200)
+                ->header('Content-Type', 'image/png')
+                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+        }
+
+        $card = $member->activeCard;
+        $isOfficer = ($card && $card->card_type === 'OFFICER') || $member->membership_status === 'pengurus';
+        $activePosition = $member->activePosition;
+
+        $logoPath = public_path('images/logo_isnu.png');
+        $logoSrc = file_exists($logoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath)) : '';
+
+        $suroboyoPath = public_path('images/suroboyo_icon.png');
+        $suroboyoSrc = file_exists($suroboyoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($suroboyoPath)) : '';
+
+        $photoSrc = '';
+        if ($member->photo && file_exists(storage_path('app/public/'.$member->photo))) {
+            $path = storage_path('app/public/'.$member->photo);
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $photoSrc = 'data:image/'.$type.';base64,'.base64_encode(file_get_contents($path));
+        } elseif ($member->photo_url) {
+            try {
+                $photoSrc = 'data:image/png;base64,'.base64_encode(file_get_contents($member->photo_url));
+            } catch (\Throwable $e) {
+                $photoSrc = '';
+            }
+        }
+
+        $qrToken = $card->qr_token ?? 'preview';
+        $verifyUrl = route('verify.card', ['qr_token' => $qrToken]);
+        try {
+            $qrSvg = QrCode::size(120)->format('svg')->margin(1)->generate($verifyUrl);
+            $qrBase64 = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
+        } catch (\Throwable $e) {
+            $qrBase64 = '';
+        }
+
+        $pdf = Pdf::loadView('pdf.card_digital', compact(
+            'member',
+            'card',
+            'isOfficer',
+            'activePosition',
+            'logoSrc',
+            'suroboyoSrc',
+            'photoSrc',
+            'qrBase64'
+        ))->setPaper([0, 0, 480, 303]);
+
+        $filename = 'Kartu_Digital_ISNU_'.Str::slug($member->full_name).'.pdf';
 
         return $pdf->download($filename);
     }

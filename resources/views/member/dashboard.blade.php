@@ -54,8 +54,8 @@
                         <x-digital_card :member="$member" :card="$member->activeCard" />
                     </div>
                     <div class="mt-3">
-                        <button type="button" class="btn btn-isnu w-100 py-2.5 rounded-pill shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalConfirmDownloadCard">
-                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Unduh Kartu Digital (PDF)
+                        <button type="button" class="btn btn-isnu w-100 py-2.5 rounded-pill shadow-sm fw-bold" onclick="openCardDownloadModal('{{ route('member.card.download') }}', '{{ addslashes($member->full_name) }}', '{{ $member->member_number ?? '' }}')">
+                            <i class="bi bi-person-vcard-fill me-1"></i> Unduh Kartu Digital (PNG / PDF)
                         </button>
                     </div>
                 @else
@@ -507,36 +507,7 @@
             </div>
         </div>
 
-        <!-- Modal Popup Konfirmasi Unduh Kartu Digital (PDF) -->
-        @if(in_array($member->membership_status, ['terverifikasi', 'pengurus']) && $member->activeCard)
-            <div class="modal fade" id="modalConfirmDownloadCard" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg rounded-4 text-center">
-                        <div class="modal-header bg-success text-white border-0 rounded-top-4">
-                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                                <i class="bi bi-file-earmark-pdf-fill fs-4 text-warning"></i> Konfirmasi Unduh Kartu Digital
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-4 text-center">
-                            <div class="text-success mb-3">
-                                <i class="bi bi-file-earmark-pdf display-3"></i>
-                            </div>
-                            <h5 class="fw-bold text-dark mb-2">Unduh Kartu Digital (PDF)</h5>
-                            <p class="text-muted mb-0">
-                                Apakah Anda yakin ingin mengunduh Kartu Anggota Digital dalam bentuk PDF?
-                            </p>
-                        </div>
-                        <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
-                            <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                            <a href="{{ route('member.card.download') }}" target="_blank" class="btn btn-success fw-bold rounded-pill px-4" onclick="const mEl = document.getElementById('modalConfirmDownloadCard'); if (mEl) { const m = bootstrap.Modal.getInstance(mEl); if (m) m.hide(); }">
-                                <i class="bi bi-download me-1"></i> Ya, Unduh PDF
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
+
     </div>
 @endsection
 

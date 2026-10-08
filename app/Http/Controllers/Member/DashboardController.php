@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Member;
 
 use App\Http\Controllers\Controller;
+use App\Services\CardImageService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -35,13 +37,24 @@ class DashboardController extends Controller
         return view('member.dashboard', compact('user', 'member'));
     }
 
-    public function downloadCard()
+    public function downloadCard(Request $request)
     {
         $user = auth()->user();
         $member = $user->member()->with(['activeCard', 'activePosition', 'mwc', 'pac'])->firstOrFail();
 
         if (! in_array($member->membership_status, ['terverifikasi', 'pengurus']) || ! $member->activeCard) {
             return back()->with('error', 'Kartu Digital belum tersedia karena status Anda belum terverifikasi.');
+        }
+
+        $format = strtolower($request->query('format', 'pdf'));
+
+        if ($format === 'png') {
+            $pngData = CardImageService::generatePng($member);
+            $filename = 'Kartu_Digital_ISNU_'.Str::slug($member->full_name).'.png';
+
+            return response($pngData, 200)
+                ->header('Content-Type', 'image/png')
+                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
         }
 
         $card = $member->activeCard;

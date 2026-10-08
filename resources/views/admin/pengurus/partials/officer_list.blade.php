@@ -50,7 +50,9 @@
                         @endif
                     </td>
                     <td>
-                        <span class="badge bg-warning text-dark px-3 py-1">KARTU PENGURUS</span>
+                        <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
+                            <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
+                        </button>
                     </td>
                     <td class="text-end">
                         <div class="d-inline-flex gap-1">

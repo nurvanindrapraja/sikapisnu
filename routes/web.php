@@ -107,6 +107,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/anggota/{id}', [AdminMember::class, 'show'])->name('anggota.show');
     Route::get('/anggota/{id}/edit', [AdminMember::class, 'edit'])->name('anggota.edit');
     Route::get('/anggota/{id}/cv', [AdminMember::class, 'downloadCv'])->name('anggota.cv.download');
+    Route::get('/anggota/{id}/card', [AdminMember::class, 'downloadCard'])->name('anggota.card.download');
     Route::put('/anggota/{id}', [AdminMember::class, 'update'])->name('anggota.update');
     Route::delete('/anggota/{id}', [AdminMember::class, 'destroy'])->name('anggota.destroy');
 

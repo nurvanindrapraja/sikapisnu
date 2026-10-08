@@ -35,6 +35,11 @@
                     </td>
                     <td class="text-end">
                         <div class="d-inline-flex gap-1">
+                            @if(in_array($m->membership_status, ['terverifikasi', 'pengurus']))
+                                <button type="button" class="btn btn-sm btn-outline-success rounded-circle" title="Download Kartu Anggota (PNG/PDF)" data-bs-toggle="tooltip" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $m->id) }}', '{{ addslashes($m->full_name) }}', '{{ $m->member_number ?? '' }}')">
+                                    <i class="bi bi-person-vcard-fill"></i>
+                                </button>
+                            @endif
                             <a href="{{ route('admin.anggota.cv.download', $m->id) }}" class="btn btn-sm btn-outline-danger rounded-circle" title="Download CV (PDF)" data-bs-toggle="tooltip">
                                 <i class="bi bi-file-earmark-pdf-fill"></i>
                             </a>
@@ -100,6 +105,11 @@
             </div>
 
             <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+                @if(in_array($m->membership_status, ['terverifikasi', 'pengurus']))
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-circle" title="Download Kartu Anggota (PNG/PDF)" data-bs-toggle="tooltip" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $m->id) }}', '{{ addslashes($m->full_name) }}', '{{ $m->member_number ?? '' }}')">
+                        <i class="bi bi-person-vcard-fill"></i>
+                    </button>
+                @endif
                 <a href="{{ route('admin.anggota.cv.download', $m->id) }}" class="btn btn-sm btn-outline-danger rounded-circle" title="Download CV (PDF)" data-bs-toggle="tooltip">
                     <i class="bi bi-file-earmark-pdf-fill"></i>
                 </a>
