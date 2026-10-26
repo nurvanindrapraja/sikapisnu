@@ -87,11 +87,33 @@
                     <div>
                         <h5 class="fw-bold text-dark m-0">{{ $member->activePosition->position_title }}</h5>
                         <small class="text-muted">Tingkat: {{ $member->activePosition->level }} | Periode: {{ $member->activePosition->period }}</small>
+                        @if($member->activePosition->section)
+                            <div class="mt-1">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill">
+                                    <i class="bi bi-diagram-2-fill me-1"></i> Seksi: {{ $member->activePosition->section->name }}
+                                </span>
+                            </div>
+                        @endif
                     </div>
                     @if($member->activePosition->sk_number)
                         <span class="badge bg-dark">SK: {{ $member->activePosition->sk_number }}</span>
                     @endif
                 </div>
+
+                @if($member->workgroups->isNotEmpty())
+                    <div class="mt-3 pt-3 border-top border-warning-subtle">
+                        <small class="text-dark fw-bold d-block mb-1.5">
+                            <i class="bi bi-person-workspace text-primary me-1"></i> Penugasan Kelompok Kerja (Pokja):
+                        </small>
+                        <div class="d-flex flex-wrap gap-1.5">
+                            @foreach($member->workgroups as $wg)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill">
+                                    {{ $wg->name }} — <span class="fw-bold">{{ $wg->pivot->role ?? 'Anggota' }}</span>
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 

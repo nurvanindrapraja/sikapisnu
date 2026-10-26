@@ -31,6 +31,15 @@
                         @if($pos && $pos->section)
                             <small class="d-block text-muted mt-0.5"><i class="bi bi-diagram-2 me-1"></i> {{ $pos->section->name }}</small>
                         @endif
+                        @if($o->workgroups->isNotEmpty())
+                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                @foreach($o->workgroups as $wg)
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle small px-1.5 py-0.5 rounded-pill" title="Peran: {{ $wg->pivot->role ?? 'Anggota' }}">
+                                        <i class="bi bi-person-workspace me-1"></i> {{ $wg->name }} ({{ $wg->pivot->role ?? 'Anggota' }})
+                                    </span>
+                                @endforeach
+                            </div>
+                        @endif
                     </td>
                     <td>
                         <span class="badge bg-dark me-1">{{ $pos ? $pos->level : 'PC ISNU' }}</span>
@@ -94,6 +103,16 @@
             @if($pos && $pos->section)
                 <div class="mb-2 text-secondary small">
                     <i class="bi bi-diagram-2 me-1"></i> Seksi: <strong>{{ $pos->section->name }}</strong>
+                </div>
+            @endif
+            @if($o->workgroups->isNotEmpty())
+                <div class="mb-2 text-info small">
+                    <i class="bi bi-person-workspace me-1"></i> Pokja:
+                    @foreach($o->workgroups as $wg)
+                        <span class="badge bg-info-subtle text-info border border-info-subtle px-1.5 py-0.5 rounded-pill me-1 mb-1">
+                            {{ $wg->name }} ({{ $wg->pivot->role ?? 'Anggota' }})
+                        </span>
+                    @endforeach
                 </div>
             @endif
 

@@ -330,6 +330,11 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.workgroups.index') }}" class="sidebar-link {{ request()->routeIs('admin.workgroups.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-workspace"></i> Master Kelompok Kerja
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.events.index') }}" class="sidebar-link {{ request()->routeIs('admin.events.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-calendar-event-fill"></i> Kegiatan & Presensi
                 </a>

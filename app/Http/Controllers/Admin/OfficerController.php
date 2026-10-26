@@ -20,7 +20,7 @@ class OfficerController extends Controller
     public function index(Request $request)
     {
         $query = Member::where('membership_status', 'pengurus')
-            ->with(['activePosition.pac', 'activePosition.section', 'activeCard']);
+            ->with(['activePosition.pac', 'activePosition.section', 'activeCard', 'workgroups']);
 
         if (auth()->user()->isAdminPac()) {
             $pacId = auth()->user()->getManagedPacId();

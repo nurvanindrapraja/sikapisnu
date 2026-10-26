@@ -131,6 +131,9 @@ class MemberController extends Controller
             'nuTrainings',
             'certifications',
             'positions.mwc',
+            'positions.section',
+            'activePosition.section',
+            'workgroups',
             'activeCard',
             'statusHistories.changer',
         ])->findOrFail($id);

@@ -137,4 +137,21 @@ class Member extends Model
     {
         return $this->membership_status === 'pengurus' || $this->positions()->where('is_active', true)->exists();
     }
+
+    public function workgroups()
+    {
+        return $this->belongsToMany(Workgroup::class, 'workgroup_members')
+            ->withPivot(['id', 'role', 'notes'])
+            ->withTimestamps();
+    }
+
+    public function workgroupMembers()
+    {
+        return $this->hasMany(WorkgroupMember::class, 'member_id');
+    }
+
+    public function isEligibleForWorkgroup(): bool
+    {
+        return $this->activePosition && $this->activePosition->section_id !== null;
+    }
 }

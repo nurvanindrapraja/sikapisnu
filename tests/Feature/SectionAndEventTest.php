@@ -3,9 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
-use App\Models\EventPresence;
-use App\Models\Pac;
-use App\Models\Section;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

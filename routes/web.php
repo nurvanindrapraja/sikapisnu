@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ReportController as AdminReport;
 use App\Http\Controllers\Admin\SectionController as AdminSection;
 use App\Http\Controllers\Admin\UserController as AdminUser;
 use App\Http\Controllers\Admin\VerificationController as AdminVerification;
+use App\Http\Controllers\Admin\WorkgroupController as AdminWorkgroup;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventPresenceController;
 use App\Http\Controllers\HomeController;
@@ -165,6 +166,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/sections', [AdminSection::class, 'store'])->name('sections.store');
     Route::put('/sections/{id}', [AdminSection::class, 'update'])->name('sections.update');
     Route::delete('/sections/{id}', [AdminSection::class, 'destroy'])->name('sections.destroy');
+
+    // Master Kelompok Kerja (Pokja)
+    Route::get('/workgroups', [AdminWorkgroup::class, 'index'])->name('workgroups.index');
+    Route::post('/workgroups', [AdminWorkgroup::class, 'store'])->name('workgroups.store');
+    Route::get('/workgroups/{id}', [AdminWorkgroup::class, 'show'])->name('workgroups.show');
+    Route::put('/workgroups/{id}', [AdminWorkgroup::class, 'update'])->name('workgroups.update');
+    Route::delete('/workgroups/{id}', [AdminWorkgroup::class, 'destroy'])->name('workgroups.destroy');
+    Route::post('/workgroups/{id}/members', [AdminWorkgroup::class, 'addMember'])->name('workgroups.members.add');
+    Route::put('/workgroups/{id}/members/{member_id}', [AdminWorkgroup::class, 'updateMember'])->name('workgroups.members.update');
+    Route::delete('/workgroups/{id}/members/{member_id}', [AdminWorkgroup::class, 'removeMember'])->name('workgroups.members.remove');
 
     // Kegiatan & Presensi ISNU
     Route::get('/events', [AdminEvent::class, 'index'])->name('events.index');
