@@ -31,9 +31,26 @@
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                     <div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill mb-2">
-                            <i class="bi bi-calendar-event me-1"></i> {{ strtoupper($event->status) }}
-                        </span>
+                        <div class="d-flex flex-wrap gap-1.5 align-items-center mb-2">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
+                                <i class="bi bi-calendar-event me-1"></i> {{ strtoupper($event->status) }}
+                            </span>
+                            @if($event->section)
+                                <span class="badge bg-light text-dark border px-2.5 py-1 rounded-pill">
+                                    <i class="bi bi-diagram-2 text-success me-1"></i> Seksi: {{ $event->section->name }}
+                                </span>
+                            @endif
+                            @if($event->program)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 rounded-pill">
+                                    <i class="bi bi-card-checklist me-1"></i> Program: {{ $event->program->name }}
+                                </span>
+                            @endif
+                            @if($event->budget !== null)
+                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2.5 py-1 rounded-pill">
+                                    <i class="bi bi-cash-stack text-warning me-1"></i> RAB: {{ $event->formatted_budget }}
+                                </span>
+                            @endif
+                        </div>
                         <h4 class="fw-bold text-dark m-0">{{ $event->title }}</h4>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalEditEvent">
@@ -41,7 +58,31 @@
                     </button>
                 </div>
 
-                <p class="text-secondary mb-4">{{ $event->description ?: 'Tidak ada deskripsi singkat.' }}</p>
+                <p class="text-secondary mb-3">{{ $event->description ?: 'Tidak ada deskripsi singkat.' }}</p>
+
+                @if($event->program)
+                    <div class="alert alert-primary bg-primary-subtle border-primary-subtle rounded-4 p-3 mb-4 shadow-sm">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;">
+                                <i class="bi bi-card-checklist fs-5"></i>
+                            </div>
+                            <div class="small">
+                                <strong class="text-primary-emphasis d-block mb-1">
+                                    Menginduk Program Kerja: {{ $event->program->name }}
+                                    @if($event->program->code) ({{ $event->program->code }}) @endif
+                                </strong>
+                                <div class="text-secondary">
+                                    @if($event->program->indicator)
+                                        <div><i class="bi bi-check2-circle text-success me-1"></i> <strong>Indikator:</strong> {{ $event->program->indicator }}</div>
+                                    @endif
+                                    @if($event->program->target)
+                                        <div><i class="bi bi-bullseye text-danger me-1"></i> <strong>Target:</strong> {{ $event->program->target }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="row g-3 bg-light p-3 rounded-4 mb-4">
                     <div class="col-md-6">
@@ -279,12 +320,67 @@
             <form action="{{ route('admin.events.update', $event->id) }}" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="modal-body p-4" x-data="{ method: '{{ $event->method }}' }">
+                <div class="modal-body p-4" x-data="{
+                    method: '{{ $event->method }}',
+                    selectedSectionId: '{{ $event->section_id }}',
+                    selectedProgramId: '{{ $event->program_id }}',
+                    sectionsData: {{ Js::from($sections->map(fn($s) => [
+                        'id' => $s->id,
+                        'name' => $s->name,
+                        'programs' => $s->programs->map(fn($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'code' => $p->code,
+                        ]),
+                    ])) }},
+                    get filteredPrograms() {
+                        if (!this.selectedSectionId) {
+                            return this.sectionsData.flatMap(s => s.programs);
+                        }
+                        const found = this.sectionsData.find(s => s.id == this.selectedSectionId);
+                        return found ? found.programs : [];
+                    }
+                }">
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-semibold">Nama Kegiatan <span class="text-danger">*</span></label>
                             <input type="text" name="title" class="form-control" value="{{ $event->title }}" required>
                         </div>
+
+                        <!-- Pilihan Seksi Pengampu -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
+                            <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''">
+                                <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
+                                @foreach($sections as $sec)
+                                    <option value="{{ $sec->id }}" {{ $event->section_id == $sec->id ? 'selected' : '' }}>
+                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Pilihan Program Kerja dari Seksi -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Program Kerja Terkait <span class="text-secondary small">(Opsional)</span></label>
+                            <select name="program_id" class="form-select" x-model="selectedProgramId">
+                                <option value="">-- Tanpa Program Khusus --</option>
+                                <template x-for="prog in filteredPrograms" :key="prog.id">
+                                    <option :value="prog.id" :selected="prog.id == '{{ $event->program_id }}'" x-text="`[${prog.code || 'PRG'}] ${prog.name}`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Inputan RAB Kegiatan (Tidak Wajib) -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Rencana Anggaran Biaya (RAB) <span class="text-secondary small fw-normal">(Tidak Wajib)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                                <input type="number" step="0.01" min="0" name="budget" class="form-control" value="{{ $event->budget }}" placeholder="Contoh: 15000000">
+                            </div>
+                            <div class="form-text small text-muted">Estimasi total kebutuhan anggaran kegiatan.</div>
+                        </div>
+
                         <div class="col-12">
                             <label class="form-label fw-semibold">Deskripsi Kegiatan</label>
                             <textarea name="description" class="form-control" rows="2">{{ $event->description }}</textarea>

@@ -31,6 +31,7 @@
 <!-- Card Filter & Table -->
 <div class="card border-0 shadow-sm rounded-4 mb-4" x-data="{
     search: '{{ request('search') }}',
+    section_id: '{{ request('section_id') }}',
     method: '{{ request('method') }}',
     status: '{{ request('status') }}',
     loading: false,
@@ -38,6 +39,7 @@
         this.loading = true;
         const params = new URLSearchParams();
         if (this.search) params.append('search', this.search);
+        if (this.section_id) params.append('section_id', this.section_id);
         if (this.method) params.append('method', this.method);
         if (this.status) params.append('status', this.status);
 
@@ -57,20 +59,28 @@
 }" @refresh-events.window="fetchEvents()">
     <div class="card-header bg-white border-0 p-3 p-md-4">
         <div class="row g-3 align-items-center">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="input-group input-group-sm search-box">
                     <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" x-model="search" @input.debounce.400ms="fetchEvents()" class="form-control bg-light border-start-0" placeholder="Cari nama kegiatan / lokasi...">
+                    <input type="text" x-model="search" @input.debounce.400ms="fetchEvents()" class="form-control bg-light border-start-0" placeholder="Cari kegiatan / lokasi...">
                 </div>
             </div>
             <div class="col-md-3">
+                <select x-model="section_id" @change="fetchEvents()" class="form-select form-select-sm bg-light">
+                    <option value="">-- Semua Seksi Pengampu --</option>
+                    @foreach($sections as $sec)
+                        <option value="{{ $sec->id }}">[{{ $sec->level }}] {{ $sec->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
                 <select x-model="method" @change="fetchEvents()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua Metode --</option>
                     <option value="luring">Luring (Offline)</option>
                     <option value="daring">Daring (Online)</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <select x-model="status" @change="fetchEvents()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua Status --</option>
                     <option value="planned">Direncana (Mendatang)</option>
@@ -79,7 +89,7 @@
                 </select>
             </div>
             <div class="col-md-2 text-end">
-                <button type="button" @click="search=''; method=''; status=''; fetchEvents()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">
+                <button type="button" @click="search=''; section_id=''; method=''; status=''; fetchEvents()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                 </button>
             </div>
@@ -104,6 +114,24 @@
                 eventDate: '{{ date('Y-m-d') }}',
                 startTime: '08:00',
                 endTime: '12:00',
+                selectedSectionId: '',
+                selectedProgramId: '',
+                sectionsData: {{ Js::from($sections->map(fn($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'programs' => $s->programs->map(fn($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'code' => $p->code,
+                    ]),
+                ])) }},
+                get filteredPrograms() {
+                    if (!this.selectedSectionId) {
+                        return this.sectionsData.flatMap(s => s.programs);
+                    }
+                    const found = this.sectionsData.find(s => s.id == this.selectedSectionId);
+                    return found ? found.programs : [];
+                },
                 loading: false,
                 updatePresenceTimes() {
                     if (this.eventDate) {
@@ -130,6 +158,8 @@
                             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             modal.hide();
                             this.$el.reset();
+                            this.selectedSectionId = '';
+                            this.selectedProgramId = '';
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
                             window.dispatchEvent(new CustomEvent('refresh-events'));
                         } else {
@@ -155,6 +185,41 @@
                         <div class="col-12">
                             <label class="form-label fw-semibold">Nama Kegiatan / Acara <span class="text-danger">*</span></label>
                             <input type="text" name="title" class="form-control" placeholder="Contoh: Majelis Ta'lim & Halqah Kebangsaan ISNU Kota Surabaya" required :disabled="loading">
+                        </div>
+
+                        <!-- Pilihan Seksi / Bidang Pengampu -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
+                            <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''" :disabled="loading">
+                                <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
+                                @foreach($sections as $sec)
+                                    <option value="{{ $sec->id }}">
+                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Pilihan Program Kerja dari Seksi -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Program Kerja Terkait <span class="text-secondary small">(Opsional)</span></label>
+                            <select name="program_id" class="form-select" x-model="selectedProgramId" :disabled="loading">
+                                <option value="">-- Tanpa Program Khusus --</option>
+                                <template x-for="prog in filteredPrograms" :key="prog.id">
+                                    <option :value="prog.id" x-text="`[${prog.code || 'PRG'}] ${prog.name}`"></option>
+                                </template>
+                            </select>
+                            <div class="form-text small text-muted" x-show="!selectedSectionId">Pilih seksi terlebih dahulu untuk memfilter program kerja.</div>
+                        </div>
+
+                        <!-- Inputan RAB Kegiatan (Tidak Wajib) -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Rencana Anggaran Biaya (RAB) <span class="text-secondary small fw-normal">(Tidak Wajib)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold text-muted">Rp</span>
+                                <input type="number" step="0.01" min="0" name="budget" class="form-control" placeholder="Contoh: 15000000 (tanpa titik)" :disabled="loading">
+                            </div>
+                            <div class="form-text small text-muted">Masukkan estimasi rencana anggaran biaya (RAB) untuk kegiatan ini jika ada.</div>
                         </div>
 
                         <div class="col-12">

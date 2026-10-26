@@ -34,6 +34,24 @@
                                 <i class="bi bi-calendar-event me-1"></i> Direncana / Mendatang
                             </span>
                         @endif
+
+                        <div class="mt-1.5 d-flex flex-wrap gap-1 align-items-center">
+                            @if($evt->section)
+                                <span class="badge bg-light text-dark border px-2 py-0.5 rounded-pill small" title="Seksi Pengampu: {{ $evt->section->name }}">
+                                    <i class="bi bi-diagram-2 text-success me-1"></i> {{ Str::limit($evt->section->name, 28) }}
+                                </span>
+                            @endif
+                            @if($evt->program)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill small" title="Program Kerja: {{ $evt->program->name }}">
+                                    <i class="bi bi-card-checklist me-1"></i> {{ Str::limit($evt->program->name, 28) }}
+                                </span>
+                            @endif
+                            @if($evt->budget !== null)
+                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2 py-0.5 rounded-pill small" title="Rencana Anggaran Biaya (RAB)">
+                                    <i class="bi bi-cash-stack text-warning me-1"></i> RAB: {{ $evt->formatted_budget }}
+                                </span>
+                            @endif
+                        </div>
                     </td>
                     <td>
                         @if($evt->method === 'daring')

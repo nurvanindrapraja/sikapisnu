@@ -8,6 +8,8 @@ use App\Models\Event;
 use App\Models\EventPresence;
 use App\Models\Member;
 use App\Models\Pac;
+use App\Models\Program;
+use App\Models\Section;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,7 +18,7 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Event::withCount('presences');
+        $query = Event::with(['section', 'program'])->withCount('presences');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -25,6 +27,14 @@ class EventController extends Controller
                     ->orWhere('location', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('section_id')) {
+            $query->where('section_id', $request->section_id);
+        }
+
+        if ($request->filled('program_id')) {
+            $query->where('program_id', $request->program_id);
         }
 
         if ($request->filled('method')) {
@@ -36,12 +46,14 @@ class EventController extends Controller
         }
 
         $events = $query->latest('event_date')->paginate(10)->withQueryString();
+        $sections = Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+            ->orderBy('level')->orderBy('name')->get();
 
         if ($request->ajax()) {
-            return view('admin.events.partials.event_list', compact('events'));
+            return view('admin.events.partials.event_list', compact('events', 'sections'));
         }
 
-        return view('admin.events.index', compact('events'));
+        return view('admin.events.index', compact('events', 'sections'));
     }
 
     public function rekapPresensi(Request $request)
@@ -168,6 +180,9 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'section_id' => 'nullable|exists:sections,id',
+            'program_id' => 'nullable|exists:programs,id',
+            'budget' => 'nullable|numeric|min:0',
             'location' => 'required|string|max:255',
             'method' => 'required|in:daring,luring',
             'meeting_link' => 'nullable|required_if:method,daring|url|max:500',
@@ -178,6 +193,10 @@ class EventController extends Controller
             'presence_end_at' => 'required|date|after_or_equal:presence_start_at',
             'status' => 'required|in:planned,completed,cancelled',
         ]);
+
+        if (! empty($validated['program_id']) && empty($validated['section_id'])) {
+            $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
+        }
 
         $validated['unique_code'] = 'evt-'.Str::slug(substr($validated['title'], 0, 30)).'-'.Str::random(6);
         $validated['created_by'] = auth()->id();
@@ -198,10 +217,12 @@ class EventController extends Controller
 
     public function show($id)
     {
-        $event = Event::with(['presences.member', 'presences.user', 'creator'])->withCount('presences')->findOrFail($id);
+        $event = Event::with(['presences.member', 'presences.user', 'creator', 'section', 'program'])->withCount('presences')->findOrFail($id);
         $presences = $event->presences()->latest('attended_at')->paginate(20)->withQueryString();
+        $sections = Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+            ->orderBy('level')->orderBy('name')->get();
 
-        return view('admin.events.show', compact('event', 'presences'));
+        return view('admin.events.show', compact('event', 'presences', 'sections'));
     }
 
     public function update(Request $request, $id)
@@ -211,6 +232,9 @@ class EventController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'section_id' => 'nullable|exists:sections,id',
+            'program_id' => 'nullable|exists:programs,id',
+            'budget' => 'nullable|numeric|min:0',
             'location' => 'required|string|max:255',
             'method' => 'required|in:daring,luring',
             'meeting_link' => 'nullable|required_if:method,daring|url|max:500',
@@ -221,6 +245,10 @@ class EventController extends Controller
             'presence_end_at' => 'required|date|after_or_equal:presence_start_at',
             'status' => 'required|in:planned,completed,cancelled',
         ]);
+
+        if (! empty($validated['program_id']) && empty($validated['section_id'])) {
+            $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
+        }
 
         $event->update($validated);
 

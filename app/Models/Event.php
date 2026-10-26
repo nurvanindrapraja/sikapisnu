@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
@@ -15,6 +17,8 @@ class Event extends Model
         'title',
         'unique_code',
         'description',
+        'section_id',
+        'program_id',
         'location',
         'method',
         'meeting_link',
@@ -24,6 +28,7 @@ class Event extends Model
         'presence_start_at',
         'presence_end_at',
         'status',
+        'budget',
         'lpj_file',
         'documentation_photos',
         'created_by',
@@ -34,16 +39,42 @@ class Event extends Model
         'presence_start_at' => 'datetime',
         'presence_end_at' => 'datetime',
         'documentation_photos' => 'array',
+        'budget' => 'decimal:2',
     ];
 
-    public function presences()
+    public function presences(): HasMany
     {
         return $this->hasMany(EventPresence::class, 'event_id');
     }
 
-    public function creator()
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Seksi / Bidang pengampu kegiatan.
+     */
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class, 'section_id');
+    }
+
+    /**
+     * Program kerja yang menaungi kegiatan ini.
+     */
+    public function program(): BelongsTo
+    {
+        return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function getFormattedBudgetAttribute(): ?string
+    {
+        if ($this->budget === null) {
+            return null;
+        }
+
+        return 'Rp '.number_format((float) $this->budget, 0, ',', '.');
     }
 
     public function isPresenceActive(): bool

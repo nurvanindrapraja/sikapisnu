@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MemberController as AdminMember;
 use App\Http\Controllers\Admin\MwcController as AdminMwc;
 use App\Http\Controllers\Admin\OfficerController as AdminOfficer;
 use App\Http\Controllers\Admin\ProfileController as AdminProfile;
+use App\Http\Controllers\Admin\ProgramController as AdminProgram;
 use App\Http\Controllers\Admin\ReportController as AdminReport;
 use App\Http\Controllers\Admin\SectionController as AdminSection;
 use App\Http\Controllers\Admin\UserController as AdminUser;
@@ -166,6 +167,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/sections', [AdminSection::class, 'store'])->name('sections.store');
     Route::put('/sections/{id}', [AdminSection::class, 'update'])->name('sections.update');
     Route::delete('/sections/{id}', [AdminSection::class, 'destroy'])->name('sections.destroy');
+
+    // Master Program Kerja Seksi
+    Route::get('/programs', [AdminProgram::class, 'index'])->name('programs.index');
+    Route::post('/programs', [AdminProgram::class, 'store'])->name('programs.store');
+    Route::put('/programs/{id}', [AdminProgram::class, 'update'])->name('programs.update');
+    Route::delete('/programs/{id}', [AdminProgram::class, 'destroy'])->name('programs.destroy');
+    Route::get('/programs/by-section/{section_id}', [AdminProgram::class, 'getBySection'])->name('programs.by_section');
 
     // Master Kelompok Kerja (Pokja)
     Route::get('/workgroups', [AdminWorkgroup::class, 'index'])->name('workgroups.index');
