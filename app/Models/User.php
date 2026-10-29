@@ -169,14 +169,52 @@ class User extends Authenticatable
         return null;
     }
 
+    /**
+     * Memeriksa apakah user berhak mengelola data anggota dan data pengurus.
+     * Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data,
+     * sedangkan posisi pengurus lainnya hanya dapat melihat saja.
+     */
+    public function canManageMembersAndOfficers(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return true;
+        }
+
+        $positionTitle = $this->getOfficerPositionTitle();
+
+        return in_array($positionTitle, ['Ketua', 'Sekretaris'], true);
+    }
+
     public function canManageMember(?Member $member): bool
     {
         if (! $member) {
             return false;
         }
 
-        if ($this->isSuperAdmin() || $this->isAdminKota()) {
+        if (! $this->canManageMembersAndOfficers()) {
+            return false;
+        }
+
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
             return true;
+        }
+
+        $title = $this->getOfficerPositionTitle();
+        if (in_array($title, ['Ketua', 'Sekretaris'], true)) {
+            $pos = $this->getOfficerPosition();
+            if (! $pos || in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || ! $pos->pac_id) {
+                return true;
+            }
+
+            if ($pos->pac_id && $member->pac_id) {
+                return (int) $member->pac_id === (int) $pos->pac_id;
+            }
+
+            if ($this->member?->kecamatan && $member->kecamatan) {
+                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
+            }
+
+            return false;
         }
 
         if ($this->isAdminPac()) {
@@ -190,6 +228,53 @@ class User extends Authenticatable
             }
 
             return false;
+        }
+
+        return false;
+    }
+
+    public function canViewMember(?Member $member): bool
+    {
+        if (! $member) {
+            return false;
+        }
+
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminMwc() || $this->role === 'admin') {
+            return true;
+        }
+
+        $pos = $this->getOfficerPosition();
+        if ($pos) {
+            if (! $pos->pac_id || in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true)) {
+                return true;
+            }
+
+            if ($pos->pac_id && $member->pac_id) {
+                return (int) $member->pac_id === (int) $pos->pac_id;
+            }
+
+            if ($this->member?->kecamatan && $member->kecamatan) {
+                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
+            }
+
+            return false;
+        }
+
+        if ($this->isAdminPac()) {
+            $pacId = $this->getManagedPacId();
+            if ($pacId && $member->pac_id) {
+                return (int) $member->pac_id === (int) $pacId;
+            }
+
+            if ($this->member?->kecamatan && $member->kecamatan) {
+                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
+            }
+
+            return false;
+        }
+
+        if ($this->member && (int) $this->member->id === (int) $member->id) {
+            return true;
         }
 
         return false;

@@ -720,4 +720,166 @@ class SikapIsnuTest extends TestCase
         $response->assertSee('modalPreviewRekapPdf');
         $response->assertSee('iframeRekapPdf');
     }
+
+    public function test_ketua_and_sekretaris_can_manage_members_and_officers()
+    {
+        $targetMember = Member::where('membership_status', 'terverifikasi')->first();
+
+        // Setup user as Ketua PC ISNU
+        $ketuaUser = User::create([
+            'name' => 'Ketua PC ISNU',
+            'email' => 'ketua@isnu.test',
+            'phone' => '081234500001',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $ketuaMember = Member::create([
+            'user_id' => $ketuaUser->id,
+            'full_name' => 'Ketua PC ISNU',
+            'nik' => '3578000000000001',
+            'email' => 'ketua@isnu.test',
+            'phone' => '081234500001',
+            'occupation' => 'Dosen',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1980-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Ketintang No. 1',
+            'kelurahan' => 'Ketintang',
+            'kecamatan' => 'Gayungan',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $ketuaMember->id,
+            'position_title' => 'Ketua',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $this->assertTrue($ketuaUser->fresh()->canManageMembersAndOfficers());
+        $this->assertTrue($ketuaUser->fresh()->canManageMember($targetMember));
+
+        // Ketua can promote an eligible member to officer
+        $promoteResponse = $this->actingAs($ketuaUser)->post('/admin/pengurus/'.$targetMember->id.'/promote', [
+            'position_title' => 'Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+        ]);
+        $promoteResponse->assertRedirect();
+        $this->assertEquals('pengurus', $targetMember->fresh()->membership_status);
+
+        // Ketua can update member data
+        $updateResponse = $this->actingAs($ketuaUser)->put('/admin/anggota/'.$targetMember->id, [
+            'full_name' => 'Nama Baru Diupdate Ketua',
+            'email' => $targetMember->email,
+            'phone' => $targetMember->phone,
+            'occupation' => $targetMember->occupation,
+            'birth_place' => $targetMember->birth_place,
+            'birth_date' => $targetMember->birth_date->format('Y-m-d'),
+            'gender' => $targetMember->gender,
+            'address' => $targetMember->address,
+            'kelurahan' => $targetMember->kelurahan,
+            'kecamatan' => $targetMember->kecamatan,
+            'membership_status' => 'pengurus',
+        ]);
+        $updateResponse->assertRedirect();
+        $this->assertEquals('Nama Baru Diupdate Ketua', $targetMember->fresh()->full_name);
+
+        // Ketua can demote officer
+        $demoteResponse = $this->actingAs($ketuaUser)->post('/admin/pengurus/'.$targetMember->id.'/demote');
+        $demoteResponse->assertRedirect();
+        $this->assertEquals('terverifikasi', $targetMember->fresh()->membership_status);
+    }
+
+    public function test_non_manager_officers_can_only_view_and_cannot_manage_members_or_officers()
+    {
+        $targetMember = Member::where('membership_status', 'terverifikasi')->first();
+
+        // Setup user as Bendahara PC ISNU
+        $bendaharaUser = User::create([
+            'name' => 'Bendahara PC ISNU',
+            'email' => 'bendahara@isnu.test',
+            'phone' => '081234500002',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $bendaharaMember = Member::create([
+            'user_id' => $bendaharaUser->id,
+            'full_name' => 'Bendahara PC ISNU',
+            'nik' => '3578000000000002',
+            'email' => 'bendahara@isnu.test',
+            'phone' => '081234500002',
+            'occupation' => 'Akuntan',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1985-05-05',
+            'gender' => 'P',
+            'address' => 'Jl. Gubeng No. 2',
+            'kelurahan' => 'Gubeng',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaMember->id,
+            'position_title' => 'Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $this->assertFalse($bendaharaUser->fresh()->canManageMembersAndOfficers());
+        $this->assertFalse($bendaharaUser->fresh()->canManageMember($targetMember));
+        $this->assertTrue($bendaharaUser->fresh()->canViewMember($targetMember));
+
+        // 1. Read-only access: CAN view index and show pages
+        $this->actingAs($bendaharaUser)->get('/admin/anggota')->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/anggota/'.$targetMember->id)->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/pengurus')->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/verifikasi')->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/anggota/rekap-pdf')->assertStatus(200);
+
+        // In admin anggota index, edit and delete buttons are hidden
+        $indexResponse = $this->actingAs($bendaharaUser)->get('/admin/anggota');
+        $indexResponse->assertDontSee('/admin/anggota/'.$targetMember->id.'/edit');
+
+        // In pengurus index, Tetapkan Pengurus Baru button is hidden
+        $pengurusResponse = $this->actingAs($bendaharaUser)->get('/admin/pengurus');
+        $pengurusResponse->assertDontSee('Tetapkan Pengurus Baru');
+
+        // 2. Action mutation: BLOCKED with 403 Forbidden
+        // Attempt update member
+        $this->actingAs($bendaharaUser)->put('/admin/anggota/'.$targetMember->id, [
+            'full_name' => 'Nama Ditolak',
+            'email' => $targetMember->email,
+            'phone' => $targetMember->phone,
+            'occupation' => $targetMember->occupation,
+            'birth_place' => $targetMember->birth_place,
+            'birth_date' => $targetMember->birth_date->format('Y-m-d'),
+            'gender' => $targetMember->gender,
+            'address' => $targetMember->address,
+            'kelurahan' => $targetMember->kelurahan,
+            'kecamatan' => $targetMember->kecamatan,
+            'membership_status' => 'terverifikasi',
+        ])->assertStatus(403);
+
+        // Attempt delete member
+        $this->actingAs($bendaharaUser)->delete('/admin/anggota/'.$targetMember->id)->assertStatus(403);
+
+        // Attempt promote officer
+        $this->actingAs($bendaharaUser)->post('/admin/pengurus/'.$targetMember->id.'/promote', [
+            'position_title' => 'Koordinator Seksi',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+        ])->assertStatus(403);
+
+        // Attempt demote officer
+        $this->actingAs($bendaharaUser)->post('/admin/pengurus/'.$targetMember->id.'/demote')->assertStatus(403);
+
+        // Attempt verify account
+        $this->actingAs($bendaharaUser)->post('/admin/verifikasi/'.$targetMember->id.'/verify-account')->assertStatus(403);
+
+        // Attempt approve verification
+        $this->actingAs($bendaharaUser)->post('/admin/verifikasi/'.$targetMember->id.'/approve')->assertStatus(403);
+    }
 }

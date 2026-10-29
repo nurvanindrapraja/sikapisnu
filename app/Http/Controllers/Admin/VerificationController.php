@@ -70,8 +70,8 @@ class VerificationController extends Controller
             'statusHistories.changer',
         ])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+        if (! auth()->user()->canViewMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk melihat data pendaftar di luar wilayah Anda.');
         }
 
         return view('admin.verifikasi.show', compact('member'));
@@ -82,7 +82,7 @@ class VerificationController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat memproses verifikasi anggota.');
         }
 
         DB::beginTransaction();
@@ -131,7 +131,7 @@ class VerificationController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat memproses verifikasi anggota.');
         }
 
         DB::beginTransaction();
@@ -223,7 +223,7 @@ class VerificationController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat memproses verifikasi anggota.');
         }
 
         $oldStatus = $member->membership_status;
@@ -264,7 +264,7 @@ class VerificationController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk verifikasi pendaftar di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat memproses verifikasi anggota.');
         }
 
         $oldStatus = $member->membership_status;

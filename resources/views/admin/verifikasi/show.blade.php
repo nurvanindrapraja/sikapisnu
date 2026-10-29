@@ -34,34 +34,40 @@
 
             <!-- Action Panel -->
             <div class="mt-4 pt-3 border-top d-flex flex-column gap-2">
-                @if(!$member->user || !$member->user->is_active || $member->membership_status === 'menunggu_verifikasi')
-                    <!-- Verify Account Modal Trigger (Aktifkan Login) -->
-                    <button type="button" class="btn btn-primary w-100 fw-bold rounded-pill py-2.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVerifyAccount">
-                        <i class="bi bi-person-check-fill me-1"></i> 1. Verifikasi Pendaftaran Akun
-                    </button>
-                    <small class="text-muted text-center d-block mb-1" style="font-size: 0.75rem;">
-                        *Mengaktifkan akun agar pendaftar bisa login ke aplikasi (belum diterbitkan kartu)
-                    </small>
-                @endif
+                @if(auth()->user()->canManageMembersAndOfficers())
+                    @if(!$member->user || !$member->user->is_active || $member->membership_status === 'menunggu_verifikasi')
+                        <!-- Verify Account Modal Trigger (Aktifkan Login) -->
+                        <button type="button" class="btn btn-primary w-100 fw-bold rounded-pill py-2.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVerifyAccount">
+                            <i class="bi bi-person-check-fill me-1"></i> 1. Verifikasi Pendaftaran Akun
+                        </button>
+                        <small class="text-muted text-center d-block mb-1" style="font-size: 0.75rem;">
+                            *Mengaktifkan akun agar pendaftar bisa login ke aplikasi (belum diterbitkan kartu)
+                        </small>
+                    @endif
 
-                @if($member->membership_status !== 'terverifikasi' && $member->membership_status !== 'pengurus')
-                    <!-- Approve Member Modal Trigger (Terbitkan Kartu) -->
-                    <button type="button" class="btn btn-success w-100 fw-bold rounded-pill py-2.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
-                        <i class="bi bi-card-checklist me-1"></i> 2. Verifikasi Anggota & Terbitkan Kartu
-                    </button>
+                    @if($member->membership_status !== 'terverifikasi' && $member->membership_status !== 'pengurus')
+                        <!-- Approve Member Modal Trigger (Terbitkan Kartu) -->
+                        <button type="button" class="btn btn-success w-100 fw-bold rounded-pill py-2.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalApprove">
+                            <i class="bi bi-card-checklist me-1"></i> 2. Verifikasi Anggota & Terbitkan Kartu
+                        </button>
 
-                    <!-- Request Revision Modal Trigger -->
-                    <button type="button" class="btn btn-warning w-100 fw-bold rounded-pill py-2 text-dark" data-bs-toggle="modal" data-bs-target="#modalRevision">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Kembalikan untuk Perbaikan
-                    </button>
+                        <!-- Request Revision Modal Trigger -->
+                        <button type="button" class="btn btn-warning w-100 fw-bold rounded-pill py-2 text-dark" data-bs-toggle="modal" data-bs-target="#modalRevision">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Kembalikan untuk Perbaikan
+                        </button>
 
-                    <!-- Reject Modal Trigger -->
-                    <button type="button" class="btn btn-outline-danger w-100 fw-semibold rounded-pill py-2" data-bs-toggle="modal" data-bs-target="#modalReject">
-                        <i class="bi bi-x-circle me-1"></i> Tolak Pendaftaran
-                    </button>
+                        <!-- Reject Modal Trigger -->
+                        <button type="button" class="btn btn-outline-danger w-100 fw-semibold rounded-pill py-2" data-bs-toggle="modal" data-bs-target="#modalReject">
+                            <i class="bi bi-x-circle me-1"></i> Tolak Pendaftaran
+                        </button>
+                    @else
+                        <div class="alert alert-success border-0 small m-0">
+                            <i class="bi bi-check-circle-fill me-1"></i> Anggota ini telah terverifikasi penuh dengan Nomor Anggota: <strong>{{ $member->member_number }}</strong>
+                        </div>
+                    @endif
                 @else
-                    <div class="alert alert-success border-0 small m-0">
-                        <i class="bi bi-check-circle-fill me-1"></i> Anggota ini telah terverifikasi penuh dengan Nomor Anggota: <strong>{{ $member->member_number }}</strong>
+                    <div class="alert alert-secondary border-0 small m-0 text-start">
+                        <i class="bi bi-info-circle-fill me-1 text-primary"></i> <strong>Mode Pratinjau:</strong> Anda memiliki hak akses melihat berkas pendaftar. Pemrosesan verifikasi, penerbitan kartu, dan penolakan hanya dapat dilakukan oleh Superadmin, Admin, Ketua, dan Sekretaris.
                     </div>
                 @endif
             </div>

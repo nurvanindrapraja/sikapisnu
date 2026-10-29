@@ -79,11 +79,13 @@
                 <span class="d-inline d-sm-none">Pengurus ISNU</span>
             </h5>
 
-            <!-- Responsive Button: Desktop text + icon, Mobile icon only -->
-            <button type="button" @click="openPromoteModal()" class="btn btn-success rounded-pill fw-bold d-flex align-items-center gap-1 shadow-sm px-3 py-2">
-                <i class="bi bi-plus-lg fs-6"></i>
-                <span class="d-none d-md-inline">Tetapkan Pengurus Baru</span>
-            </button>
+            @if(auth()->user()->canManageMembersAndOfficers())
+                <!-- Responsive Button: Desktop text + icon, Mobile icon only -->
+                <button type="button" @click="openPromoteModal()" class="btn btn-success rounded-pill fw-bold d-flex align-items-center gap-1 shadow-sm px-3 py-2">
+                    <i class="bi bi-plus-lg fs-6"></i>
+                    <span class="d-none d-md-inline">Tetapkan Pengurus Baru</span>
+                </button>
+            @endif
         </div>
 
         <!-- Filter & Search Bar -->

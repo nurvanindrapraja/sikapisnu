@@ -32,17 +32,21 @@
                         </small>
                     </td>
                     <td class="text-end">
-                        <div class="d-inline-flex gap-1">
-                            <!-- Tombol Restore / Pulihkan -->
-                            <button type="button" class="btn btn-sm btn-success rounded-circle p-2" style="width: 34px; height: 34px;" title="Pulihkan Data Anggota" @click="confirmRestore('{{ route('admin.sampah.restore', $m->id) }}', '{{ addslashes($m->full_name) }}')">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </button>
+                        @if(auth()->user()->canManageMembersAndOfficers())
+                            <div class="d-inline-flex gap-1">
+                                <!-- Tombol Restore / Pulihkan -->
+                                <button type="button" class="btn btn-sm btn-success rounded-circle p-2" style="width: 34px; height: 34px;" title="Pulihkan Data Anggota" @click="confirmRestore('{{ route('admin.sampah.restore', $m->id) }}', '{{ addslashes($m->full_name) }}')">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
 
-                            <!-- Tombol Hapus Permanen -->
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-2" style="width: 34px; height: 34px;" title="Hapus Permanen" @click="confirmForceDelete('{{ route('admin.sampah.force_delete', $m->id) }}', '{{ addslashes($m->full_name) }}')">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        </div>
+                                <!-- Tombol Hapus Permanen -->
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-2" style="width: 34px; height: 34px;" title="Hapus Permanen" @click="confirmForceDelete('{{ route('admin.sampah.force_delete', $m->id) }}', '{{ addslashes($m->full_name) }}')">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
+                        @else
+                            <span class="badge bg-light text-muted border">Hanya Lihat</span>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -84,6 +88,7 @@
                 </div>
             </div>
 
+            @if(auth()->user()->canManageMembersAndOfficers())
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-sm btn-success w-100 rounded-pill fw-bold" @click="confirmRestore('{{ route('admin.sampah.restore', $m->id) }}', '{{ addslashes($m->full_name) }}')">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Pulihkan
@@ -92,6 +97,11 @@
                     <i class="bi bi-x-circle me-1"></i> Hapus Permanen
                 </button>
             </div>
+            @else
+                <div class="text-center py-1">
+                    <span class="badge bg-light text-muted border w-100 py-1.5">Mode Hanya Lihat</span>
+                </div>
+            @endif
         </div>
     @empty
         <div class="text-center py-4 text-muted bg-light rounded-4">

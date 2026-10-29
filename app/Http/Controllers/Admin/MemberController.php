@@ -143,8 +143,8 @@ class MemberController extends Controller
             'statusHistories.changer',
         ])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        if (! auth()->user()->canViewMember($member)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk melihat data anggota di luar wilayah PAC Anda.');
         }
 
         $mwcs = Mwc::orderBy('name')->get();
@@ -159,7 +159,7 @@ class MemberController extends Controller
         $member = Member::with(['user', 'mwc', 'pac', 'educations', 'organizations', 'employments', 'nuTrainings', 'certifications'])->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
         }
         $mwcs = Mwc::orderBy('name')->get();
 
@@ -169,6 +169,11 @@ class MemberController extends Controller
     public function addEducation($id, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $validated = $request->validate([
             'level' => 'required|string',
             'institution_name' => 'required|string',
@@ -193,6 +198,11 @@ class MemberController extends Controller
     public function updateEducation($id, $eduId, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $edu = $member->educations()->where('id', $eduId)->firstOrFail();
 
         $validated = $request->validate([
@@ -219,6 +229,11 @@ class MemberController extends Controller
     public function deleteEducation($id, $eduId)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $member->educations()->where('id', $eduId)->delete();
 
         if (request()->expectsJson() || request()->ajax()) {
@@ -234,6 +249,11 @@ class MemberController extends Controller
     public function addOrganization($id, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $validated = $request->validate([
             'organization_name' => 'required|string|max:255',
             'position' => 'nullable|string|max:255',
@@ -255,6 +275,11 @@ class MemberController extends Controller
     public function updateOrganization($id, $orgId, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $org = $member->organizations()->where('id', $orgId)->firstOrFail();
 
         $validated = $request->validate([
@@ -278,6 +303,11 @@ class MemberController extends Controller
     public function deleteOrganization($id, $orgId)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $member->organizations()->where('id', $orgId)->delete();
 
         if (request()->expectsJson() || request()->ajax()) {
@@ -293,6 +323,11 @@ class MemberController extends Controller
     public function addEmployment($id, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $validated = $request->validate([
             'company_name' => 'required|string',
             'position' => 'required|string',
@@ -316,6 +351,11 @@ class MemberController extends Controller
     public function updateEmployment($id, $empId, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $emp = $member->employments()->where('id', $empId)->firstOrFail();
 
         $validated = $request->validate([
@@ -341,6 +381,11 @@ class MemberController extends Controller
     public function deleteEmployment($id, $empId)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $member->employments()->where('id', $empId)->delete();
 
         if (request()->expectsJson() || request()->ajax()) {
@@ -356,6 +401,11 @@ class MemberController extends Controller
     public function addNuTraining($id, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $validated = $request->validate([
             'training_type' => 'required|string',
             'organizer' => 'nullable|string',
@@ -378,6 +428,11 @@ class MemberController extends Controller
     public function updateNuTraining($id, $nuId, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $nu = $member->nuTrainings()->where('id', $nuId)->firstOrFail();
 
         $validated = $request->validate([
@@ -402,6 +457,11 @@ class MemberController extends Controller
     public function deleteNuTraining($id, $nuId)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $member->nuTrainings()->where('id', $nuId)->delete();
 
         if (request()->expectsJson() || request()->ajax()) {
@@ -417,6 +477,11 @@ class MemberController extends Controller
     public function addCertification($id, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $validated = $request->validate([
             'certification_name' => 'required|string',
             'field' => 'nullable|string',
@@ -439,6 +504,11 @@ class MemberController extends Controller
     public function updateCertification($id, $certId, Request $request)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $cert = $member->certifications()->where('id', $certId)->firstOrFail();
 
         $validated = $request->validate([
@@ -463,6 +533,11 @@ class MemberController extends Controller
     public function deleteCertification($id, $certId)
     {
         $member = Member::findOrFail($id);
+
+        if (! auth()->user()->canManageMember($member)) {
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
+        }
+
         $member->certifications()->where('id', $certId)->delete();
 
         if (request()->expectsJson() || request()->ajax()) {
@@ -480,7 +555,7 @@ class MemberController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
         }
 
         $validated = $request->validate([
@@ -528,7 +603,7 @@ class MemberController extends Controller
         $member = Member::findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
         }
 
         $name = $member->full_name;
@@ -583,7 +658,7 @@ class MemberController extends Controller
         $member = Member::onlyTrashed()->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
         }
 
         $name = $member->full_name;
@@ -612,7 +687,7 @@ class MemberController extends Controller
         $member = Member::onlyTrashed()->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data anggota.');
         }
 
         $name = $member->full_name;

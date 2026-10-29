@@ -46,12 +46,14 @@
                             <a href="{{ route('admin.anggota.show', $m->id) }}" class="btn btn-sm btn-outline-info rounded-circle" title="Detail Profil" data-bs-toggle="tooltip">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="{{ route('admin.anggota.edit', $m->id) }}" class="btn btn-sm btn-outline-primary rounded-circle" title="Edit Data" data-bs-toggle="tooltip">
-                                <i class="bi bi-pencil-square"></i>
-                            </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Data" data-bs-toggle="tooltip" @click="confirmDelete('{{ route('admin.anggota.destroy', $m->id) }}', '{{ addslashes($m->full_name) }}')">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                            @if(auth()->user()->canManageMembersAndOfficers())
+                                <a href="{{ route('admin.anggota.edit', $m->id) }}" class="btn btn-sm btn-outline-primary rounded-circle" title="Edit Data" data-bs-toggle="tooltip">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Data" data-bs-toggle="tooltip" @click="confirmDelete('{{ route('admin.anggota.destroy', $m->id) }}', '{{ addslashes($m->full_name) }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -116,12 +118,14 @@
                 <a href="{{ route('admin.anggota.show', $m->id) }}" class="btn btn-sm btn-outline-info rounded-circle" title="Detail Profil" data-bs-toggle="tooltip">
                     <i class="bi bi-eye"></i>
                 </a>
-                <a href="{{ route('admin.anggota.edit', $m->id) }}" class="btn btn-sm btn-outline-primary rounded-circle" title="Edit Data" data-bs-toggle="tooltip">
-                    <i class="bi bi-pencil-square"></i>
-                </a>
-                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Data" data-bs-toggle="tooltip" @click="confirmDelete('{{ route('admin.anggota.destroy', $m->id) }}', '{{ addslashes($m->full_name) }}')">
-                    <i class="bi bi-trash"></i>
-                </button>
+                @if(auth()->user()->canManageMembersAndOfficers())
+                    <a href="{{ route('admin.anggota.edit', $m->id) }}" class="btn btn-sm btn-outline-primary rounded-circle" title="Edit Data" data-bs-toggle="tooltip">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Data" data-bs-toggle="tooltip" @click="confirmDelete('{{ route('admin.anggota.destroy', $m->id) }}', '{{ addslashes($m->full_name) }}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                @endif
             </div>
         </div>
     @empty

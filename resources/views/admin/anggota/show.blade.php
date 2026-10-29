@@ -42,6 +42,7 @@
             </div>
 
             <!-- Modal Promote Officer Trigger & Demote Officer -->
+            @if(auth()->user()->canManageMembersAndOfficers())
             <div class="mt-4 pt-3 border-top">
                 <button type="button" class="btn btn-warning w-100 fw-bold rounded-pill text-dark mb-2" data-bs-toggle="modal" data-bs-target="#modalPromote">
                     <i class="bi bi-award-fill me-1"></i> {{ $member->membership_status === 'pengurus' ? 'Update Jabatan Pengurus' : 'Jadikan Pengurus ISNU' }}
@@ -52,6 +53,7 @@
                     </button>
                 @endif
             </div>
+            @endif
         </div>
 
         <!-- Digital Card Preview -->
@@ -79,9 +81,11 @@
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-warning-subtle border-start border-warning border-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold text-dark m-0"><i class="bi bi-award-fill text-warning me-1"></i> Jabatan Pengurus Aktif</h6>
+                    @if(auth()->user()->canManageMembersAndOfficers())
                     <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $member->id) }}', '{{ addslashes($member->full_name) }}')">
                         <i class="bi bi-x-circle me-1"></i> Batalkan Pengurus
                     </button>
+                    @endif
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>

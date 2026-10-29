@@ -66,11 +66,13 @@
                     <td class="text-end">
                         <div class="d-inline-flex gap-1">
                             <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                                <i class="bi bi-pencil-square me-1"></i> Detail & Kelola
+                                <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
                             </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Batalkan Pengurus" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
-                                <i class="bi bi-x-circle me-1"></i> Batalkan
-                            </button>
+                            @if(auth()->user()->canManageMembersAndOfficers())
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Batalkan Pengurus" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
+                                    <i class="bi bi-x-circle me-1"></i> Batalkan
+                                </button>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -141,11 +143,13 @@
 
             <div class="d-flex gap-2">
                 <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success flex-grow-1 rounded-pill fw-bold">
-                    <i class="bi bi-pencil-square me-1"></i> Detail & Kelola
+                    <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
                 </a>
-                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
-                    <i class="bi bi-x-circle me-1"></i> Batalkan
-                </button>
+                @if(auth()->user()->canManageMembersAndOfficers())
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
+                        <i class="bi bi-x-circle me-1"></i> Batalkan
+                    </button>
+                @endif
             </div>
         </div>
     @empty

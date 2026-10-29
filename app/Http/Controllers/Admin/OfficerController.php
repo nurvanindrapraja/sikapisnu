@@ -119,7 +119,7 @@ class OfficerController extends Controller
         $member = Member::findOrFail($member_id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola pengurus di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data pengurus.');
         }
 
         DB::beginTransaction();
@@ -205,7 +205,7 @@ class OfficerController extends Controller
         $member = Member::findOrFail($member_id);
 
         if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola pengurus di luar wilayah PAC Anda.');
+            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data pengurus.');
         }
 
         DB::beginTransaction();
