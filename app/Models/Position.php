@@ -9,6 +9,17 @@ class Position extends Model
 {
     use HasFactory;
 
+    public const POSITION_TITLES = [
+        'Ketua',
+        'Wakil Ketua',
+        'Sekretaris',
+        'Wakil Sekretaris',
+        'Bendahara',
+        'Wakil Bendahara',
+        'Koordinator Seksi',
+        'Anggota Seksi',
+    ];
+
     protected $table = 'positions';
 
     protected $fillable = [

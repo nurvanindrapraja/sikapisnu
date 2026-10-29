@@ -8,6 +8,7 @@ use App\Models\CustomLocation;
 use App\Models\Event;
 use App\Models\Member;
 use App\Models\Pac;
+use App\Models\Position;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -628,6 +629,29 @@ class SikapIsnuTest extends TestCase
         $eligibleMembers = $response->viewData('eligibleMembers');
         $this->assertFalse($eligibleMembers->contains('id', $officerMember->id));
         $this->assertTrue($eligibleMembers->contains('id', $regularMember->id));
+    }
+
+    public function test_officer_position_dropdown_options_and_filter()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $member = Member::where('membership_status', 'terverifikasi')->first();
+
+        $responseAnggota = $this->actingAs($admin)->get(route('admin.anggota.show', $member->id));
+        $responseAnggota->assertStatus(200);
+
+        foreach (Position::POSITION_TITLES as $positionTitle) {
+            $responseAnggota->assertSee($positionTitle);
+        }
+
+        $responsePengurus = $this->actingAs($admin)->get(route('admin.pengurus.index'));
+        $responsePengurus->assertStatus(200);
+
+        foreach (Position::POSITION_TITLES as $positionTitle) {
+            $responsePengurus->assertSee($positionTitle);
+        }
+
+        $responseFilter = $this->actingAs($admin)->get(route('admin.pengurus.index', ['position_title' => 'Ketua']));
+        $responseFilter->assertStatus(200);
     }
 
     public function test_login_redirects_back_to_presence_page_when_coming_from_presence()

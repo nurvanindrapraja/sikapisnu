@@ -285,7 +285,19 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Jabatan Pengurus <span class="text-danger">*</span></label>
-                        <input type="text" name="position_title" class="form-control" placeholder="Contoh: Ketua Umum, Sekretaris, Bendahara..." value="{{ $member->activePosition ? $member->activePosition->position_title : '' }}" required>
+                        @php
+                            $jabatanOptions = \App\Models\Position::POSITION_TITLES;
+                            $currentPosition = old('position_title', optional($member->activePosition)->position_title);
+                        @endphp
+                        <select name="position_title" class="form-select" required>
+                            <option value="">-- Pilih Jabatan Pengurus --</option>
+                            @foreach($jabatanOptions as $jabatan)
+                                <option value="{{ $jabatan }}" {{ $currentPosition === $jabatan ? 'selected' : '' }}>{{ $jabatan }}</option>
+                            @endforeach
+                            @if($currentPosition && !in_array($currentPosition, $jabatanOptions, true))
+                                <option value="{{ $currentPosition }}" selected>{{ $currentPosition }}</option>
+                            @endif
+                        </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Tingkat Kepengurusan <span class="text-danger">*</span></label>

@@ -70,7 +70,11 @@ class OfficerController extends Controller
         if ($request->filled('position_title')) {
             $positionTitle = $request->position_title;
             $query->whereHas('activePosition', function ($q) use ($positionTitle) {
-                $q->where('position_title', 'like', "%{$positionTitle}%");
+                if (in_array($positionTitle, Position::POSITION_TITLES, true)) {
+                    $q->where('position_title', $positionTitle);
+                } else {
+                    $q->where('position_title', 'like', "%{$positionTitle}%");
+                }
             });
         }
 

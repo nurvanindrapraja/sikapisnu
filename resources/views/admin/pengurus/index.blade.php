@@ -118,7 +118,12 @@
                 <!-- 4.3 Filter Jabatan Pengurus -->
                 <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Jabatan Pengurus</label>
-                    <input type="text" x-model="positionTitle" @input.debounce.300ms="applyFilter()" class="form-control form-control-sm" placeholder="Cari Ketua, Sekretaris...">
+                    <select x-model="positionTitle" @change="applyFilter()" class="form-select form-select-sm">
+                        <option value="">-- Semua Jabatan --</option>
+                        @foreach(\App\Models\Position::POSITION_TITLES as $jabatan)
+                            <option value="{{ $jabatan }}">{{ $jabatan }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
 
@@ -201,7 +206,12 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Jabatan Pengurus <span class="text-danger">*</span></label>
-                            <input type="text" name="position_title" class="form-control" placeholder="Contoh: Ketua / Sekretaris / Anggota Seksi" required>
+                            <select name="position_title" class="form-select" required>
+                                <option value="">-- Pilih Jabatan Pengurus --</option>
+                                @foreach(\App\Models\Position::POSITION_TITLES as $jabatan)
+                                    <option value="{{ $jabatan }}">{{ $jabatan }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <!-- Seksi / Bidang Dropdown (Opsional) -->
