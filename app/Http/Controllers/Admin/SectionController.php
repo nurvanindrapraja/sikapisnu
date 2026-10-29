@@ -10,8 +10,17 @@ use Illuminate\Http\Request;
 
 class SectionController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengakses dan mengelola Master Seksi.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = Section::with('pac');
 
         if ($request->filled('level')) {
@@ -43,6 +52,8 @@ class SectionController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'level' => 'required|in:PC ISNU,PAC ISNU',
             'pac_id' => 'nullable|required_if:level,PAC ISNU|exists:pac,id',
@@ -70,6 +81,8 @@ class SectionController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->checkAccess();
+
         $section = Section::findOrFail($id);
 
         $validated = $request->validate([
@@ -99,6 +112,8 @@ class SectionController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        $this->checkAccess();
+
         $section = Section::findOrFail($id);
         $name = $section->name;
         $section->delete();

@@ -185,6 +185,45 @@ class User extends Authenticatable
         return in_array($positionTitle, ['Ketua', 'Sekretaris'], true);
     }
 
+    /**
+     * Memeriksa apakah user dapat mengelola Master Lokasi.
+     * Hanya Superadmin dan Admin PC yang berhak mengelola Master Lokasi.
+     */
+    public function canManageLocations(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin';
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola Master PAC, Master Seksi, dan Data Sampah.
+     * Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengelola.
+     */
+    public function canManagePacSectionTrash(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        $positionTitle = $this->getOfficerPositionTitle();
+
+        return in_array($positionTitle, ['Ketua', 'Sekretaris'], true);
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola menu Kartu Fisik.
+     * Hanya Superadmin, Admin PC, Ketua, Sekretaris, dan Bendahara yang berhak mengelola.
+     */
+    public function canManageCardOrders(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        $positionTitle = $this->getOfficerPositionTitle();
+
+        return in_array($positionTitle, ['Ketua', 'Sekretaris', 'Bendahara'], true);
+    }
+
     public function canManageMember(?Member $member): bool
     {
         if (! $member) {

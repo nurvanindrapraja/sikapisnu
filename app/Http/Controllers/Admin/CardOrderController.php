@@ -10,8 +10,17 @@ use Illuminate\Support\Facades\Storage;
 
 class CardOrderController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (! auth()->user() || ! auth()->user()->canManageCardOrders()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, Sekretaris, dan Bendahara yang berhak mengakses dan mengelola menu Kartu Fisik.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = CardOrder::with(['member.user', 'member.pac', 'member.activeCard']);
 
         if ($request->filled('status')) {
@@ -39,6 +48,8 @@ class CardOrderController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+        $this->checkAccess();
+
         $request->validate([
             'status' => 'required|in:pending,printed,shipped,delivered,received',
         ]);
@@ -92,6 +103,8 @@ class CardOrderController extends Controller
 
     public function destroy(Request $request, $id)
     {
+        $this->checkAccess();
+
         $order = CardOrder::with('member')->findOrFail($id);
         $memberName = $order->member->full_name ?? 'Anggota';
 

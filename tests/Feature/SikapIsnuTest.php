@@ -882,4 +882,241 @@ class SikapIsnuTest extends TestCase
         // Attempt approve verification
         $this->actingAs($bendaharaUser)->post('/admin/verifikasi/'.$targetMember->id.'/approve')->assertStatus(403);
     }
+
+    public function test_location_master_is_only_accessible_to_superadmin_and_admin_pc()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+
+        // 1. Admin PC can access and see menu
+        $responseAdmin = $this->actingAs($admin)->get('/admin/locations');
+        $responseAdmin->assertStatus(200);
+
+        $responseDashboardAdmin = $this->actingAs($admin)->get('/admin/dashboard');
+        $responseDashboardAdmin->assertSee('Master Lokasi');
+
+        // 2. Setup Ketua PC ISNU
+        $ketuaUser = User::create([
+            'name' => 'Ketua Test Lokasi',
+            'email' => 'ketua_lokasi@isnu.test',
+            'phone' => '081234500010',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $ketuaMember = Member::create([
+            'user_id' => $ketuaUser->id,
+            'full_name' => 'Ketua Test Lokasi',
+            'nik' => '3578000000000010',
+            'email' => 'ketua_lokasi@isnu.test',
+            'phone' => '081234500010',
+            'occupation' => 'Dosen',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1980-01-01',
+            'gender' => 'L',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Rungkut',
+            'kecamatan' => 'Rungkut',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $ketuaMember->id,
+            'position_title' => 'Ketua',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Ketua cannot access Master Lokasi
+        $this->actingAs($ketuaUser)->get('/admin/locations')->assertStatus(403);
+        $this->actingAs($ketuaUser)->post('/admin/locations', [
+            'level' => 'kecamatan',
+            'code' => 'TEST-KEC',
+            'name' => 'Kecamatan Test',
+        ])->assertStatus(403);
+
+        // Ketua cannot see Master Lokasi in sidebar
+        $responseDashboardKetua = $this->actingAs($ketuaUser)->get('/admin/dashboard');
+        $responseDashboardKetua->assertDontSee('Master Lokasi');
+    }
+
+    public function test_pac_seksi_and_trash_masters_accessible_to_superadmin_admin_pc_ketua_sekretaris_only()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+
+        // 1. Admin PC can access Master PAC, Seksi, Sampah and see menus
+        $this->actingAs($admin)->get('/admin/mwc')->assertStatus(200);
+        $this->actingAs($admin)->get('/admin/sections')->assertStatus(200);
+        $this->actingAs($admin)->get('/admin/sampah')->assertStatus(200);
+
+        $dashAdmin = $this->actingAs($admin)->get('/admin/dashboard');
+        $dashAdmin->assertSee('Master PAC ISNU');
+        $dashAdmin->assertSee('Master Seksi');
+        $dashAdmin->assertSee('Data Sampah');
+
+        // 2. Setup Sekretaris PC ISNU
+        $sekretarisUser = User::create([
+            'name' => 'Sekretaris Test',
+            'email' => 'sekretaris_test@isnu.test',
+            'phone' => '081234500011',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $sekretarisMember = Member::create([
+            'user_id' => $sekretarisUser->id,
+            'full_name' => 'Sekretaris Test',
+            'nik' => '3578000000000011',
+            'email' => 'sekretaris_test@isnu.test',
+            'phone' => '081234500011',
+            'occupation' => 'Peneliti',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1982-02-02',
+            'gender' => 'L',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Gubeng',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $sekretarisMember->id,
+            'position_title' => 'Sekretaris',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Sekretaris can access Master PAC, Seksi, Sampah and see menus
+        $this->actingAs($sekretarisUser)->get('/admin/mwc')->assertStatus(200);
+        $this->actingAs($sekretarisUser)->get('/admin/sections')->assertStatus(200);
+        $this->actingAs($sekretarisUser)->get('/admin/sampah')->assertStatus(200);
+
+        $dashSekretaris = $this->actingAs($sekretarisUser)->get('/admin/dashboard');
+        $dashSekretaris->assertSee('Master PAC ISNU');
+        $dashSekretaris->assertSee('Master Seksi');
+        $dashSekretaris->assertSee('Data Sampah');
+
+        // 3. Setup Wakil Ketua PC ISNU (Other officer)
+        $wakilUser = User::create([
+            'name' => 'Wakil Ketua Test',
+            'email' => 'wakil_test@isnu.test',
+            'phone' => '081234500012',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $wakilMember = Member::create([
+            'user_id' => $wakilUser->id,
+            'full_name' => 'Wakil Ketua Test',
+            'nik' => '3578000000000012',
+            'email' => 'wakil_test@isnu.test',
+            'phone' => '081234500012',
+            'occupation' => 'Wiraswasta',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1983-03-03',
+            'gender' => 'L',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Wonokromo',
+            'kecamatan' => 'Wonokromo',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $wakilMember->id,
+            'position_title' => 'Wakil Ketua',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Wakil Ketua cannot access Master PAC, Seksi, Sampah
+        $this->actingAs($wakilUser)->get('/admin/mwc')->assertStatus(403);
+        $this->actingAs($wakilUser)->get('/admin/sections')->assertStatus(403);
+        $this->actingAs($wakilUser)->get('/admin/sampah')->assertStatus(403);
+
+        // Wakil Ketua cannot see these menus in sidebar
+        $dashWakil = $this->actingAs($wakilUser)->get('/admin/dashboard');
+        $dashWakil->assertDontSee('Master PAC ISNU');
+        $dashWakil->assertDontSee('Master Seksi');
+        $dashWakil->assertDontSee('Data Sampah');
+    }
+
+    public function test_card_orders_accessible_to_superadmin_admin_pc_ketua_sekretaris_bendahara_only()
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+
+        // 1. Admin PC can access and see Kartu Fisik menu
+        $this->actingAs($admin)->get('/admin/card-orders')->assertStatus(200);
+        $this->actingAs($admin)->get('/admin/dashboard')->assertSee('Kartu Fisik');
+
+        // 2. Setup Bendahara PC ISNU
+        $bendaharaUser = User::create([
+            'name' => 'Bendahara Kartu Test',
+            'email' => 'bendahara_card@isnu.test',
+            'phone' => '081234500020',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $bendaharaMember = Member::create([
+            'user_id' => $bendaharaUser->id,
+            'full_name' => 'Bendahara Kartu Test',
+            'nik' => '3578000000000020',
+            'email' => 'bendahara_card@isnu.test',
+            'phone' => '081234500020',
+            'occupation' => 'Bankir',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1988-08-08',
+            'gender' => 'P',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Sukolilo',
+            'kecamatan' => 'Sukolilo',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaMember->id,
+            'position_title' => 'Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Bendahara can access Kartu Fisik and see menu in sidebar
+        $this->actingAs($bendaharaUser)->get('/admin/card-orders')->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/dashboard')->assertSee('Kartu Fisik');
+
+        // 3. Setup Wakil Sekretaris PC ISNU
+        $wakilSekretarisUser = User::create([
+            'name' => 'Wakil Sekretaris Test',
+            'email' => 'wakil_sek@isnu.test',
+            'phone' => '081234500021',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $wakilSekretarisMember = Member::create([
+            'user_id' => $wakilSekretarisUser->id,
+            'full_name' => 'Wakil Sekretaris Test',
+            'nik' => '3578000000000021',
+            'email' => 'wakil_sek@isnu.test',
+            'phone' => '081234500021',
+            'occupation' => 'Guru',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1989-09-09',
+            'gender' => 'L',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Tegalsari',
+            'kecamatan' => 'Tegalsari',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $wakilSekretarisMember->id,
+            'position_title' => 'Wakil Sekretaris',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Wakil Sekretaris cannot access Kartu Fisik and does not see menu
+        $this->actingAs($wakilSekretarisUser)->get('/admin/card-orders')->assertStatus(403);
+        $this->actingAs($wakilSekretarisUser)->get('/admin/dashboard')->assertDontSee('Kartu Fisik');
+    }
 }

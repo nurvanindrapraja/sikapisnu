@@ -618,6 +618,10 @@ class MemberController extends Controller
 
     public function trash(Request $request)
     {
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang dapat mengakses dan mengelola Data Sampah.');
+        }
+
         $query = Member::onlyTrashed()->with(['user', 'mwc']);
 
         if (auth()->user()->isAdminPac()) {
@@ -655,6 +659,10 @@ class MemberController extends Controller
 
     public function restore($id)
     {
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang dapat mengakses dan mengelola Data Sampah.');
+        }
+
         $member = Member::onlyTrashed()->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {
@@ -684,6 +692,10 @@ class MemberController extends Controller
 
     public function forceDelete($id)
     {
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang dapat mengakses dan mengelola Data Sampah.');
+        }
+
         $member = Member::onlyTrashed()->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member)) {

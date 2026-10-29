@@ -299,6 +299,7 @@
                     <i class="bi bi-person-workspace"></i> Pengurus ISNU
                 </a>
             </li>
+            @if(auth()->user()->canManagePacSectionTrash())
             <li>
                 <a href="{{ route('admin.sampah.index') }}" class="sidebar-link {{ request()->routeIs('admin.sampah.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-trash3-fill"></i> Data Sampah
@@ -308,6 +309,8 @@
                     @endif
                 </a>
             </li>
+            @endif
+            @if(auth()->user()->canManageCardOrders())
             <li>
                 <a href="{{ route('admin.card_orders.index') }}" class="sidebar-link {{ request()->routeIs('admin.card_orders.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-card-heading"></i> Kartu Fisik
@@ -317,8 +320,10 @@
                     @endif
                 </a>
             </li>
+            @endif
 
             <li class="sidebar-header">Master & Organisasi</li>
+            @if(auth()->user()->canManagePacSectionTrash())
             <li>
                 <a href="{{ route('admin.mwc.index') }}" class="sidebar-link {{ request()->routeIs('admin.mwc.*') || request()->routeIs('admin.pac.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-diagram-3-fill"></i> Master PAC ISNU
@@ -329,6 +334,7 @@
                     <i class="bi bi-diagram-2-fill"></i> Master Seksi
                 </a>
             </li>
+            @endif
             <li>
                 <a href="{{ route('admin.programs.index') }}" class="sidebar-link {{ request()->routeIs('admin.programs.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-card-checklist"></i> Master Program Kerja
@@ -349,11 +355,13 @@
                     <i class="bi bi-graph-up-arrow"></i> Rekap Presensi Kader
                 </a>
             </li>
+            @if(auth()->user()->canManageLocations())
             <li>
                 <a href="{{ route('admin.locations.index') }}" class="sidebar-link {{ request()->routeIs('admin.locations.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-geo-alt-fill"></i> Master Lokasi
                 </a>
             </li>
+            @endif
 
             <li class="sidebar-header">Laporan & Keamanan</li>
             <li>

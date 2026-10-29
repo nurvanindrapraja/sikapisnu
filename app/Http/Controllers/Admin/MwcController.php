@@ -12,8 +12,17 @@ use Illuminate\Support\Str;
 
 class MwcController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
+            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengakses dan mengelola Master PAC.');
+        }
+    }
+
     public function index()
     {
+        $this->checkAccess();
+
         $pacs = Pac::withCount('members')->latest()->get();
 
         return view('admin.mwc.index', compact('pacs'));
@@ -21,6 +30,8 @@ class MwcController extends Controller
 
     public function storeMwc(Request $request)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'code' => 'required|string|unique:mwc,code',
             'name' => 'required|string',
@@ -38,6 +49,8 @@ class MwcController extends Controller
 
     public function storePac(Request $request)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'province' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
@@ -63,6 +76,8 @@ class MwcController extends Controller
 
     public function updatePac(Request $request, $id)
     {
+        $this->checkAccess();
+
         $pac = Pac::findOrFail($id);
 
         $validated = $request->validate([
@@ -84,6 +99,8 @@ class MwcController extends Controller
 
     public function destroyPac($id)
     {
+        $this->checkAccess();
+
         $pac = Pac::findOrFail($id);
         $name = $pac->name;
         $pac->delete();

@@ -10,8 +10,17 @@ use Illuminate\Support\Facades\Cache;
 
 class LocationController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (! auth()->user() || ! auth()->user()->canManageLocations()) {
+            abort(403, 'Hanya Superadmin dan Admin PC yang berhak mengakses dan mengelola Master Lokasi.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = CustomLocation::query();
 
         if ($request->filled('search')) {
@@ -35,6 +44,8 @@ class LocationController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'level' => 'required|in:province,city,kecamatan,kelurahan',
             'parent_code' => 'nullable|string|max:30',
@@ -77,6 +88,8 @@ class LocationController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->checkAccess();
+
         $custom = CustomLocation::findOrFail($id);
 
         $validated = $request->validate([
@@ -121,6 +134,8 @@ class LocationController extends Controller
 
     public function destroy($id)
     {
+        $this->checkAccess();
+
         $custom = CustomLocation::findOrFail($id);
         $name = $custom->name;
         $code = $custom->code;
