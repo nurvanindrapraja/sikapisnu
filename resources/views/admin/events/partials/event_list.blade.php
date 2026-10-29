@@ -98,10 +98,15 @@
                         </span>
                     </td>
                     <td class="text-end">
+                        @php
+                            $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
+                            $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
+                        @endphp
                         <div class="d-flex justify-content-end gap-1">
                             <a href="{{ route('admin.events.show', $evt->id) }}" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 fw-semibold" title="Detail & Kelola Presensi">
                                 <i class="bi bi-eye-fill me-1"></i> Detail
                             </a>
+                            @if($canManageEvt)
                             <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center" 
                                     style="width: 30px; height: 30px;"
                                     data-bs-toggle="modal" 
@@ -109,6 +114,7 @@
                                     title="Hapus Kegiatan">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
+                            @endif
                         </div>
 
                         <!-- Modal Hapus Event -->

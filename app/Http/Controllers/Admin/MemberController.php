@@ -4,13 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\MemberCertification;
+use App\Models\MemberEducation;
+use App\Models\MemberNuTraining;
 use App\Models\Mwc;
 use App\Models\Pac;
+use App\Models\Position;
 use App\Models\Section;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -618,6 +623,161 @@ class MemberController extends Controller
         $member->forceDelete();
 
         return redirect()->route('admin.sampah.index')->with('success', 'Data anggota '.$name.' telah dihapus secara permanen.');
+    }
+
+    public function rekapPdf(Request $request)
+    {
+        $currentUser = auth()->user();
+        $isPacAdmin = $currentUser->isAdminPac();
+        $pacId = $isPacAdmin ? $currentUser->getManagedPacId() : null;
+        $kecamatan = $isPacAdmin ? $currentUser->member?->kecamatan : null;
+
+        $applyScope = function ($query) use ($isPacAdmin, $pacId, $kecamatan) {
+            if ($isPacAdmin) {
+                $query->where(function ($q) use ($pacId, $kecamatan) {
+                    if ($pacId) {
+                        $q->where('pac_id', $pacId);
+                    }
+                    if ($kecamatan) {
+                        $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                    }
+                });
+            }
+        };
+
+        // 1. Ringkasan Statistik Status Keanggotaan
+        $stats = [
+            'total' => Member::when($isPacAdmin, $applyScope)->count(),
+            'terverifikasi' => Member::when($isPacAdmin, $applyScope)->where('membership_status', 'terverifikasi')->count(),
+            'pengurus' => Member::when($isPacAdmin, $applyScope)->where('membership_status', 'pengurus')->count(),
+            'pending' => Member::when($isPacAdmin, $applyScope)->where('membership_status', 'menunggu_verifikasi')->count(),
+            'perbaikan' => Member::when($isPacAdmin, $applyScope)->where('membership_status', 'perbaikan')->count(),
+            'ditolak' => Member::when($isPacAdmin, $applyScope)->where('membership_status', 'ditolak')->count(),
+            'male' => Member::when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus'])->where('gender', 'L')->count(),
+            'female' => Member::when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus'])->where('gender', 'P')->count(),
+        ];
+
+        // 2. Sebaran per Wilayah / Kecamatan (PAC)
+        $districtStats = Member::when($isPacAdmin, $applyScope)
+            ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
+            ->select('kecamatan', DB::raw('count(*) as total'))
+            ->whereNotNull('kecamatan')
+            ->where('kecamatan', '!=', '')
+            ->groupBy('kecamatan')
+            ->orderByDesc('total')
+            ->get();
+
+        // 3. Jenjang Pendidikan Terakhir
+        $educationStats = MemberEducation::whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
+            $q->when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        })
+            ->select('level', DB::raw('count(distinct member_id) as total'))
+            ->groupBy('level')
+            ->orderByDesc('total')
+            ->get();
+
+        // 4. Persebaran Pekerjaan / Profesi
+        $occupationStats = Member::when($isPacAdmin, $applyScope)
+            ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
+            ->select('occupation', DB::raw('count(*) as total'))
+            ->whereNotNull('occupation')
+            ->where('occupation', '!=', '')
+            ->groupBy('occupation')
+            ->orderByDesc('total')
+            ->get();
+
+        // 5. Kaderisasi NU
+        $nuTrainingStats = MemberNuTraining::whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
+            $q->when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        })
+            ->select('training_type', DB::raw('count(distinct member_id) as total'))
+            ->whereNotNull('training_type')
+            ->where('training_type', '!=', '')
+            ->groupBy('training_type')
+            ->orderByDesc('total')
+            ->get();
+
+        // 6. Rekap Bidang Keahlian & Sertifikasi
+        $skillsStats = MemberCertification::whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
+            $q->when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        })
+            ->select('field', DB::raw('count(distinct member_id) as total_kader'), DB::raw('count(*) as total_sertifikat'))
+            ->whereNotNull('field')
+            ->where('field', '!=', '')
+            ->groupBy('field')
+            ->orderByDesc('total_kader')
+            ->get();
+
+        // Contoh sertifikasi kompetensi per bidang
+        $fieldCertExamples = MemberCertification::whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
+            $q->when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus']);
+        })
+            ->select('field', 'certification_name', 'issuing_organization')
+            ->whereNotNull('field')
+            ->where('field', '!=', '')
+            ->get()
+            ->groupBy('field');
+
+        // 7. Daftar Pengurus ISNU
+        $officers = Position::with(['member.educations', 'member.pac', 'section', 'pac'])
+            ->where('is_active', true)
+            ->whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
+                $q->when($isPacAdmin, $applyScope);
+            })
+            ->get()
+            ->sortBy(function ($p) {
+                $order = [
+                    'Ketua' => 1,
+                    'Wakil Ketua' => 2,
+                    'Sekretaris' => 3,
+                    'Wakil Sekretaris' => 4,
+                    'Bendahara' => 5,
+                    'Wakil Bendahara' => 6,
+                    'Koordinator Seksi' => 7,
+                    'Anggota Seksi' => 8,
+                    'Anggota' => 9,
+                ];
+
+                return $order[$p->position_title] ?? 99;
+            })
+            ->values();
+
+        // 8. Daftar Anggota Terverifikasi
+        $members = Member::when($isPacAdmin, $applyScope)
+            ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
+            ->with(['pac', 'educations', 'certifications', 'activePosition.section'])
+            ->orderBy('full_name')
+            ->get();
+
+        $logoPath = public_path('images/logo_isnu.png');
+        $logoSrc = file_exists($logoPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($logoPath)) : '';
+
+        $downloadTimestamp = now()->translatedFormat('d F Y, H:i').' WIB';
+        $downloadedBy = $currentUser->name.' ('.$currentUser->email.')';
+
+        $pdf = Pdf::loadView('pdf.rekap_potensi', compact(
+            'stats',
+            'districtStats',
+            'educationStats',
+            'occupationStats',
+            'nuTrainingStats',
+            'skillsStats',
+            'fieldCertExamples',
+            'officers',
+            'members',
+            'isPacAdmin',
+            'logoSrc',
+            'downloadTimestamp',
+            'downloadedBy'
+        ))->setPaper('a4', 'portrait');
+
+        $filename = 'Rekap_Potensi_Kader_ISNU_'.now()->format('Ymd_His').'.pdf';
+
+        if ($request->boolean('stream') || $request->get('stream') == '1') {
+            return $pdf->stream($filename);
+        }
+
+        return $pdf->download($filename);
     }
 
     public function downloadCv($id)

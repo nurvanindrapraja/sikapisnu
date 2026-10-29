@@ -80,21 +80,41 @@
                         @endif
                     </td>
                     <td class="text-end">
+                        @php
+                            $canManageProgram = auth()->user()->canManageSectionProgramOrEvent($prg->section_id);
+                            $hasEvents = $prg->events_count > 0;
+                        @endphp
                         <div class="d-flex justify-content-end gap-1">
-                            <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center" 
-                                    style="width: 32px; height: 32px;"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#modalEditProgram{{ $prg->id }}" 
-                                    title="Edit Program">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center" 
-                                    style="width: 32px; height: 32px;"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#modalDeleteProgram{{ $prg->id }}" 
-                                    title="Hapus Program">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
+                            @if($canManageProgram)
+                                <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                        style="width: 32px; height: 32px;"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#modalEditProgram{{ $prg->id }}" 
+                                        title="Edit Program">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                @if($hasEvents)
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle p-1 d-flex align-items-center justify-content-center opacity-50" 
+                                            style="width: 32px; height: 32px;"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalDeleteProgram{{ $prg->id }}"
+                                            title="Program tidak dapat dihapus karena sudah memiliki {{ $prg->events_count }} kegiatan">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                            style="width: 32px; height: 32px;"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalDeleteProgram{{ $prg->id }}" 
+                                            title="Hapus Program">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                @endif
+                            @else
+                                <span class="badge bg-light text-muted border px-2 py-1 small" title="Hanya Pengurus Seksi bersangkutan atau Ketua/Sekretaris yang dapat mengelola">
+                                    <i class="bi bi-lock-fill me-1"></i> Terkunci
+                                </span>
+                            @endif
                         </div>
 
                         <!-- Modal Edit Program -->
@@ -147,11 +167,18 @@
                                                 <div class="col-md-8">
                                                     <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
                                                     <select name="section_id" class="form-select" required :disabled="loading">
-                                                        @foreach($sections as $sec)
-                                                            <option value="{{ $sec->id }}" {{ $prg->section_id == $sec->id ? 'selected' : '' }}>
-                                                                [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                                            </option>
-                                                        @endforeach
+                                                        @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                                            @php $mySection = auth()->user()->getOfficerSection(); @endphp
+                                                            @if($mySection)
+                                                                <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
+                                                            @endif
+                                                        @else
+                                                            @foreach($sections as $sec)
+                                                                <option value="{{ $sec->id }}" {{ $prg->section_id == $sec->id ? 'selected' : '' }}>
+                                                                    [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                                                </option>
+                                                            @endforeach
+                                                        @endif
                                                     </select>
                                                 </div>
 
@@ -249,19 +276,28 @@
                                             <i class="bi bi-exclamation-triangle-fill fs-1"></i>
                                         </div>
                                         <h6 class="fw-bold text-dark mb-2">Hapus Program Kerja?</h6>
-                                        <p class="text-muted small mb-4">Apakah Anda yakin ingin menghapus <strong>"{{ $prg->name }}"</strong>? Kegiatan yang telah terhubung tidak akan terhapus namun asosiasi program akan dilepas.</p>
-                                        <form x-ref="deleteForm" action="{{ route('admin.programs.destroy', $prg->id) }}" method="POST" @submit.prevent="submitDelete()">
-                                            @csrf
-                                            @method('DELETE')
-                                            <div class="d-flex gap-2 justify-content-center">
-                                                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
-                                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
-                                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
-                                                    <i class="bi bi-trash-fill me-1" x-show="!loading"></i>
-                                                    <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus'"></span>
-                                                </button>
+                                        @if($prg->events_count > 0)
+                                            <div class="alert alert-warning small mb-3 text-start">
+                                                <i class="bi bi-exclamation-circle-fill me-1"></i> Program <strong>"{{ $prg->name }}"</strong> sudah memiliki <strong>{{ $prg->events_count }} kegiatan</strong> yang terhubung, sehingga program ini <strong>tidak dapat dihapus</strong>.
                                             </div>
-                                        </form>
+                                            <div class="d-flex justify-content-center">
+                                                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                                            </div>
+                                        @else
+                                            <p class="text-muted small mb-4">Apakah Anda yakin ingin menghapus <strong>"{{ $prg->name }}"</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+                                            <form x-ref="deleteForm" action="{{ route('admin.programs.destroy', $prg->id) }}" method="POST" @submit.prevent="submitDelete()">
+                                                @csrf
+                                                @method('DELETE')
+                                                <div class="d-flex gap-2 justify-content-center">
+                                                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
+                                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
+                                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                                                        <i class="bi bi-trash-fill me-1" x-show="!loading"></i>
+                                                        <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus'"></span>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

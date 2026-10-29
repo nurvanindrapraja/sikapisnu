@@ -106,6 +106,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Database Potensi & Anggota
     Route::get('/anggota', [AdminMember::class, 'index'])->name('anggota.index');
+    Route::get('/anggota/rekap-pdf', [AdminMember::class, 'rekapPdf'])->name('anggota.rekap_pdf');
     Route::get('/anggota/{id}', [AdminMember::class, 'show'])->name('anggota.show');
     Route::get('/anggota/{id}/edit', [AdminMember::class, 'edit'])->name('anggota.edit');
     Route::get('/anggota/{id}/cv', [AdminMember::class, 'downloadCv'])->name('anggota.cv.download');

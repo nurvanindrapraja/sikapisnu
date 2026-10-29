@@ -13,9 +13,11 @@
             Kelola program kerja masing-masing Seksi / Bidang PC & PAC ISNU lengkap dengan indikator dan target capaian
         </p>
     </div>
+    @if(auth()->user()->canManageAnyProgramOrEvent())
     <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddProgram">
         <i class="bi bi-plus-lg me-1"></i> Tambah Program Baru
     </button>
+    @endif
 </div>
 
 @if(session('success'))
@@ -216,12 +218,21 @@
                         <div class="col-md-8">
                             <label class="form-label fw-semibold">Pilih Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
                             <select name="section_id" class="form-select" required :disabled="loading">
-                                <option value="">-- Pilih Seksi / Bidang --</option>
-                                @foreach($sections as $sec)
-                                    <option value="{{ $sec->id }}">
-                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                    </option>
-                                @endforeach
+                                @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
+                                    @if($mySection)
+                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
+                                    @else
+                                        <option value="">-- Anda belum memiliki Seksi assigned --</option>
+                                    @endif
+                                @else
+                                    <option value="">-- Pilih Seksi / Bidang --</option>
+                                    @foreach($sections as $sec)
+                                        <option value="{{ $sec->id }}">
+                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                        </option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
 

@@ -17,6 +17,22 @@
         this.deleteModal.show();
     },
 
+    rekapModal: null,
+    rekapPreviewUrl: '{{ route('admin.anggota.rekap_pdf', ['stream' => 1]) }}',
+    rekapDownloadUrl: '{{ route('admin.anggota.rekap_pdf') }}',
+    rekapLoading: false,
+    openRekapModal() {
+        if (!this.rekapModal) {
+            this.rekapModal = new bootstrap.Modal(document.getElementById('modalPreviewRekapPdf'));
+        }
+        this.rekapLoading = true;
+        const iframe = document.getElementById('iframeRekapPdf');
+        if (iframe && iframe.src !== this.rekapPreviewUrl) {
+            iframe.src = this.rekapPreviewUrl;
+        }
+        this.rekapModal.show();
+    },
+
     loading: false,
     showFilters: {{ request()->hasAny(['province', 'city', 'kecamatan', 'kelurahan', 'status', 'education_level', 'nu_training', 'organization', 'employment', 'certification']) ? 'true' : 'false' }},
 
@@ -260,6 +276,11 @@
                             x-show="searchQuery || provinceName || cityName || kecamatanName || kelurahanName || statusQuery || educationLevelQuery || nuTrainingQuery || organizationQuery || employmentQuery || certificationQuery">
                         <i class="bi bi-x-circle me-1"></i> Reset
                     </button>
+                    <button type="button" 
+                            class="btn btn-danger rounded-pill px-3 fw-semibold shadow-sm text-white" 
+                            @click="openRekapModal()">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download Rekap PDF
+                    </button>
                 </div>
             </div>
 
@@ -390,6 +411,65 @@
                             <span x-text="loading ? 'Memindahkan...' : 'Ya, Pindahkan ke Sampah'"></span>
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pratinjau Rekap PDF (Popup Modal sebelum Download) -->
+    <div class="modal fade" id="modalPreviewRekapPdf" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-dark text-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-danger p-2 rounded-circle">
+                            <i class="bi bi-file-earmark-pdf-fill fs-6 text-white"></i>
+                        </span>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white">Pratinjau Rekapitulasi Potensi & Anggota</h5>
+                            <small class="text-white-50">Laporan Rekap Potensi Kader, Keahlian, Fungsionaris Pengurus & Daftar Anggota</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a :href="rekapDownloadUrl" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                            <i class="bi bi-download me-1"></i> Download File PDF
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="const iframe = document.getElementById('iframeRekapPdf'); if(iframe) { iframe.contentWindow.focus(); iframe.contentWindow.print(); }">
+                            <i class="bi bi-printer me-1"></i> Cetak
+                        </button>
+                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body p-0 position-relative bg-secondary-subtle" style="min-height: 540px;">
+                    <!-- Loading State Indicator -->
+                    <div x-show="rekapLoading" class="position-absolute top-50 start-50 translate-middle text-center p-4">
+                        <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Memuat PDF...</span>
+                        </div>
+                        <p class="mt-3 text-muted fw-semibold">Menyiapkan pratinjau dokumen PDF...</p>
+                    </div>
+
+                    <!-- PDF Iframe Stream -->
+                    <iframe id="iframeRekapPdf" 
+                            :src="rekapPreviewUrl" 
+                            @load="rekapLoading = false"
+                            class="w-100 border-0" 
+                            style="height: 75vh; min-height: 540px; display: block;" 
+                            title="Pratinjau File Rekap Potensi PDF">
+                    </iframe>
+                </div>
+                <div class="modal-footer border-0 bg-light px-4 py-2.5 justify-content-between">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1 text-success"></i> Dokumen PDF memuat rekap potensi kader, keahlian/sertifikasi, susunan pengurus, dan daftar anggota resmi PC ISNU Surabaya.
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold border" data-bs-dismiss="modal">
+                            Tutup
+                        </button>
+                        <a :href="rekapDownloadUrl" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                            <i class="bi bi-download me-1"></i> Download File PDF
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -87,6 +87,16 @@ class ProgramController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        if (! auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id'])) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi ini.');
+        }
+
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program = Program::create($validated);
@@ -122,6 +132,17 @@ class ProgramController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
+        if (! auth()->user()->canManageSectionProgramOrEvent((int) $program->section_id) ||
+            ! auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id'])) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi ini.');
+        }
+
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program->update($validated);
@@ -145,6 +166,30 @@ class ProgramController extends Controller
     public function destroy(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $program = Program::findOrFail($id);
+
+        if (! auth()->user()->canManageSectionProgramOrEvent((int) $program->section_id)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi ini.');
+        }
+
+        // Program yang sudah ada kegiatannya tidak dapat dihapus
+        if ($program->events()->exists()) {
+            $msg = "Program '{$program->name}' tidak dapat dihapus karena sudah memiliki kegiatan yang terhubung.";
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $msg,
+                ], 422);
+            }
+
+            return back()->with('error', $msg);
+        }
+
         $name = $program->name;
         $program->delete();
 

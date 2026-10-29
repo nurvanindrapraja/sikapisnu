@@ -67,7 +67,88 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin_kota', 'admin_mwc', 'admin_pac']);
+        return in_array($this->role, ['super_admin', 'admin_kota', 'admin_mwc', 'admin_pac']) || $this->isOfficer();
+    }
+
+    public function isOfficer(): bool
+    {
+        return (bool) ($this->member && ($this->member->membership_status === 'pengurus' || $this->member->activePosition !== null));
+    }
+
+    public function getOfficerPosition(): ?Position
+    {
+        return $this->member?->activePosition;
+    }
+
+    public function getOfficerPositionTitle(): ?string
+    {
+        return $this->getOfficerPosition()?->position_title;
+    }
+
+    public function getOfficerSectionId(): ?int
+    {
+        return $this->getOfficerPosition()?->section_id;
+    }
+
+    public function getOfficerSection(): ?Section
+    {
+        return $this->getOfficerPosition()?->section;
+    }
+
+    /**
+     * Memeriksa apakah user adalah Ketua atau Sekretaris (atau Super Admin / Admin Kota / Admin)
+     * yang memiliki hak akses penuh atas semua program dan kegiatan di semua seksi.
+     */
+    public function canManageAllProgramsAndEvents(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        $title = $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Ketua', 'Sekretaris'], true);
+    }
+
+    /**
+     * Memeriksa apakah user adalah Wakil Ketua atau Wakil Sekretaris.
+     */
+    public function isWakilPengurus(): bool
+    {
+        $title = $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Wakil Ketua', 'Wakil Sekretaris'], true);
+    }
+
+    /**
+     * Memeriksa apakah user memiliki hak akses untuk menambah, mengedit, atau menghapus
+     * program atau kegiatan pada seksi tertentu.
+     */
+    public function canManageSectionProgramOrEvent(?int $sectionId): bool
+    {
+        if ($this->canManageAllProgramsAndEvents()) {
+            return true;
+        }
+
+        if ($this->isWakilPengurus()) {
+            $userSectionId = $this->getOfficerSectionId();
+
+            return $userSectionId !== null && $sectionId !== null && (int) $userSectionId === (int) $sectionId;
+        }
+
+        return false;
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola setidaknya satu seksi untuk program atau kegiatan.
+     */
+    public function canManageAnyProgramOrEvent(): bool
+    {
+        if ($this->canManageAllProgramsAndEvents()) {
+            return true;
+        }
+
+        return $this->isWakilPengurus() && $this->getOfficerSectionId() !== null;
     }
 
     public function isMember(): bool

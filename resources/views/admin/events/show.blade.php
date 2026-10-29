@@ -53,9 +53,11 @@
                         </div>
                         <h4 class="fw-bold text-dark m-0">{{ $event->title }}</h4>
                     </div>
+                    @if(auth()->user()->canManageSectionProgramOrEvent($event->section_id ? (int) $event->section_id : null))
                     <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalEditEvent">
                         <i class="bi bi-pencil-square me-1"></i> Edit Kegiatan
                     </button>
+                    @endif
                 </div>
 
                 <p class="text-secondary mb-3">{{ $event->description ?: 'Tidak ada deskripsi singkat.' }}</p>
@@ -351,12 +353,19 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
                             <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''">
-                                <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
-                                @foreach($sections as $sec)
-                                    <option value="{{ $sec->id }}" {{ $event->section_id == $sec->id ? 'selected' : '' }}>
-                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                    </option>
-                                @endforeach
+                                @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
+                                    @if($mySection)
+                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
+                                    @endif
+                                @else
+                                    <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
+                                    @foreach($sections as $sec)
+                                        <option value="{{ $sec->id }}" {{ $event->section_id == $sec->id ? 'selected' : '' }}>
+                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                        </option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
 

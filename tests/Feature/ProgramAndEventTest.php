@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
+use App\Models\Member;
+use App\Models\Position;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\User;
@@ -191,5 +193,187 @@ class ProgramAndEventTest extends TestCase
             'name' => 'Program Literasi Digital dan Media Sosial',
             'code' => 'PRG-MED-01',
         ]);
+    }
+
+    public function test_program_cannot_be_deleted_if_it_has_events(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $section = Section::create([
+            'level' => 'PC ISNU',
+            'name' => 'Seksi Kaderisasi',
+        ]);
+
+        $program = Program::create([
+            'section_id' => $section->id,
+            'name' => 'Program Pelatihan Kader',
+            'is_active' => true,
+        ]);
+
+        Event::create([
+            'title' => 'Pelatihan Kader Tingkat 1',
+            'section_id' => $section->id,
+            'program_id' => $program->id,
+            'location' => 'Surabaya',
+            'method' => 'luring',
+            'event_date' => date('Y-m-d'),
+            'start_time' => '08:00',
+            'end_time' => '16:00',
+            'presence_start_at' => now()->subHour(),
+            'presence_end_at' => now()->addHours(2),
+            'status' => 'planned',
+            'unique_code' => 'evt-test-123456',
+        ]);
+
+        // Percobaan hapus via AJAX/JSON
+        $responseJson = $this->actingAs($admin)->deleteJson(route('admin.programs.destroy', $program->id));
+        $responseJson->assertStatus(422);
+        $responseJson->assertJsonFragment(['success' => false]);
+
+        // Percobaan hapus via web request
+        $responseWeb = $this->actingAs($admin)->delete(route('admin.programs.destroy', $program->id));
+        $responseWeb->assertSessionHas('error');
+
+        // Pastikan program tetap ada di database
+        $this->assertDatabaseHas('programs', ['id' => $program->id]);
+    }
+
+    public function test_ketua_and_sekretaris_can_manage_all_programs_and_events(): void
+    {
+        $sectionA = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi A']);
+        $sectionB = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi B']);
+
+        $ketuaUser = $this->createOfficerUser('Ketua');
+        $sekretarisUser = $this->createOfficerUser('Sekretaris');
+
+        // Ketua can add program to any section
+        $resp = $this->actingAs($ketuaUser)->post(route('admin.programs.store'), [
+            'section_id' => $sectionA->id,
+            'name' => 'Program Seksi A oleh Ketua',
+        ]);
+        $resp->assertRedirect();
+        $this->assertDatabaseHas('programs', ['name' => 'Program Seksi A oleh Ketua']);
+
+        // Sekretaris can add program to another section
+        $resp2 = $this->actingAs($sekretarisUser)->post(route('admin.programs.store'), [
+            'section_id' => $sectionB->id,
+            'name' => 'Program Seksi B oleh Sekretaris',
+        ]);
+        $resp2->assertRedirect();
+        $this->assertDatabaseHas('programs', ['name' => 'Program Seksi B oleh Sekretaris']);
+
+        // Ketua can add event to Section B
+        $respEvent = $this->actingAs($ketuaUser)->post(route('admin.events.store'), [
+            'title' => 'Kegiatan Seksi B oleh Ketua',
+            'section_id' => $sectionB->id,
+            'location' => 'Surabaya',
+            'method' => 'luring',
+            'event_date' => date('Y-m-d'),
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'presence_start_at' => now()->subHour()->format('Y-m-d\TH:i'),
+            'presence_end_at' => now()->addHours(2)->format('Y-m-d\TH:i'),
+            'status' => 'planned',
+        ]);
+        $respEvent->assertRedirect();
+        $this->assertDatabaseHas('events', ['title' => 'Kegiatan Seksi B oleh Ketua']);
+    }
+
+    public function test_wakil_ketua_and_wakil_sekretaris_can_only_manage_their_own_section(): void
+    {
+        $sectionA = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi Publikasi']);
+        $sectionB = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi Kaderisasi']);
+
+        $wakilKetua = $this->createOfficerUser('Wakil Ketua', $sectionA->id);
+        $wakilSekretaris = $this->createOfficerUser('Wakil Sekretaris', $sectionA->id);
+
+        // Wakil Ketua can create program in Section A
+        $respA = $this->actingAs($wakilKetua)->post(route('admin.programs.store'), [
+            'section_id' => $sectionA->id,
+            'name' => 'Program Seksi A oleh Wakil Ketua',
+        ]);
+        $respA->assertRedirect();
+        $this->assertDatabaseHas('programs', ['name' => 'Program Seksi A oleh Wakil Ketua']);
+
+        // Wakil Ketua CANNOT create program in Section B (403)
+        $respB = $this->actingAs($wakilKetua)->post(route('admin.programs.store'), [
+            'section_id' => $sectionB->id,
+            'name' => 'Program Seksi B oleh Wakil Ketua',
+        ]);
+        $respB->assertStatus(403);
+
+        // Wakil Sekretaris can create event in Section A
+        $respEventA = $this->actingAs($wakilSekretaris)->post(route('admin.events.store'), [
+            'title' => 'Kegiatan Seksi A oleh Wakil Sekretaris',
+            'section_id' => $sectionA->id,
+            'location' => 'Surabaya',
+            'method' => 'luring',
+            'event_date' => date('Y-m-d'),
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'presence_start_at' => now()->subHour()->format('Y-m-d\TH:i'),
+            'presence_end_at' => now()->addHours(2)->format('Y-m-d\TH:i'),
+            'status' => 'planned',
+        ]);
+        $respEventA->assertRedirect();
+        $this->assertDatabaseHas('events', ['title' => 'Kegiatan Seksi A oleh Wakil Sekretaris']);
+
+        // Wakil Sekretaris CANNOT create event in Section B (403)
+        $respEventB = $this->actingAs($wakilSekretaris)->post(route('admin.events.store'), [
+            'title' => 'Kegiatan Seksi B oleh Wakil Sekretaris',
+            'section_id' => $sectionB->id,
+            'location' => 'Surabaya',
+            'method' => 'luring',
+            'event_date' => date('Y-m-d'),
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'presence_start_at' => now()->subHour()->format('Y-m-d\TH:i'),
+            'presence_end_at' => now()->addHours(2)->format('Y-m-d\TH:i'),
+            'status' => 'planned',
+        ]);
+        $respEventB->assertStatus(403);
+    }
+
+    public function test_other_positions_cannot_manage_programs_and_events(): void
+    {
+        $section = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi Keuangan']);
+        $bendahara = $this->createOfficerUser('Bendahara', null);
+
+        $resp = $this->actingAs($bendahara)->post(route('admin.programs.store'), [
+            'section_id' => $section->id,
+            'name' => 'Program oleh Bendahara',
+        ]);
+        $resp->assertStatus(403);
+    }
+
+    protected function createOfficerUser(string $positionTitle, ?int $sectionId = null): User
+    {
+        $user = User::factory()->create(['role' => 'member']);
+        $member = Member::create([
+            'user_id' => $user->id,
+            'member_number' => 'ISNU-'.fake()->numerify('######'),
+            'nik' => '3578'.fake()->numerify('############'),
+            'full_name' => 'Pengurus '.$positionTitle,
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Gayungan No. 1',
+            'kelurahan' => 'Gayungan',
+            'kecamatan' => 'Gayungan',
+            'city' => 'Kota Surabaya',
+            'occupation' => 'Pengurus',
+            'phone' => '0812'.fake()->numerify('########'),
+            'email' => fake()->unique()->safeEmail(),
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $member->id,
+            'position_title' => $positionTitle,
+            'level' => 'Kota',
+            'section_id' => $sectionId,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        return $user->fresh();
     }
 }

@@ -686,4 +686,38 @@ class SikapIsnuTest extends TestCase
 
         $response->assertRedirect($presenceUrl);
     }
+
+    public function test_admin_can_preview_rekap_potensi_pdf_stream()
+    {
+        $admin = User::where('role', 'admin_kota')->first() ?? User::where('role', 'super_admin')->first();
+
+        $response = $this->actingAs($admin)->get(route('admin.anggota.rekap_pdf', ['stream' => 1]));
+
+        $response->assertStatus(200);
+        $this->assertEquals('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_admin_can_download_rekap_potensi_pdf()
+    {
+        $admin = User::where('role', 'admin_kota')->first() ?? User::where('role', 'super_admin')->first();
+
+        $response = $this->actingAs($admin)->get(route('admin.anggota.rekap_pdf'));
+
+        $response->assertStatus(200);
+        $this->assertEquals('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringContainsString('attachment', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('Rekap_Potensi_Kader_ISNU_', $response->headers->get('content-disposition'));
+    }
+
+    public function test_database_anggota_page_contains_download_rekap_pdf_button_and_modal()
+    {
+        $admin = User::where('role', 'admin_kota')->first() ?? User::where('role', 'super_admin')->first();
+
+        $response = $this->actingAs($admin)->get(route('admin.anggota.index'));
+
+        $response->assertStatus(200);
+        $response->assertSee('Download Rekap PDF');
+        $response->assertSee('modalPreviewRekapPdf');
+        $response->assertSee('iframeRekapPdf');
+    }
 }

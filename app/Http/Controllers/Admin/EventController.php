@@ -198,6 +198,18 @@ class EventController extends Controller
             $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
         }
 
+        $sectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+
+        if (! auth()->user()->canManageSectionProgramOrEvent($sectionId)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi ini.');
+        }
+
         $validated['unique_code'] = 'evt-'.Str::slug(substr($validated['title'], 0, 30)).'-'.Str::random(6);
         $validated['created_by'] = auth()->id();
 
@@ -250,6 +262,20 @@ class EventController extends Controller
             $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
         }
 
+        $currentSectionId = $event->section_id ? (int) $event->section_id : null;
+        $newSectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+
+        if (! auth()->user()->canManageSectionProgramOrEvent($currentSectionId) ||
+            ! auth()->user()->canManageSectionProgramOrEvent($newSectionId)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi ini.');
+        }
+
         $event->update($validated);
 
         AuditLog::record(auth()->id(), 'Edit Kegiatan', "Memperbarui Kegiatan: {$event->title}");
@@ -267,6 +293,11 @@ class EventController extends Controller
     public function uploadReport(Request $request, $id)
     {
         $event = Event::findOrFail($id);
+
+        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
+        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunggah dokumen kegiatan pada seksi ini.');
+        }
 
         $request->validate([
             'lpj_file' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB PDF
@@ -306,6 +337,12 @@ class EventController extends Controller
     public function deletePhoto(Request $request, $id, $index)
     {
         $event = Event::findOrFail($id);
+
+        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
+        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus foto kegiatan pada seksi ini.');
+        }
+
         $photos = $event->documentation_photos ?? [];
 
         if (isset($photos[$index])) {
@@ -324,6 +361,18 @@ class EventController extends Controller
     public function destroy(Request $request, $id)
     {
         $event = Event::findOrFail($id);
+
+        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
+        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi ini.',
+                ], 403);
+            }
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi ini.');
+        }
+
         $title = $event->title;
 
         // Delete LPJ

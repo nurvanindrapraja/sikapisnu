@@ -9,9 +9,11 @@
         <h4 class="fw-bold text-dark m-0"><i class="bi bi-calendar-event-fill text-success me-2"></i> Manajemen Kegiatan & Presensi Kehadiran</h4>
         <p class="text-secondary small m-0 mt-1">Rencanakan kegiatan ISNU, kelola link presensi berdurasi, LPJ, dan dokumentasi foto</p>
     </div>
+    @if(auth()->user()->canManageAnyProgramOrEvent())
     <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddEvent">
         <i class="bi bi-plus-lg me-1"></i> Rencanakan Kegiatan Baru
     </button>
+    @endif
 </div>
 
 @if(session('success'))
@@ -114,7 +116,7 @@
                 eventDate: '{{ date('Y-m-d') }}',
                 startTime: '08:00',
                 endTime: '12:00',
-                selectedSectionId: '',
+                selectedSectionId: '{{ (auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}',
                 selectedProgramId: '',
                 sectionsData: {{ Js::from($sections->map(fn($s) => [
                     'id' => $s->id,
@@ -158,7 +160,7 @@
                             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             modal.hide();
                             this.$el.reset();
-                            this.selectedSectionId = '';
+                            this.selectedSectionId = '{{ (auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}';
                             this.selectedProgramId = '';
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
                             window.dispatchEvent(new CustomEvent('refresh-events'));
@@ -191,12 +193,21 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
                             <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''" :disabled="loading">
-                                <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
-                                @foreach($sections as $sec)
-                                    <option value="{{ $sec->id }}">
-                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                    </option>
-                                @endforeach
+                                @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
+                                    @if($mySection)
+                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
+                                    @else
+                                        <option value="">-- Anda belum memiliki Seksi assigned --</option>
+                                    @endif
+                                @else
+                                    <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
+                                    @foreach($sections as $sec)
+                                        <option value="{{ $sec->id }}">
+                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                        </option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
 
