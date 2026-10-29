@@ -27,9 +27,13 @@
         }
         this.rekapLoading = true;
         const iframe = document.getElementById('iframeRekapPdf');
-        if (iframe && iframe.src !== this.rekapPreviewUrl) {
+        if (iframe && (!iframe.src || iframe.src === 'about:blank')) {
             iframe.src = this.rekapPreviewUrl;
         }
+        // Auto-dismiss loading indicator after short delay to prevent staying stuck in Chrome PDF viewer
+        setTimeout(() => {
+            this.rekapLoading = false;
+        }, 1200);
         this.rekapModal.show();
     },
 
@@ -442,16 +446,21 @@
                 </div>
                 <div class="modal-body p-0 position-relative bg-secondary-subtle" style="min-height: 540px;">
                     <!-- Loading State Indicator -->
-                    <div x-show="rekapLoading" class="position-absolute top-50 start-50 translate-middle text-center p-4">
-                        <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+                    <div x-show="rekapLoading" 
+                         x-transition:leave="transition ease-out duration-300"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         class="position-absolute top-50 start-50 translate-middle text-center p-4 bg-white bg-opacity-75 rounded-4 shadow-sm"
+                         style="pointer-events: none; z-index: 10;">
+                        <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;">
                             <span class="visually-hidden">Memuat PDF...</span>
                         </div>
-                        <p class="mt-3 text-muted fw-semibold">Menyiapkan pratinjau dokumen PDF...</p>
+                        <p class="mt-2 text-muted fw-semibold small mb-0">Menyiapkan pratinjau dokumen PDF...</p>
                     </div>
 
                     <!-- PDF Iframe Stream -->
                     <iframe id="iframeRekapPdf" 
-                            :src="rekapPreviewUrl" 
+                            src="{{ route('admin.anggota.rekap_pdf', ['stream' => 1]) }}" 
                             @load="rekapLoading = false"
                             class="w-100 border-0" 
                             style="height: 75vh; min-height: 540px; display: block;" 

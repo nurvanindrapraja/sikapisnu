@@ -5,25 +5,25 @@
     <title>Rekapitulasi Potensi Kader & Keahlian - PC ISNU Kota Surabaya</title>
     <style>
         @page {
-            margin: 1.2cm 1.2cm 1.6cm 1.2cm;
+            margin: 0.8cm 1.0cm 1.2cm 1.0cm;
         }
 
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             color: #222222;
-            font-size: 8.5pt;
-            line-height: 1.35;
+            font-size: 8pt;
+            line-height: 1.25;
         }
 
         /* Fixed Footer at bottom of every page */
         footer {
             position: fixed;
-            bottom: -1.2cm;
+            bottom: -1.0cm;
             left: 0px;
             right: 0px;
-            height: 20px;
+            height: 18px;
             border-top: 1px solid #cccccc;
-            padding-top: 4px;
+            padding-top: 3px;
         }
 
         .footer-table {
@@ -33,7 +33,7 @@
 
         .footer-table td {
             padding: 0;
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #666666;
             vertical-align: middle;
         }
@@ -42,49 +42,49 @@
         .kop-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            border-bottom: 2.5px solid #006837;
-            padding-bottom: 8px;
+            margin-bottom: 6px;
+            border-bottom: 2px solid #006837;
+            padding-bottom: 5px;
         }
 
         .kop-logo {
-            width: 58px;
+            width: 48px;
             vertical-align: middle;
             text-align: center;
         }
 
         .kop-logo img {
-            width: 52px;
+            width: 44px;
             height: auto;
         }
 
         .kop-text {
             vertical-align: middle;
-            padding-left: 10px;
+            padding-left: 8px;
         }
 
         .kop-title {
-            font-size: 13pt;
+            font-size: 11.5pt;
             font-weight: bold;
             color: #006837;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             margin: 0;
-            line-height: 1.2;
+            line-height: 1.15;
         }
 
         .kop-subtitle {
-            font-size: 9.5pt;
+            font-size: 8.5pt;
             font-weight: bold;
             color: #1a1a1a;
-            margin-top: 2px;
+            margin-top: 1px;
             margin-bottom: 0;
         }
 
         .kop-info {
-            font-size: 7.5pt;
+            font-size: 6.8pt;
             color: #555555;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         /* Document Title Banner */
@@ -92,49 +92,49 @@
             text-align: center;
             background-color: #f0f7f3;
             border: 1px solid #cce5d6;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 12px;
+            border-radius: 3px;
+            padding: 4px 6px;
+            margin-bottom: 6px;
         }
 
         .doc-main-title {
-            font-size: 11pt;
+            font-size: 9.5pt;
             font-weight: bold;
             color: #006837;
             text-transform: uppercase;
             margin: 0;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
         .doc-sub-title {
-            font-size: 8pt;
+            font-size: 7pt;
             color: #444444;
-            margin-top: 3px;
+            margin-top: 1px;
             margin-bottom: 0;
         }
 
         /* Section Headings */
         .section-header {
-            font-size: 9.5pt;
+            font-size: 8.5pt;
             font-weight: bold;
             color: #006837;
             text-transform: uppercase;
             background-color: #eaf4ee;
-            border-left: 4px solid #006837;
-            padding: 4px 8px;
-            margin-top: 14px;
-            margin-bottom: 6px;
+            border-left: 3.5px solid #006837;
+            padding: 3px 6px;
+            margin-top: 6px;
+            margin-bottom: 5px;
         }
 
         /* Metric Grid Cards (Table format for DomPDF) */
         .metric-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .metric-cell {
-            padding: 6px 8px;
+            padding: 3px 4px;
             border: 1px solid #d2e4d9;
             background-color: #ffffff;
             text-align: center;
@@ -143,15 +143,15 @@
         }
 
         .metric-val {
-            font-size: 12pt;
+            font-size: 10.5pt;
             font-weight: bold;
             color: #006837;
             display: block;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
 
         .metric-lbl {
-            font-size: 7pt;
+            font-size: 6.2pt;
             color: #555555;
             text-transform: uppercase;
             font-weight: bold;
@@ -161,8 +161,8 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
-            font-size: 8pt;
+            margin-bottom: 6px;
+            font-size: 7.2pt;
         }
 
         .data-table thead {
@@ -177,21 +177,22 @@
             background-color: #006837;
             color: #ffffff;
             font-weight: bold;
-            padding: 5px 6px;
-            border: 1px solid #00522c;
+            padding: 3px 4px;
+            border: 0.5px solid #00522c;
             text-align: left;
-            font-size: 7.5pt;
+            font-size: 6.8pt;
             text-transform: uppercase;
         }
 
         .data-table td {
-            padding: 4px 6px;
-            border: 1px solid #e0e0e0;
+            padding: 2.2px 4px;
+            border: 0.5px solid #e0e0e0;
             vertical-align: middle;
+            font-size: 6.8pt;
         }
 
         .data-table tbody tr:nth-child(even) {
-            background-color: #f9fbf9;
+            background-color: #f8faf8;
         }
 
         .text-center { text-align: center; }
@@ -202,10 +203,10 @@
 
         .badge-pill {
             display: inline-block;
-            padding: 1.5px 5px;
-            font-size: 7pt;
+            padding: 1px 4px;
+            font-size: 6.5pt;
             font-weight: bold;
-            border-radius: 10px;
+            border-radius: 8px;
             background-color: #eaf4ee;
             color: #006837;
             border: 0.5px solid #cce5d6;
@@ -225,19 +226,19 @@
         .columns-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
         .columns-table td {
             vertical-align: top;
-            padding: 0 4px;
+            padding: 0 3px;
         }
 
         /* Signature Section */
         .sign-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 18px;
+            margin-top: 14px;
             page-break-inside: avoid;
         }
 
@@ -245,11 +246,11 @@
             text-align: center;
             vertical-align: top;
             width: 50%;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
 
         .sign-space {
-            height: 55px;
+            height: 48px;
         }
     </style>
 </head>
@@ -271,6 +272,7 @@
         </table>
     </footer>
 
+    <!-- ================= HALAMAN 1: SEBARAN DOMISILI & PERSEBARAN PROFESI ================= -->
     <!-- Header / Kop Surat -->
     <table class="kop-table">
         <tr>
@@ -329,23 +331,24 @@
         </tr>
     </table>
 
-    <!-- BAGIAN 1: REKAPITULASI POTENSI KADER -->
-    <div class="section-header">1. Rekapitulasi Potensi Kader (Sebaran Wilayah, Pendidikan, Profesi, & Kaderisasi)</div>
+    <!-- BAGIAN 1: REKAPITULASI POTENSI KADER (SEBARAN DOMISILI & PROFESI) -->
+    <div class="section-header">1. Rekapitulasi Potensi Kader (Sebaran Wilayah Domisili & Persebaran Profesi)</div>
 
     <table class="columns-table">
         <tr>
-            <!-- Kolom Kiri: Sebaran Wilayah / Kecamatan & Pendidikan -->
-            <td style="width: 50%; padding-right: 4px;">
-                <div style="font-weight: bold; color: #006837; font-size: 8pt; margin-bottom: 3px;">
-                    A. Sebaran Wilayah Domisili / PAC
+            <!-- Kolom Kiri: Tabel Sebaran Wilayah Domisili -->
+            <td style="width: 50%; padding-right: 3px;">
+                <div style="font-weight: bold; color: #006837; font-size: 7.5pt; margin-bottom: 2px;">
+                    A. Sebaran Wilayah Domisili
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width: 25px;">No</th>
-                            <th>Kecamatan / Wilayah PAC</th>
-                            <th class="text-center" style="width: 50px;">Kader</th>
-                            <th class="text-center" style="width: 45px;">%</th>
+                            <th class="text-center" style="width: 18px;">No</th>
+                            <th style="width: 38%;">Kota / Kab</th>
+                            <th style="width: 36%;">Kecamatan</th>
+                            <th class="text-center" style="width: 34px;">Kader</th>
+                            <th class="text-center" style="width: 28px;">%</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -353,28 +356,72 @@
                         @forelse($districtStats as $idx => $d)
                             <tr>
                                 <td class="text-center">{{ $idx + 1 }}</td>
+                                <td>{{ $d->city ?: 'KOTA SURABAYA' }}</td>
                                 <td class="fw-bold">{{ $d->kecamatan }}</td>
-                                <td class="text-center">{{ $d->total }}</td>
+                                <td class="text-center fw-bold">{{ $d->total }}</td>
                                 <td class="text-center">{{ round(($d->total / $activeTotal) * 100, 1) }}%</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted">Belum ada data wilayah.</td>
+                                <td colspan="5" class="text-center text-muted">Belum ada data wilayah.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
+            </td>
 
-                <div style="font-weight: bold; color: #006837; font-size: 8pt; margin-bottom: 3px; margin-top: 6px;">
-                    B. Jenjang Pendidikan Terakhir
+            <!-- Kolom Kanan: Tabel Persebaran Profesi & Pekerjaan -->
+            <td style="width: 50%; padding-left: 3px;">
+                <div style="font-weight: bold; color: #006837; font-size: 7.5pt; margin-bottom: 2px;">
+                    B. Persebaran Profesi & Pekerjaan Utama
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width: 25px;">No</th>
+                            <th class="text-center" style="width: 18px;">No</th>
+                            <th>Profesi / Pekerjaan</th>
+                            <th class="text-center" style="width: 36px;">Kader</th>
+                            <th class="text-center" style="width: 30px;">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($occupationStats as $idx => $occ)
+                            <tr>
+                                <td class="text-center">{{ $idx + 1 }}</td>
+                                <td class="fw-bold">{{ $occ->occupation }}</td>
+                                <td class="text-center fw-bold">{{ $occ->total }}</td>
+                                <td class="text-center">{{ round(($occ->total / $activeTotal) * 100, 1) }}%</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">Belum ada data profesi.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ================= HALAMAN 2: PENDIDIKAN, KADERISASI NU & KEAHLIAN ================= -->
+    <div class="page-break"></div>
+
+    <div class="section-header">2. Jenjang Pendidikan Terakhir & Riwayat Kaderisasi NU</div>
+
+    <table class="columns-table">
+        <tr>
+            <!-- Kolom Kiri: Jenjang Pendidikan -->
+            <td style="width: 50%; padding-right: 3px;">
+                <div style="font-weight: bold; color: #006837; font-size: 7.5pt; margin-bottom: 2px;">
+                    A. Jenjang Pendidikan Terakhir
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 20px;">No</th>
                             <th>Jenjang Pendidikan</th>
-                            <th class="text-center" style="width: 50px;">Kader</th>
-                            <th class="text-center" style="width: 45px;">%</th>
+                            <th class="text-center" style="width: 45px;">Kader</th>
+                            <th class="text-center" style="width: 35px;">%</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -382,7 +429,7 @@
                             <tr>
                                 <td class="text-center">{{ $idx + 1 }}</td>
                                 <td class="fw-bold">{{ $edu->level }}</td>
-                                <td class="text-center">{{ $edu->total }}</td>
+                                <td class="text-center fw-bold">{{ $edu->total }}</td>
                                 <td class="text-center">{{ round(($edu->total / $activeTotal) * 100, 1) }}%</td>
                             </tr>
                         @empty
@@ -394,45 +441,17 @@
                 </table>
             </td>
 
-            <!-- Kolom Kanan: Profesi & Kaderisasi NU -->
-            <td style="width: 50%; padding-left: 4px;">
-                <div style="font-weight: bold; color: #006837; font-size: 8pt; margin-bottom: 3px;">
-                    C. Persebaran Profesi & Pekerjaan Utama
+            <!-- Kolom Kanan: Kaderisasi NU -->
+            <td style="width: 50%; padding-left: 3px;">
+                <div style="font-weight: bold; color: #006837; font-size: 7.5pt; margin-bottom: 2px;">
+                    B. Riwayat Pendidikan Kaderisasi NU
                 </div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width: 25px;">No</th>
-                            <th>Profesi / Pekerjaan</th>
-                            <th class="text-center" style="width: 50px;">Kader</th>
-                            <th class="text-center" style="width: 45px;">%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($occupationStats as $idx => $occ)
-                            <tr>
-                                <td class="text-center">{{ $idx + 1 }}</td>
-                                <td class="fw-bold">{{ $occ->occupation }}</td>
-                                <td class="text-center">{{ $occ->total }}</td>
-                                <td class="text-center">{{ round(($occ->total / $activeTotal) * 100, 1) }}%</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">Belum ada data profesi.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-
-                <div style="font-weight: bold; color: #006837; font-size: 8pt; margin-bottom: 3px; margin-top: 6px;">
-                    D. Riwayat Pendidikan Kaderisasi NU
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="text-center" style="width: 25px;">No</th>
+                            <th class="text-center" style="width: 20px;">No</th>
                             <th>Jenjang Kaderisasi NU</th>
-                            <th class="text-center" style="width: 60px;">Kader</th>
+                            <th class="text-center" style="width: 55px;">Kader</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -440,7 +459,7 @@
                             <tr>
                                 <td class="text-center">{{ $idx + 1 }}</td>
                                 <td class="fw-bold">{{ $nu->training_type }}</td>
-                                <td class="text-center">{{ $nu->total }} Kader</td>
+                                <td class="text-center fw-bold">{{ $nu->total }} Kader</td>
                             </tr>
                         @empty
                             <tr>
@@ -453,15 +472,15 @@
         </tr>
     </table>
 
-    <!-- BAGIAN 2: REKAPITULASI BIDANG KEAHLIAN & SERTIFIKASI -->
-    <div class="section-header">2. Rekapitulasi Bidang Keahlian & Sertifikasi Kompetensi</div>
+    <!-- BAGIAN 3: REKAPITULASI BIDANG KEAHLIAN & SERTIFIKASI -->
+    <div class="section-header" style="margin-top: 10px;">3. Rekapitulasi Bidang Keahlian & Sertifikasi Kompetensi</div>
     <table class="data-table">
         <thead>
             <tr>
-                <th class="text-center" style="width: 25px;">No</th>
-                <th style="width: 25%;">Bidang Keahlian / Kompetensi</th>
-                <th class="text-center" style="width: 60px;">Jml Kader</th>
-                <th class="text-center" style="width: 60px;">Total Sertifikat</th>
+                <th class="text-center" style="width: 20px;">No</th>
+                <th style="width: 24%;">Bidang Keahlian / Kompetensi</th>
+                <th class="text-center" style="width: 55px;">Jml Kader</th>
+                <th class="text-center" style="width: 55px;">Sertifikat</th>
                 <th>Rincian Contoh Sertifikasi & Lembaga Penerbit Terdaftar</th>
             </tr>
         </thead>
@@ -477,8 +496,8 @@
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td class="fw-bold text-success">{{ $skill->field }}</td>
                     <td class="text-center fw-bold">{{ $skill->total_kader }} Orang</td>
-                    <td class="text-center">{{ $skill->total_sertifikat }}</td>
-                    <td style="font-size: 7.5pt; color: #444444;">
+                    <td class="text-center fw-bold">{{ $skill->total_sertifikat }}</td>
+                    <td style="font-size: 6.8pt; color: #444444;">
                         {{ $sampleList ?: 'Sertifikasi kompetensi bidang ' . $skill->field }}
                     </td>
                 </tr>
@@ -490,23 +509,23 @@
         </tbody>
     </table>
 
-    <!-- Page Break before Member & Officer Lists for neat layout -->
+    <!-- ================= HALAMAN 3+: DAFTAR PENGURUS & ANGGOTA ================= -->
     <div class="page-break"></div>
 
-    <!-- BAGIAN 3: DAFTAR PENGURUS ISNU -->
-    <div class="section-header">3. Daftar Fungsionaris Pengurus ISNU</div>
-    <p style="font-size: 7.5pt; color: #555555; margin-top: -2px; margin-bottom: 6px;">
+    <!-- BAGIAN 4: DAFTAR PENGURUS ISNU -->
+    <div class="section-header">4. Daftar Fungsionaris Pengurus ISNU</div>
+    <p style="font-size: 7.2pt; color: #555555; margin-top: -2px; margin-bottom: 5px;">
         Berikut adalah daftar susunan fungsionaris pengurus aktif yang tercatat dalam sistem kepengurusan ISNU:
     </p>
 
     <table class="data-table">
         <thead>
             <tr>
-                <th class="text-center" style="width: 25px;">No</th>
+                <th class="text-center" style="width: 22px;">No</th>
                 <th style="width: 28%;">Nama Lengkap & Gelar</th>
                 <th style="width: 18%;">Jabatan / Posisi</th>
                 <th style="width: 10%;" class="text-center">Tingkat</th>
-                <th style="width: 24%;">Seksi / Bidang / PAC</th>
+                <th style="width: 26%;">Seksi / Bidang / Wilayah</th>
                 <th style="width: 16%;">No. Anggota / Kontak</th>
             </tr>
         </thead>
@@ -520,7 +539,7 @@
                     <td>
                         <strong class="text-dark">{{ $m?->full_name ?? '-' }}</strong>
                         @if($m && $m->educations->isNotEmpty())
-                            <div style="font-size: 7pt; color: #666666;">
+                            <div style="font-size: 6.5pt; color: #666666;">
                                 Pend: {{ $m->educations->sortByDesc('end_year')->first()?->level }} {{ $m->educations->sortByDesc('end_year')->first()?->major }}
                             </div>
                         @endif
@@ -540,7 +559,7 @@
                             <span class="text-muted">Pengurus Harian Cabang</span>
                         @endif
                     </td>
-                    <td style="font-size: 7pt;">
+                    <td style="font-size: 6.8pt;">
                         <div><code>{{ $m?->member_number ?? '-' }}</code></div>
                         <div class="text-muted">{{ $m?->phone ?? '-' }}</div>
                     </td>
@@ -553,19 +572,19 @@
         </tbody>
     </table>
 
-    <!-- BAGIAN 4: DAFTAR ANGGOTA ISNU -->
-    <div class="section-header" style="margin-top: 14px;">4. Daftar Anggota Terdaftar & Terverifikasi ISNU</div>
-    <p style="font-size: 7.5pt; color: #555555; margin-top: -2px; margin-bottom: 6px;">
+    <!-- BAGIAN 5: DAFTAR ANGGOTA ISNU -->
+    <div class="section-header" style="margin-top: 10px;">5. Daftar Anggota Terdaftar & Terverifikasi ISNU</div>
+    <p style="font-size: 7.2pt; color: #555555; margin-top: -2px; margin-bottom: 5px;">
         Berikut adalah daftar kader/anggota ISNU yang telah terdaftar dan terverifikasi secara resmi:
     </p>
 
     <table class="data-table">
         <thead>
             <tr>
-                <th class="text-center" style="width: 22px;">No</th>
-                <th style="width: 24%;">Nama Lengkap & Gelar</th>
+                <th class="text-center" style="width: 20px;">No</th>
+                <th style="width: 23%;">Nama Lengkap & Gelar</th>
                 <th style="width: 14%;">No. Anggota</th>
-                <th style="width: 13%;">Kecamatan / PAC</th>
+                <th style="width: 14%;">Kota / Kecamatan</th>
                 <th style="width: 14%;">Pendidikan Terakhir</th>
                 <th style="width: 15%;">Profesi / Pekerjaan</th>
                 <th style="width: 12%;">Bidang Keahlian</th>
@@ -583,7 +602,7 @@
                     <td>
                         <strong class="text-dark">{{ $m->full_name }}</strong>
                         @if($m->nik)
-                            <div style="font-size: 6.8pt; color: #666666;">
+                            <div style="font-size: 6.5pt; color: #666666;">
                                 NIK: {{ substr($m->nik, 0, 6) }}******
                             </div>
                         @endif
@@ -591,20 +610,20 @@
                     <td>
                         <code>{{ $m->member_number ?? '-' }}</code>
                     </td>
-                    <td>
-                        {{ $m->pac?->name ?? ($m->kecamatan ?? '-') }}
+                    <td style="font-size: 6.8pt;">
+                        {{ $m->city ? $m->city . ' / ' : '' }}{{ $m->kecamatan ?? '-' }}
                     </td>
-                    <td style="font-size: 7.2pt;">
+                    <td style="font-size: 6.8pt;">
                         @if($lastEdu)
                             <strong>{{ $lastEdu->level }}</strong> {{ $lastEdu->major ? '- ' . $lastEdu->major : '' }}
                         @else
                             -
                         @endif
                     </td>
-                    <td style="font-size: 7.2pt;">
+                    <td style="font-size: 6.8pt;">
                         {{ $m->occupation ?: '-' }}
                     </td>
-                    <td style="font-size: 7.2pt;">
+                    <td style="font-size: 6.8pt;">
                         {{ $certFields ?: ($m->occupation ?: '-') }}
                     </td>
                     <td class="text-center">
@@ -626,7 +645,7 @@
     <!-- LEMBAR PENGESAHAN -->
     <table class="sign-table">
         <tr>
-            <td colspan="2" style="text-align: right; padding-bottom: 8px;">
+            <td colspan="2" style="text-align: right; padding-bottom: 6px;">
                 Diterbitkan di: <strong>Surabaya</strong> &bull; Pada: <strong>{{ now()->translatedFormat('d F Y') }}</strong>
             </td>
         </tr>

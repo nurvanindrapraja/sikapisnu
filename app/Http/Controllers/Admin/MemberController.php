@@ -657,13 +657,13 @@ class MemberController extends Controller
             'female' => Member::when($isPacAdmin, $applyScope)->whereIn('membership_status', ['terverifikasi', 'pengurus'])->where('gender', 'P')->count(),
         ];
 
-        // 2. Sebaran per Wilayah / Kecamatan (PAC)
+        // 2. Sebaran per Wilayah Domisili (Kota/Kab & Kecamatan)
         $districtStats = Member::when($isPacAdmin, $applyScope)
             ->whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->select('kecamatan', DB::raw('count(*) as total'))
+            ->select('city', 'kecamatan', DB::raw('count(*) as total'))
             ->whereNotNull('kecamatan')
             ->where('kecamatan', '!=', '')
-            ->groupBy('kecamatan')
+            ->groupBy('city', 'kecamatan')
             ->orderByDesc('total')
             ->get();
 
