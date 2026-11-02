@@ -1119,4 +1119,228 @@ class SikapIsnuTest extends TestCase
         $this->actingAs($wakilSekretarisUser)->get('/admin/card-orders')->assertStatus(403);
         $this->actingAs($wakilSekretarisUser)->get('/admin/dashboard')->assertDontSee('Kartu Fisik');
     }
+
+    public function test_member_can_view_own_profile_and_dashboard_but_cannot_access_admin_pages()
+    {
+        $memberUser = User::create([
+            'name' => 'Anggota Biasa Satu',
+            'email' => 'anggota_biasa_1@isnu.test',
+            'phone' => '089911223301',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $member = Member::create([
+            'user_id' => $memberUser->id,
+            'full_name' => 'Anggota Biasa Satu',
+            'nik' => '3578010101010001',
+            'email' => 'anggota_biasa_1@isnu.test',
+            'phone' => '089911223301',
+            'occupation' => 'Arsitek',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1992-02-02',
+            'gender' => 'L',
+            'address' => 'Jl. Gubeng No. 1',
+            'kelurahan' => 'Gubeng',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        $otherUser = User::create([
+            'name' => 'Anggota Biasa Dua',
+            'email' => 'anggota_biasa_2@isnu.test',
+            'phone' => '089911223302',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $otherMember = Member::create([
+            'user_id' => $otherUser->id,
+            'full_name' => 'Anggota Biasa Dua',
+            'nik' => '3578010101010002',
+            'email' => 'anggota_biasa_2@isnu.test',
+            'phone' => '089911223302',
+            'occupation' => 'Dokter',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1993-03-03',
+            'gender' => 'P',
+            'address' => 'Jl. Rungkut No. 2',
+            'kelurahan' => 'Rungkut',
+            'kecamatan' => 'Rungkut',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        // Member can view own profile & dashboard
+        $response = $this->actingAs($memberUser)->get('/member/dashboard');
+        $response->assertStatus(200);
+        $response->assertSee('Anggota Biasa Satu');
+        $response->assertSee('Profil Saya');
+        $response->assertSee('Katalog Anggota');
+
+        // Member is blocked from all admin routes
+        $this->actingAs($memberUser)->get('/admin/dashboard')->assertStatus(403);
+        $this->actingAs($memberUser)->get('/admin/anggota')->assertStatus(403);
+        $this->actingAs($memberUser)->get('/admin/anggota/'.$otherMember->id)->assertStatus(403);
+        $this->actingAs($memberUser)->get('/admin/verifikasi')->assertStatus(403);
+        $this->actingAs($memberUser)->get('/admin/card-orders')->assertStatus(403);
+        $this->actingAs($memberUser)->get('/admin/locations')->assertStatus(403);
+
+        // Verification of canViewMember and canManageMember logic
+        $this->assertTrue($memberUser->canViewMember($member));
+        $this->assertFalse($memberUser->canViewMember($otherMember));
+        $this->assertFalse($memberUser->canManageMember($otherMember));
+    }
+
+    public function test_member_can_edit_and_add_to_own_profile()
+    {
+        $memberUser = User::create([
+            'name' => 'Kader Kreatif',
+            'email' => 'kader_kreatif@isnu.test',
+            'phone' => '089911223303',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $member = Member::create([
+            'user_id' => $memberUser->id,
+            'full_name' => 'Kader Kreatif',
+            'nik' => '3578010101010003',
+            'email' => 'kader_kreatif@isnu.test',
+            'phone' => '089911223303',
+            'occupation' => 'Desainer Grafis',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1994-04-04',
+            'gender' => 'L',
+            'address' => 'Jl. Wonokromo No. 3',
+            'kelurahan' => 'Sawunggaling',
+            'kecamatan' => 'Wonokromo',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        // Edit profile page is accessible
+        $this->actingAs($memberUser)->get('/member/profile/edit')->assertStatus(200)->assertSee('Edit Biodata');
+
+        // Member can update their own biodata
+        $updateResponse = $this->actingAs($memberUser)->post('/member/profile/update', [
+            'full_name' => 'Kader Kreatif, S.Ds.',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1994-04-04',
+            'gender' => 'L',
+            'address' => 'Jl. Wonokromo Baru No. 3A',
+            'kelurahan' => 'Sawunggaling',
+            'kecamatan' => 'Wonokromo',
+            'occupation' => 'Senior Product Designer',
+        ]);
+        $updateResponse->assertRedirect(route('member.dashboard'));
+        $this->assertDatabaseHas('members', [
+            'id' => $member->id,
+            'full_name' => 'Kader Kreatif, S.Ds.',
+            'occupation' => 'Senior Product Designer',
+        ]);
+
+        // Member can add education to own profile
+        $eduResponse = $this->actingAs($memberUser)->post('/member/profile/education', [
+            'level' => 'S1',
+            'institution_name' => 'Institut Teknologi Sepuluh Nopember',
+            'major' => 'Desain Komunikasi Visual',
+            'degree' => 'S.Ds.',
+            'start_year' => 2012,
+            'end_year' => 2016,
+        ]);
+        $eduResponse->assertRedirect();
+        $this->assertDatabaseHas('member_educations', [
+            'member_id' => $member->id,
+            'institution_name' => 'Institut Teknologi Sepuluh Nopember',
+        ]);
+
+        // Member can add organization to own profile
+        $orgResponse = $this->actingAs($memberUser)->post('/member/profile/organization', [
+            'organization_name' => 'PMII Rayon Desain',
+            'position' => 'Ketua Bidang Kaderisasi',
+            'period' => '2014-2015',
+        ]);
+        $orgResponse->assertRedirect();
+        $this->assertDatabaseHas('member_organizations', [
+            'member_id' => $member->id,
+            'organization_name' => 'PMII Rayon Desain',
+        ]);
+
+        // Member can add employment to own profile
+        $empResponse = $this->actingAs($memberUser)->post('/member/profile/employment', [
+            'company_name' => 'PT Studio Kreatif Digital',
+            'position' => 'Lead UI/UX Designer',
+            'start_year' => 2020,
+        ]);
+        $empResponse->assertRedirect();
+        $this->assertDatabaseHas('member_employments', [
+            'member_id' => $member->id,
+            'company_name' => 'PT Studio Kreatif Digital',
+        ]);
+
+        // Member can add NU training to own profile
+        $nuResponse = $this->actingAs($memberUser)->post('/member/profile/nu-training', [
+            'training_type' => 'MKNU',
+            'organizer' => 'PWNU Jawa Timur',
+            'year' => 2021,
+        ]);
+        $nuResponse->assertRedirect();
+        $this->assertDatabaseHas('member_nu_trainings', [
+            'member_id' => $member->id,
+            'training_type' => 'MKNU',
+        ]);
+
+        // Member can add certification to own profile
+        $certResponse = $this->actingAs($memberUser)->post('/member/profile/certification', [
+            'certification_name' => 'Certified Scrum Product Owner',
+            'field' => 'Product Management',
+            'issue_year' => 2023,
+        ]);
+        $certResponse->assertRedirect();
+        $this->assertDatabaseHas('member_certifications', [
+            'member_id' => $member->id,
+            'certification_name' => 'Certified Scrum Product Owner',
+        ]);
+    }
+
+    public function test_member_can_view_public_member_catalog_and_sees_catalog_menu()
+    {
+        $memberUser = User::create([
+            'name' => 'Anggota Publik Test',
+            'email' => 'anggota_publik@isnu.test',
+            'phone' => '089911223304',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        Member::create([
+            'user_id' => $memberUser->id,
+            'full_name' => 'Anggota Publik Test',
+            'nik' => '3578010101010004',
+            'email' => 'anggota_publik@isnu.test',
+            'phone' => '089911223304',
+            'occupation' => 'Peneliti LIPI / BRIN',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1991-01-01',
+            'gender' => 'L',
+            'address' => 'Surabaya',
+            'kelurahan' => 'Mulyorejo',
+            'kecamatan' => 'Mulyorejo',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        // Public can access Katalog Anggota
+        $this->get('/daftar-anggota')->assertStatus(200)->assertSee('Katalog Anggota');
+
+        // Member dashboard displays menu & quick link to Katalog Anggota
+        $this->actingAs($memberUser)->get('/member/dashboard')
+            ->assertStatus(200)
+            ->assertSee('Katalog Anggota')
+            ->assertSee(route('daftar.anggota'));
+
+        // Member can access and browse Katalog Anggota
+        $this->actingAs($memberUser)->get('/daftar-anggota')
+            ->assertStatus(200)
+            ->assertSee('Katalog Anggota')
+            ->assertSee('Peneliti LIPI / BRIN');
+    }
 }

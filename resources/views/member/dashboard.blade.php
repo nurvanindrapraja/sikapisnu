@@ -156,6 +156,22 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Quick Link ke Katalog Anggota Publik -->
+            <div class="card card-custom p-3 p-md-4 mb-2 mb-lg-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-success-subtle text-success rounded-3 p-2.5 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-0">Katalog Anggota</h6>
+                        <small class="text-muted d-block" style="font-size: 0.8rem;">Jelajahi direktori dan jejaring kader ISNU se-Surabaya</small>
+                    </div>
+                    <a href="{{ route('daftar.anggota') }}" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold text-nowrap">
+                        Lihat <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- Right Column: Profile Overview & Potensi Summary -->
@@ -165,7 +181,7 @@
                     <h5 class="fw-bold text-dark m-0"><i class="bi bi-person-lines-fill text-success me-2"></i> Biodata
                         Anggota</h5>
                     <a href="{{ route('member.profile.edit') }}" class="btn btn-outline-success btn-sm rounded-pill">
-                        <i class="bi bi-pencil-square me-1"></i> Edit Profil
+                        <i class="bi bi-pencil-square me-1"></i> Ubah Profil
                     </a>
                 </div>
 
@@ -232,7 +248,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                     <h5 class="fw-bold text-dark m-0"><i class="bi bi-journal-bookmark-fill text-success me-2"></i> Rekam Jejak Kader</h5>
                     <a href="{{ route('member.profile.edit') }}" class="btn btn-sm btn-outline-success rounded-pill">
-                        <i class="bi bi-pencil-square me-1"></i> Edit Potensi
+                        <i class="bi bi-pencil-square me-1"></i> Tambah / Edit Potensi
                     </a>
                 </div>
 

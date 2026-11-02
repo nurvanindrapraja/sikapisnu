@@ -68,7 +68,7 @@
     <header class="member-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ route('home') }}" class="d-flex align-items-center gap-2 text-white text-decoration-none">
+                <a href="{{ route('member.dashboard') }}" class="d-flex align-items-center gap-2 text-white text-decoration-none" title="Dashboard Profil Saya">
                     <div class="bg-white p-1 rounded-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
                         <img src="{{ asset('images/logo_isnu.png') }}" alt="Logo ISNU" style="max-height: 38px; max-width: 38px; object-fit: contain;">
                     </div>
@@ -77,20 +77,24 @@
                         <span class="text-white-50 fw-semibold d-block" style="font-size: 0.68rem; margin-top: 1px;">PC ISNU KOTA SURABAYA</span>
                     </div>
                 </a>
+
             <!-- Desktop Header Right Items -->
-            <div class="d-none d-md-flex align-items-center gap-3">
+            <div class="d-none d-md-flex align-items-center gap-2 gap-lg-3">
+                <a href="{{ route('member.dashboard') }}" class="btn {{ request()->routeIs('member.dashboard') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-person-badge me-1"></i> Profil Saya
+                </a>
+                <a href="{{ route('member.profile.edit') }}" class="btn {{ request()->routeIs('member.profile.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-pencil-square me-1"></i> Ubah / Tambah Profil
+                </a>
+                <a href="{{ route('daftar.anggota') }}" class="btn {{ request()->routeIs('daftar.anggota') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-people-fill me-1"></i> Katalog Anggota
+                </a>
                 @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                 <a href="{{ route('member.cv.download') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download CV (PDF)
                 </a>
                 @endif
-                <a href="{{ route('daftar.anggota') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-people-fill me-1"></i> Katalog Anggota
-                </a>
-                <a href="{{ route('member.profile.edit') }}" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold text-success shadow-sm">
-                    <i class="bi bi-person-circle me-1"></i> Profil & Akun
-                </a>
-                <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout">
+                <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout">
                     <i class="bi bi-box-arrow-right me-1"></i> Keluar
                 </button>
             </div>
@@ -111,22 +115,26 @@
                      x-transition:leave-start="opacity-100 transform scale-100"
                      x-transition:leave-end="opacity-0 transform scale-95"
                      class="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg p-2 border" 
-                     style="width: 230px; z-index: 1050; display: none;">
+                     style="width: 250px; z-index: 1050; display: none;">
                     <div class="px-3 py-2 border-bottom mb-1">
                         <small class="text-muted d-block" style="font-size: 0.75rem;">Masuk sebagai</small>
                         <strong class="text-dark d-block text-truncate" style="font-size: 0.88rem;">{{ auth()->user()->name }}</strong>
                     </div>
-                    <a href="{{ route('member.profile.edit') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-person-circle text-success fs-5"></i> Profil & Ubah Password
+                    <a href="{{ route('member.dashboard') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.dashboard') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-person-badge text-success fs-5"></i> Profil Saya
+                    </a>
+                    <a href="{{ route('member.profile.edit') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.profile.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-pencil-square text-success fs-5"></i> Ubah / Tambah Profil
+                    </a>
+                    <a href="{{ route('daftar.anggota') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-people-fill text-success fs-5"></i> Katalog Anggota
                     </a>
                     @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                     <a href="{{ route('member.cv.download') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i> Download CV (PDF)
                     </a>
                     @endif
-                    <a href="{{ route('daftar.anggota') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-people-fill text-success fs-5"></i> Katalog Anggota
-                    </a>
+                    <div class="border-top my-1"></div>
                     <button type="button" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-danger d-flex align-items-center gap-2 w-100 text-start" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" @click="open = false">
                         <i class="bi bi-box-arrow-right fs-5"></i> Keluar
                     </button>
