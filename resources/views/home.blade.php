@@ -32,16 +32,27 @@
                     </div>
                 </div>
                 <div class="col-lg-5 text-center">
-                    <!-- Preview Digital Card Showcase -->
-                    @if($recentMembers->count() > 0)
-                        @php $sampleMember = $recentMembers->first(); @endphp
-                        <div class="card-showcase p-2">
-                            <x-digital_card :member="$sampleMember" :card="$sampleMember->activeCard" />
-                        </div>
-                    @else
-                        <img src="{{ asset('images/logo_isnu.png') }}" alt="ISNU Logo" class="img-fluid p-4"
-                            style="max-height: 320px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));">
-                    @endif
+                    <!-- Preview Digital Card Showcase (Contoh Kartu Anggota Digital) -->
+                    @php
+                        $dummyMember = $dummyMember ?? (object) [
+                            'full_name' => 'Dr. H. Ahmad Fauzi, S.T., M.Kom.',
+                            'member_number' => 'ISNU-SBY-26-000001',
+                            'membership_status' => 'terverifikasi',
+                            'occupation' => 'Dosen & Praktisi Teknologi',
+                            'kecamatan' => 'Wonokromo',
+                            'photo_url' => asset('images/dummy_member_photo.jpg'),
+                            'activePosition' => null,
+                            'pac' => (object) ['name' => 'Wonokromo'],
+                            'mwc' => (object) ['name' => 'PAC ISNU Wonokromo'],
+                        ];
+                        $dummyCard = $dummyCard ?? (object) [
+                            'card_type' => 'MEMBER',
+                            'qr_token' => 'SAMPLE-ISNU-SURABAYA',
+                        ];
+                    @endphp
+                    <div class="card-showcase p-2">
+                        <x-digital_card :member="$dummyMember" :card="$dummyCard" />
+                    </div>
                 </div>
             </div>
         </div>

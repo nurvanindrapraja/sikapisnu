@@ -31,6 +31,9 @@ class SikapIsnuTest extends TestCase
         $response = $this->get('/');
         $response->assertStatus(200);
         $response->assertSee('SIKAP ISNU');
+        $response->assertSee('Dr. H. Ahmad Fauzi, S.T., M.Kom.');
+        $response->assertSee('ISNU-SBY-26-000001');
+        $response->assertSee('dummy_member_photo.jpg');
     }
 
     public function test_public_member_directory_is_accessible()

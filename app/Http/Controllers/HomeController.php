@@ -30,12 +30,24 @@ class HomeController extends Controller
         $totalPengurus = $stats['totalPengurus'];
         $totalPacMembers = $stats['totalPacMembers'];
 
-        $recentMembers = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->latest('verified_at')
-            ->take(6)
-            ->get();
+        $dummyMember = (object) [
+            'full_name' => 'Dr. H. Ahmad Fauzi, S.T., M.Kom.',
+            'member_number' => 'ISNU-SBY-26-000001',
+            'membership_status' => 'terverifikasi',
+            'occupation' => 'Dosen & Praktisi Teknologi',
+            'kecamatan' => 'Wonokromo',
+            'photo_url' => asset('images/dummy_member_photo.jpg'),
+            'activePosition' => null,
+            'pac' => (object) ['name' => 'Wonokromo'],
+            'mwc' => (object) ['name' => 'PAC ISNU Wonokromo'],
+        ];
 
-        return view('home', compact('totalMembers', 'totalPengurus', 'totalPacMembers', 'recentMembers'));
+        $dummyCard = (object) [
+            'card_type' => 'MEMBER',
+            'qr_token' => 'SAMPLE-ISNU-SURABAYA',
+        ];
+
+        return view('home', compact('totalMembers', 'totalPengurus', 'totalPacMembers', 'dummyMember', 'dummyCard'));
     }
 
     public function tentang()
