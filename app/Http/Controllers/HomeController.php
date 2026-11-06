@@ -46,7 +46,13 @@ class HomeController extends Controller
     public function daftarAnggota(Request $request)
     {
         $query = Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
-            ->with(['mwc', 'activePosition']);
+            ->with([
+                'mwc',
+                'activePosition',
+                'educations',
+                'employments',
+                'certifications',
+            ]);
 
         if ($request->filled('search')) {
             $search = $request->search;

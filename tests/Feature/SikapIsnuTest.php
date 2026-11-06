@@ -1343,4 +1343,80 @@ class SikapIsnuTest extends TestCase
             ->assertSee('Katalog Anggota')
             ->assertSee('Peneliti LIPI / BRIN');
     }
+
+    public function test_public_member_catalog_displays_short_profile_modal_data()
+    {
+        $user = User::create([
+            'name' => 'Kader Profil Singkat',
+            'email' => 'kader_modal@isnu.test',
+            'phone' => '089911223305',
+            'password' => bcrypt('password'),
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $member = Member::create([
+            'user_id' => $user->id,
+            'full_name' => 'Kader Profil Singkat, M.Kom.',
+            'nik' => '3578010101010005',
+            'email' => 'kader_modal@isnu.test',
+            'phone' => '089911223305',
+            'occupation' => 'Chief Technology Officer',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-05-05',
+            'gender' => 'L',
+            'address' => 'Jl. Rungkut Asri No. 5',
+            'kelurahan' => 'Rungkut Kidul',
+            'kecamatan' => 'Rungkut',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        $member->educations()->create([
+            'level' => 'S2',
+            'institution_name' => 'Universitas Indonesia',
+            'major' => 'Ilmu Komputer',
+            'degree' => 'M.Kom.',
+            'start_year' => 2014,
+            'end_year' => 2017,
+        ]);
+
+        $member->employments()->create([
+            'company_name' => 'PT Solusi Teknologi Nusantara',
+            'position' => 'Chief Technology Officer',
+            'employment_status' => 'Tetap',
+            'start_year' => 2021,
+        ]);
+
+        $member->certifications()->create([
+            'certification_name' => 'AWS Certified Solutions Architect',
+            'field' => 'Cloud Computing',
+            'issue_year' => 2023,
+        ]);
+
+        $shortProfile = $member->getShortProfileData();
+        $this->assertEquals('Kader Profil Singkat, M.Kom.', $shortProfile['full_name']);
+        $this->assertTrue($shortProfile['latest_education']['has_data']);
+        $this->assertEquals('S2', $shortProfile['latest_education']['level']);
+        $this->assertEquals('Ilmu Komputer', $shortProfile['latest_education']['major']);
+        $this->assertTrue($shortProfile['latest_employment']['has_data']);
+        $this->assertEquals('Chief Technology Officer', $shortProfile['latest_employment']['position']);
+        $this->assertTrue($shortProfile['latest_certification']['has_data']);
+        $this->assertEquals('AWS Certified Solutions Architect', $shortProfile['latest_certification']['name']);
+
+        // Check HTML contains modal and card attributes
+        $response = $this->get('/daftar-anggota');
+        $response->assertStatus(200);
+        $response->assertSee('modalDetailAnggota');
+        $response->assertSee('Profil Singkat Anggota ISNU Surabaya');
+        $response->assertSee('Pendidikan Terakhir');
+        $response->assertSee('Pekerjaan Terakhir');
+        $response->assertSee('Keahlian / Sertifikasi Terakhir');
+        $response->assertSee('Lihat Profil Singkat');
+        $response->assertSee('Kader Profil Singkat, M.Kom.');
+
+        // AJAX search request also includes data-member-info and card markup
+        $ajaxResponse = $this->get('/daftar-anggota?search=Chief', ['X-Requested-With' => 'XMLHttpRequest']);
+        $ajaxResponse->assertStatus(200);
+        $ajaxResponse->assertSee('data-member-info');
+        $ajaxResponse->assertSee('Lihat Profil Singkat');
+    }
 }

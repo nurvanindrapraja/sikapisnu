@@ -114,6 +114,37 @@
             background: linear-gradient(135deg, var(--isnu-green), var(--isnu-green-dark)) !important;
         }
 
+        /* Custom Green Pagination */
+        .pagination .page-item.active .page-link {
+            background-color: var(--isnu-green) !important;
+            border-color: var(--isnu-green) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(0, 104, 55, 0.25);
+        }
+
+        .pagination .page-link {
+            color: var(--isnu-green);
+            border-radius: 0.375rem;
+            margin: 0 2px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .pagination .page-link:hover {
+            color: var(--isnu-green-dark);
+            background-color: #eaf3ed;
+            border-color: #c2decb;
+        }
+
+        .pagination .page-link:focus {
+            box-shadow: 0 0 0 0.25rem rgba(0, 104, 55, 0.25);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #94a3b8;
+        }
+
         /* Mobile Collapsed Navbar Styling */
         @media (max-width: 991.98px) {
             .navbar-isnu .navbar-collapse {

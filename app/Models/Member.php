@@ -154,4 +154,112 @@ class Member extends Model
     {
         return $this->activePosition && $this->activePosition->section_id !== null;
     }
+
+    public function getLatestEducation(): ?MemberEducation
+    {
+        if ($this->relationLoaded('educations')) {
+            return $this->educations->sortByDesc(fn ($e) => [$e->end_year ?? 0, $e->id])->first();
+        }
+
+        return $this->educations()->orderByDesc('end_year')->orderByDesc('id')->first();
+    }
+
+    public function getLatestEmployment(): ?MemberEmployment
+    {
+        if ($this->relationLoaded('employments')) {
+            return $this->employments->sortByDesc(fn ($e) => [$e->end_year ?? 9999, $e->id])->first();
+        }
+
+        return $this->employments()->orderByDesc('end_year')->orderByDesc('id')->first();
+    }
+
+    public function getLatestCertification(): ?MemberCertification
+    {
+        if ($this->relationLoaded('certifications')) {
+            return $this->certifications->sortByDesc(fn ($c) => [$c->issue_year ?? 0, $c->id])->first();
+        }
+
+        return $this->certifications()->orderByDesc('issue_year')->orderByDesc('id')->first();
+    }
+
+    /**
+     * Mendapatkan data profil singkat anggota untuk ditampilkan pada popup modal publik.
+     *
+     * @return array<string, mixed>
+     */
+    public function getShortProfileData(): array
+    {
+        $latestEdu = $this->getLatestEducation();
+        $latestEmp = $this->getLatestEmployment();
+        $latestCert = $this->getLatestCertification();
+
+        $eduText = null;
+        if ($latestEdu) {
+            $parts = array_filter([$latestEdu->level, $latestEdu->major]);
+            $eduText = implode(' - ', $parts);
+            if ($latestEdu->institution_name) {
+                $eduText .= ($eduText ? ' di ' : '').$latestEdu->institution_name;
+            }
+            if ($latestEdu->end_year) {
+                $eduText .= ' (Lulus '.$latestEdu->end_year.')';
+            }
+        }
+
+        $empText = null;
+        if ($latestEmp) {
+            $empText = $latestEmp->position ?: $this->occupation;
+            if ($latestEmp->company_name) {
+                $empText .= ' di '.$latestEmp->company_name;
+            }
+        } else {
+            $empText = $this->occupation ?: null;
+        }
+
+        $certText = null;
+        if ($latestCert) {
+            $certText = $latestCert->certification_name;
+            if ($latestCert->field) {
+                $certText .= ' (Bidang: '.$latestCert->field.')';
+            }
+            if ($latestCert->issue_year) {
+                $certText .= ' - Tahun '.$latestCert->issue_year;
+            }
+        }
+
+        return [
+            'id' => $this->id,
+            'full_name' => $this->full_name,
+            'member_number' => $this->member_number ?? '-',
+            'membership_status' => $this->membership_status,
+            'is_pengurus' => $this->membership_status === 'pengurus',
+            'position_title' => $this->activePosition?->position_title,
+            'photo_url' => $this->photo_url,
+            'mwc_name' => $this->mwc?->name ?? ($this->kecamatan ? 'Kec. '.$this->kecamatan : null),
+            'latest_education' => [
+                'level' => $latestEdu?->level,
+                'major' => $latestEdu?->major,
+                'institution' => $latestEdu?->institution_name,
+                'degree' => $latestEdu?->degree,
+                'year' => $latestEdu?->end_year ? 'Lulus '.$latestEdu->end_year : ($latestEdu?->start_year ? 'Tahun '.$latestEdu->start_year : null),
+                'formatted' => $eduText ?? 'Belum ada data pendidikan terakhir',
+                'has_data' => $latestEdu !== null,
+            ],
+            'latest_employment' => [
+                'position' => $latestEmp?->position ?? $this->occupation,
+                'company' => $latestEmp?->company_name,
+                'status' => $latestEmp?->employment_status,
+                'year' => $latestEmp?->start_year ? $latestEmp->start_year.($latestEmp->end_year ? ' - '.$latestEmp->end_year : ' - Sekarang') : null,
+                'formatted' => $empText ?? 'Belum ada data pekerjaan terakhir',
+                'has_data' => ($latestEmp !== null || ! empty($this->occupation)),
+            ],
+            'latest_certification' => [
+                'name' => $latestCert?->certification_name,
+                'field' => $latestCert?->field,
+                'organizer' => $latestCert?->issuing_organization,
+                'year' => $latestCert?->issue_year ? 'Tahun '.$latestCert->issue_year : null,
+                'formatted' => $certText ?? 'Belum ada data keahlian / sertifikasi',
+                'has_data' => $latestCert !== null,
+            ],
+        ];
+    }
 }
