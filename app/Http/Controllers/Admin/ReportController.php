@@ -9,13 +9,24 @@ use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Export Laporan.');
+        }
+    }
+
     public function index()
     {
+        $this->checkAccess();
+
         return view('admin.laporan.index');
     }
 
     public function export(Request $request)
     {
+        $this->checkAccess();
+
         $type = $request->get('type', 'anggota'); // anggota, potensi, pengurus
         $format = $request->get('format', 'csv'); // csv
 

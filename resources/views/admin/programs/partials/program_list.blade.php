@@ -167,7 +167,7 @@
                                                 <div class="col-md-8">
                                                     <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
                                                     <select name="section_id" class="form-select" required :disabled="loading">
-                                                        @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                                        @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
                                                             @php $mySection = auth()->user()->getOfficerSection(); @endphp
                                                             @if($mySection)
                                                                 <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>

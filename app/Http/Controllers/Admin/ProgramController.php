@@ -14,11 +14,20 @@ use Illuminate\View\View;
 
 class ProgramController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Master Program Kerja.');
+        }
+    }
+
     /**
      * Menampilkan daftar Master Program Kerja Seksi.
      */
     public function index(Request $request): View
     {
+        $this->checkAccess();
+
         $query = Program::with(['section.pac'])->withCount('events');
 
         if ($request->filled('section_id')) {

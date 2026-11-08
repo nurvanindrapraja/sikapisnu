@@ -24,6 +24,10 @@ class MemberController extends Controller
 {
     public function index(Request $request)
     {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Database Potensi Kader.');
+        }
+
         $query = Member::with(['user', 'mwc', 'pac', 'activePosition']);
 
         if (auth()->user()->isAdminPac()) {
@@ -126,6 +130,10 @@ class MemberController extends Controller
 
     public function show($id)
     {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses untuk melihat detail anggota.');
+        }
+
         $member = Member::with([
             'user',
             'mwc',

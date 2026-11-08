@@ -116,7 +116,7 @@
                 eventDate: '{{ date('Y-m-d') }}',
                 startTime: '08:00',
                 endTime: '12:00',
-                selectedSectionId: '{{ (auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}',
+                selectedSectionId: '{{ (auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}',
                 selectedProgramId: '',
                 sectionsData: {{ Js::from($sections->map(fn($s) => [
                     'id' => $s->id,
@@ -160,7 +160,7 @@
                             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             modal.hide();
                             this.$el.reset();
-                            this.selectedSectionId = '{{ (auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}';
+                            this.selectedSectionId = '{{ (auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}';
                             this.selectedProgramId = '';
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
                             window.dispatchEvent(new CustomEvent('refresh-events'));
@@ -193,7 +193,7 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
                             <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''" :disabled="loading">
-                                @if(auth()->user()->isWakilPengurus() && !auth()->user()->canManageAllProgramsAndEvents())
+                                @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
                                     @php $mySection = auth()->user()->getOfficerSection(); @endphp
                                     @if($mySection)
                                         <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>

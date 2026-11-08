@@ -14,8 +14,17 @@ use Illuminate\Support\Str;
 
 class VerificationController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses untuk verifikasi pendaftaran.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $status = $request->get('status', 'menunggu_verifikasi');
 
         $query = Member::with(['user', 'mwc', 'pac']);
@@ -58,6 +67,8 @@ class VerificationController extends Controller
 
     public function show($id)
     {
+        $this->checkAccess();
+
         $member = Member::with([
             'user',
             'mwc',

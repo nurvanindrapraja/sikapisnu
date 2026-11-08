@@ -15,11 +15,20 @@ use Illuminate\View\View;
 
 class WorkgroupController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Master Kelompok Kerja.');
+        }
+    }
+
     /**
      * Menampilkan daftar Master Kelompok Kerja.
      */
     public function index(Request $request): View
     {
+        $this->checkAccess();
+
         $query = Workgroup::with('pac')->withCount('members');
 
         if ($request->filled('level')) {
@@ -65,6 +74,8 @@ class WorkgroupController extends Controller
      */
     public function store(Request $request): JsonResponse|RedirectResponse
     {
+        $this->checkAccess();
+
         $validated = $request->validate([
             'level' => 'required|in:PC ISNU,PAC ISNU',
             'pac_id' => 'nullable|required_if:level,PAC ISNU|exists:pac,id',
@@ -98,6 +109,8 @@ class WorkgroupController extends Controller
      */
     public function show(int $id): View
     {
+        $this->checkAccess();
+
         $workgroup = Workgroup::with([
             'pac',
             'members' => function ($q) {

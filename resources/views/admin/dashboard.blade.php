@@ -7,63 +7,99 @@
 <!-- Metric Cards (Clickable to Verifikasi Keanggotaan) -->
 <div class="row g-3 mb-4">
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'all']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-white p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'all']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-white p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-muted small d-block font-semibold">TOTAL DAFTAR</span>
                 <h3 class="fw-extrabold text-dark m-0 mt-1">{{ number_format($stats['total']) }}</h3>
-                <small class="text-success small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-success small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'terverifikasi']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-success text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'terverifikasi']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-success text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-white-50 small d-block font-semibold">ANGGOTA AKTIF</span>
                 <h3 class="fw-extrabold text-white m-0 mt-1">{{ number_format($stats['terverifikasi']) }}</h3>
-                <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'pengurus']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-warning text-dark p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'pengurus']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-warning text-dark p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-dark-50 small d-block font-semibold">PENGURUS</span>
                 <h3 class="fw-extrabold text-dark m-0 mt-1">{{ number_format($stats['pengurus']) }}</h3>
-                <small class="text-dark-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-dark-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'menunggu_verifikasi']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-danger text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'menunggu_verifikasi']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-danger text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-white-50 small d-block font-semibold">PENDING VERIFIKASI</span>
                 <h3 class="fw-extrabold text-white m-0 mt-1">{{ number_format($stats['pending']) }}</h3>
-                <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'perbaikan']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-info text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'perbaikan']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-info text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-white-50 small d-block font-semibold">PERLU PERBAIKAN</span>
                 <h3 class="fw-extrabold text-white m-0 mt-1">{{ number_format($stats['perbaikan']) }}</h3>
-                <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
     <div class="col-xl-2 col-md-4 col-6">
-        <a href="{{ route('admin.verifikasi.index', ['status' => 'ditolak']) }}" class="text-decoration-none">
-            <div class="card stat-card bg-secondary text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale cursor-pointer">
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            <a href="{{ route('admin.verifikasi.index', ['status' => 'ditolak']) }}" class="text-decoration-none">
+        @endif
+            <div class="card stat-card bg-secondary text-white p-3 h-100 border-0 shadow-sm transition-all hover-scale {{ auth()->user()->isPengurusAnggotaSeksi() ? '' : 'cursor-pointer' }}">
                 <span class="text-white-50 small d-block font-semibold">DITOLAK</span>
                 <h3 class="fw-extrabold text-white m-0 mt-1">{{ number_format($stats['ditolak']) }}</h3>
-                <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <small class="text-white-50 small mt-2 d-block"><i class="bi bi-arrow-right-circle me-1"></i> Lihat Data</small>
+                @endif
             </div>
-        </a>
+        @if(!auth()->user()->isPengurusAnggotaSeksi())
+            </a>
+        @endif
     </div>
 </div>
 
 <!-- Pending Registration Queue Section -->
-@if($pendingMembers->count() > 0)
+@if(!auth()->user()->isPengurusAnggotaSeksi() && $pendingMembers->count() > 0)
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-warning-subtle border-0 p-3 d-flex justify-content-between align-items-center">
             <strong class="text-dark"><i class="bi bi-clock-history me-1"></i> Antrean Verifikasi Pendaftar Baru ({{ $stats['pending'] }})</strong>

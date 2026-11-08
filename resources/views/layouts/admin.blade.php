@@ -280,6 +280,7 @@
             </li>
 
             <li class="sidebar-header">Verifikasi & Keanggotaan</li>
+            @if(!auth()->user()->isPengurusAnggotaSeksi())
             <li>
                 <a href="{{ route('admin.verifikasi.index') }}" class="sidebar-link {{ request()->routeIs('admin.verifikasi.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-check-fill"></i> Verifikasi Pendaftar
@@ -294,6 +295,7 @@
                     <i class="bi bi-people-fill"></i> Database Potensi Kader
                 </a>
             </li>
+            @endif
             <li>
                 <a href="{{ route('admin.pengurus.index') }}" class="sidebar-link {{ request()->routeIs('admin.pengurus.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-workspace"></i> Pengurus ISNU
@@ -335,6 +337,7 @@
                 </a>
             </li>
             @endif
+            @if(!auth()->user()->isPengurusAnggotaSeksi())
             <li>
                 <a href="{{ route('admin.programs.index') }}" class="sidebar-link {{ request()->routeIs('admin.programs.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-card-checklist"></i> Master Program Kerja
@@ -345,6 +348,7 @@
                     <i class="bi bi-person-workspace"></i> Master Kelompok Kerja
                 </a>
             </li>
+            @endif
             <li>
                 <a href="{{ route('admin.events.index') }}" class="sidebar-link {{ request()->routeIs('admin.events.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-calendar-event-fill"></i> Kegiatan & Presensi
@@ -363,7 +367,9 @@
             </li>
             @endif
 
+            @if(!auth()->user()->isPengurusAnggotaSeksi() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota())))
             <li class="sidebar-header">Laporan & Keamanan</li>
+            @if(!auth()->user()->isPengurusAnggotaSeksi())
             <li>
                 <a href="{{ route('admin.laporan.index') }}" class="sidebar-link {{ request()->routeIs('admin.laporan.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-file-earmark-bar-graph-fill"></i> Export Laporan
@@ -374,12 +380,14 @@
                     <i class="bi bi-shield-lock-fill"></i> Audit Log System
                 </a>
             </li>
+            @endif
             @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota()))
             <li>
                 <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-gear"></i> Kelola Akun User
                 </a>
             </li>
+            @endif
             @endif
 
             <li class="sidebar-header mt-3">Situs & Akun</li>

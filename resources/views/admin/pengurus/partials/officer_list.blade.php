@@ -8,8 +8,10 @@
                 <th>Jabatan</th>
                 <th>Tingkat & Periode</th>
                 <th>PAC / Wilayah</th>
-                <th>Kartu Digital</th>
-                <th class="text-end">Aksi</th>
+                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    <th>Kartu Digital</th>
+                    <th class="text-end">Aksi</th>
+                @endif
             </tr>
         </thead>
         <tbody>
@@ -58,27 +60,29 @@
                             <span class="text-muted">PC ISNU Kota Surabaya</span>
                         @endif
                     </td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
-                            <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
-                        </button>
-                    </td>
-                    <td class="text-end">
-                        <div class="d-inline-flex gap-1">
-                            <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                                <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
-                            </a>
-                            @if(auth()->user()->canManageMembersAndOfficers())
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Batalkan Pengurus" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
-                                    <i class="bi bi-x-circle me-1"></i> Batalkan
-                                </button>
-                            @endif
-                        </div>
-                    </td>
+                    @if(!auth()->user()->isPengurusAnggotaSeksi())
+                        <td>
+                            <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
+                                <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                    <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
+                                </a>
+                                @if(auth()->user()->canManageMembersAndOfficers())
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Batalkan Pengurus" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
+                                        <i class="bi bi-x-circle me-1"></i> Batalkan
+                                    </button>
+                                @endif
+                            </div>
+                        </td>
+                    @endif
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
+                    <td colspan="{{ auth()->user()->isPengurusAnggotaSeksi() ? 5 : 7 }}" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -141,16 +145,18 @@
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
-                <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success flex-grow-1 rounded-pill fw-bold">
-                    <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
-                </a>
-                @if(auth()->user()->canManageMembersAndOfficers())
-                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
-                        <i class="bi bi-x-circle me-1"></i> Batalkan
-                    </button>
-                @endif
-            </div>
+            @if(!auth()->user()->isPengurusAnggotaSeksi())
+                <div class="d-flex gap-2">
+                    <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success flex-grow-1 rounded-pill fw-bold">
+                        <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}
+                    </a>
+                    @if(auth()->user()->canManageMembersAndOfficers())
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openDemoteModal('{{ route('admin.pengurus.demote', $o->id) }}', '{{ addslashes($o->full_name) }}')">
+                            <i class="bi bi-x-circle me-1"></i> Batalkan
+                        </button>
+                    @endif
+                </div>
+            @endif
         </div>
     @empty
         <div class="text-center py-4 text-muted bg-light rounded-4">

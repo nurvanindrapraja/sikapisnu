@@ -8,8 +8,17 @@ use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
+    protected function checkAccess(): void
+    {
+        if (auth()->user()?->isPengurusAnggotaSeksi()) {
+            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Audit Log System.');
+        }
+    }
+
     public function index(Request $request)
     {
+        $this->checkAccess();
+
         $query = AuditLog::with('user');
 
         if ($request->filled('search')) {

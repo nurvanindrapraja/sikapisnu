@@ -121,6 +121,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Memeriksa apakah user adalah Koordinator Seksi.
+     */
+    public function isKoordinatorSeksi(): bool
+    {
+        $title = $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Koordinator Seksi', 'Koordinator'], true);
+    }
+
+    /**
+     * Memeriksa apakah user adalah pengurus yang mengampu seksi tertentu
+     * (Wakil Ketua, Wakil Sekretaris, atau Koordinator Seksi).
+     */
+    public function isSectionOfficer(): bool
+    {
+        return $this->isWakilPengurus() || $this->isKoordinatorSeksi();
+    }
+
+    /**
      * Memeriksa apakah user memiliki hak akses untuk menambah, mengedit, atau menghapus
      * program atau kegiatan pada seksi tertentu.
      */
@@ -130,7 +149,7 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($this->isWakilPengurus()) {
+        if ($this->isSectionOfficer()) {
             $userSectionId = $this->getOfficerSectionId();
 
             return $userSectionId !== null && $sectionId !== null && (int) $userSectionId === (int) $sectionId;
@@ -148,12 +167,24 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->isWakilPengurus() && $this->getOfficerSectionId() !== null;
+        return $this->isSectionOfficer() && $this->getOfficerSectionId() !== null;
     }
 
     public function isMember(): bool
     {
         return $this->role === 'member';
+    }
+
+    /**
+     * Memeriksa apakah user adalah pengurus dengan jabatan Anggota Seksi.
+     */
+    public function isPengurusAnggotaSeksi(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return false;
+        }
+
+        return $this->getOfficerPositionTitle() === 'Anggota Seksi';
     }
 
     public function getManagedPacId(): ?int
@@ -276,6 +307,10 @@ class User extends Authenticatable
     {
         if (! $member) {
             return false;
+        }
+
+        if ($this->isPengurusAnggotaSeksi()) {
+            return $this->member && (int) $this->member->id === (int) $member->id;
         }
 
         if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminMwc() || $this->role === 'admin') {

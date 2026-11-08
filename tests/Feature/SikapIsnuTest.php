@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Member;
 use App\Models\Pac;
 use App\Models\Position;
+use App\Models\Section;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -1421,5 +1422,159 @@ class SikapIsnuTest extends TestCase
         $ajaxResponse->assertStatus(200);
         $ajaxResponse->assertSee('data-member-info');
         $ajaxResponse->assertSee('Lihat Profil Singkat');
+    }
+
+    public function test_pengurus_anggota_seksi_has_restricted_menus_and_actions()
+    {
+        $section = Section::first();
+
+        $user = User::factory()->create([
+            'role' => 'member',
+            'email' => 'anggotaseksi@isnu.id',
+            'phone' => '089911223399',
+            'is_active' => true,
+        ]);
+
+        $member = Member::create([
+            'user_id' => $user->id,
+            'full_name' => 'Pengurus Anggota Seksi Test',
+            'nik' => '3578010101019999',
+            'email' => 'anggotaseksi@isnu.id',
+            'phone' => '089911223399',
+            'occupation' => 'Teknisi',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1995-05-05',
+            'gender' => 'L',
+            'address' => 'Jl. Rungkut No. 99',
+            'kelurahan' => 'Rungkut',
+            'kecamatan' => 'Rungkut',
+            'membership_status' => 'pengurus',
+        ]);
+
+        Position::create([
+            'member_id' => $member->id,
+            'position_title' => 'Anggota Seksi',
+            'level' => 'Kota',
+            'section_id' => $section?->id,
+            'period' => '2026 - 2030',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        // 1. Dashboard Admin: restricted menus are hidden
+        $dashboardResponse = $this->get(route('admin.dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertDontSee('Verifikasi Pendaftar');
+        $dashboardResponse->assertDontSee('Database Potensi Kader');
+        $dashboardResponse->assertDontSee('Master Program Kerja');
+        $dashboardResponse->assertDontSee('Master Kelompok Kerja');
+        $dashboardResponse->assertDontSee('Export Laporan');
+        $dashboardResponse->assertDontSee('Audit Log System');
+        $dashboardResponse->assertSee('Pengurus ISNU');
+
+        // 2. Direct route access to restricted pages return 403 Forbidden
+        $this->get(route('admin.verifikasi.index'))->assertStatus(403);
+        $this->get(route('admin.anggota.index'))->assertStatus(403);
+        $this->get(route('admin.programs.index'))->assertStatus(403);
+        $this->get(route('admin.workgroups.index'))->assertStatus(403);
+        $this->get(route('admin.laporan.index'))->assertStatus(403);
+        $this->get(route('admin.audit.index'))->assertStatus(403);
+
+        // 3. Pengurus ISNU index: accessible, but Kartu Digital button & Detail action are hidden
+        $pengurusResponse = $this->get(route('admin.pengurus.index'));
+        $pengurusResponse->assertStatus(200);
+        $pengurusResponse->assertDontSee('KARTU PENGURUS');
+        $pengurusResponse->assertDontSee('Detail & Kelola');
+        $pengurusResponse->assertDontSee('Detail');
+
+        // Other member detail view should be 403 for Anggota Seksi
+        $otherMember = Member::where('id', '!=', $member->id)->first();
+        if ($otherMember) {
+            $this->get(route('admin.anggota.show', $otherMember->id))->assertStatus(403);
+        }
+    }
+
+    public function test_koordinator_seksi_can_only_manage_events_in_their_own_section()
+    {
+        $section1 = Section::create(['name' => 'Seksi Kaderisasi Unik', 'level' => 'PC ISNU']);
+        $section2 = Section::create(['name' => 'Seksi Riset Unik', 'level' => 'PC ISNU']);
+
+        $user = User::factory()->create([
+            'role' => 'member',
+            'email' => 'koordinator@isnu.id',
+            'phone' => '089911223388',
+            'is_active' => true,
+        ]);
+
+        $member = Member::create([
+            'user_id' => $user->id,
+            'full_name' => 'Koordinator Seksi Test',
+            'nik' => '3578010101018888',
+            'email' => 'koordinator@isnu.id',
+            'phone' => '089911223388',
+            'occupation' => 'Dosen Peneliti',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Gubeng No. 88',
+            'kelurahan' => 'Gubeng',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'pengurus',
+        ]);
+
+        Position::create([
+            'member_id' => $member->id,
+            'position_title' => 'Koordinator Seksi',
+            'level' => 'Kota',
+            'section_id' => $section1->id,
+            'period' => '2026 - 2030',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        // 1. Can access events index and see create event button
+        $response = $this->get(route('admin.events.index'));
+        $response->assertStatus(200);
+        $response->assertSee('Rencanakan Kegiatan Baru');
+
+        // 2. Can create event in their own section ($section1)
+        $validPayload = [
+            'title' => 'Pelatihan Kader Seksi Sendiri',
+            'section_id' => $section1->id,
+            'location' => 'Gedung PCNU Lt. 3',
+            'method' => 'luring',
+            'event_date' => '2026-11-20',
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'presence_start_at' => '2026-11-20 07:30:00',
+            'presence_end_at' => '2026-11-20 12:30:00',
+            'status' => 'planned',
+        ];
+        $postResponse = $this->post(route('admin.events.store'), $validPayload);
+        $postResponse->assertStatus(302);
+        $this->assertDatabaseHas('events', [
+            'title' => 'Pelatihan Kader Seksi Sendiri',
+            'section_id' => $section1->id,
+        ]);
+
+        // 3. CANNOT create event in another section ($section2) -> 403 Forbidden
+        $invalidSectionPayload = array_merge($validPayload, [
+            'title' => 'Kegiatan di Seksi Lain',
+            'section_id' => $section2->id,
+        ]);
+        $failResponse1 = $this->post(route('admin.events.store'), $invalidSectionPayload);
+        $failResponse1->assertStatus(403);
+        $this->assertDatabaseMissing('events', ['title' => 'Kegiatan di Seksi Lain']);
+
+        // 4. CANNOT create event without section (null) -> 403 Forbidden
+        $nullSectionPayload = array_merge($validPayload, [
+            'title' => 'Kegiatan Tanpa Seksi',
+            'section_id' => null,
+        ]);
+        $failResponse2 = $this->post(route('admin.events.store'), $nullSectionPayload);
+        $failResponse2->assertStatus(403);
+        $this->assertDatabaseMissing('events', ['title' => 'Kegiatan Tanpa Seksi']);
     }
 }
