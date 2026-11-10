@@ -45,7 +45,7 @@
             <a href="{{ route('surat.verifikasi', $letter->letter_code) }}" target="_blank" class="btn btn-outline-info rounded-pill px-3">
                 <i class="bi bi-qr-code-scan me-1"></i> Halaman Verifikasi
             </a>
-            @if($letter->status !== 'selesai' || auth()->user()->isAdmin())
+            @if(auth()->user()->canEditLetter($letter))
                 <a href="{{ route('admin.letters.edit', $letter->id) }}" class="btn btn-light border rounded-pill px-3">
                     <i class="bi bi-pencil me-1"></i> Edit
                 </a>
@@ -339,20 +339,31 @@
         <!-- Right Action Sidebar (Digital Signatures & Workflow) -->
         <div class="col-lg-4">
 
-            <!-- Panel Pengajuan jika masih Draft -->
-            @if($letter->status === 'draft')
+            <!-- Panel Pengajuan jika masih Draft atau Ditolak / Revisi -->
+            @if(in_array($letter->status, ['draft', 'ditolak']) && auth()->user()->canEditLetter($letter))
                 <div class="card border-0 shadow-sm rounded-4 mb-4 border-start border-warning border-4">
                     <div class="card-body p-4">
-                        <h6 class="fw-bold text-dark mb-2">Ajukan ke Sekretaris</h6>
-                        <p class="small text-muted mb-3">Surat ini masih berstatus draft. Klik tombol di bawah untuk meneruskan ke antrean penandatanganan Sekretaris.</p>
-                        <form action="{{ route('admin.letters.submit-secretary', $letter->id) }}" method="POST" @submit="isSubmittingToSecretary = true">
-                            @csrf
-                            <button type="submit" class="btn btn-warning text-dark w-100 rounded-pill fw-semibold d-inline-flex align-items-center justify-content-center" :disabled="isSubmittingToSecretary">
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isSubmittingToSecretary" x-cloak></span>
-                                <i class="bi bi-send-fill me-1" x-show="!isSubmittingToSecretary"></i>
-                                <span x-text="isSubmittingToSecretary ? 'Mengajukan...' : 'Ajukan ke Sekretaris'">Ajukan ke Sekretaris</span>
-                            </button>
-                        </form>
+                        <h6 class="fw-bold text-dark mb-2">
+                            {{ $letter->status === 'ditolak' ? 'Ajukan Ulang ke Sekretaris' : 'Ajukan ke Sekretaris' }}
+                        </h6>
+                        <p class="small text-muted mb-3">
+                            {{ $letter->status === 'ditolak' 
+                                ? 'Konsep surat memerlukan revisi. Anda dapat menyunting surat ini kemudian mengajukannya kembali ke Sekretaris.' 
+                                : 'Surat ini masih berstatus draft. Klik tombol di bawah untuk meneruskan ke antrean penandatanganan Sekretaris.' }}
+                        </p>
+                        <div class="d-flex flex-column gap-2">
+                            <a href="{{ route('admin.letters.edit', $letter->id) }}" class="btn btn-outline-primary rounded-pill fw-semibold">
+                                <i class="bi bi-pencil-square me-1"></i> Sunting Konsep Surat
+                            </a>
+                            <form action="{{ route('admin.letters.submit-secretary', $letter->id) }}" method="POST" @submit="isSubmittingToSecretary = true">
+                                @csrf
+                                <button type="submit" class="btn btn-warning text-dark w-100 rounded-pill fw-semibold d-inline-flex align-items-center justify-content-center" :disabled="isSubmittingToSecretary">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isSubmittingToSecretary" x-cloak></span>
+                                    <i class="bi bi-send-fill me-1" x-show="!isSubmittingToSecretary"></i>
+                                    <span x-text="isSubmittingToSecretary ? 'Mengajukan...' : '{{ $letter->status === 'ditolak' ? 'Ajukan Ulang ke Sekretaris' : 'Ajukan ke Sekretaris' }}'"></span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             @endif

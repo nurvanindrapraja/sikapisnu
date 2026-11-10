@@ -133,9 +133,9 @@ class User extends Authenticatable
             return false;
         }
 
-        $title = $this->getOfficerPositionTitle();
+        $title = (string) $this->getOfficerPositionTitle();
 
-        return in_array($title, ['Koordinator Seksi', 'Koordinator'], true);
+        return in_array($title, ['Koordinator Seksi', 'Koordinator'], true) || stripos($title, 'Koordinator') !== false;
     }
 
     /**
@@ -192,7 +192,9 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->getOfficerPositionTitle() === 'Anggota Seksi';
+        $title = (string) $this->getOfficerPositionTitle();
+
+        return $title === 'Anggota Seksi' || stripos($title, 'Anggota Seksi') !== false;
     }
 
     /**
@@ -375,7 +377,7 @@ class User extends Authenticatable
 
     /**
      * Memeriksa apakah user berhak mengakses menu pengajuan konsep surat dan e-TTD.
-     * Hak akses: Admin, Ketua, Sekretaris, Wakil Ketua, dan Wakil Sekretaris.
+     * Hak akses: Admin, Ketua, Sekretaris, Wakil Ketua, Wakil Sekretaris, Koordinator Seksi, dan Anggota Seksi.
      */
     public function canAccessLetterSubmission(): bool
     {
@@ -383,9 +385,28 @@ class User extends Authenticatable
             return true;
         }
 
-        $title = $this->getOfficerPositionTitle();
+        if ($this->isKoordinatorSeksi() || $this->isPengurusAnggotaSeksi()) {
+            return true;
+        }
 
-        return in_array($title, ['Ketua', 'Sekretaris', 'Wakil Ketua', 'Wakil Sekretaris'], true);
+        $title = (string) $this->getOfficerPositionTitle();
+        if ($title === '') {
+            return false;
+        }
+
+        if (in_array($title, [
+            'Ketua',
+            'Sekretaris',
+            'Wakil Ketua',
+            'Wakil Sekretaris',
+            'Koordinator Seksi',
+            'Koordinator',
+            'Anggota Seksi',
+        ], true)) {
+            return true;
+        }
+
+        return stripos($title, 'Koordinator') !== false || stripos($title, 'Anggota Seksi') !== false;
     }
 
     /**
@@ -452,5 +473,89 @@ class User extends Authenticatable
         }
 
         return true;
+    }
+
+    /**
+     * Memeriksa apakah user berhak menyunting / mengedit konsep surat.
+     * Aturan:
+     * 1. Surat yang sudah ditandatangani lengkap (status 'selesai') TIDAK BISA diedit oleh user apapun.
+     * 2. Surat yang sudah di-TTD sekretaris lalu dibatalkan/ditolak ketua MASIH BISA diedit kembali.
+     * 3. Surat hanya bisa diedit oleh:
+     *    - Pembuat surat (user_id sama)
+     *    - Admin (super_admin, admin_kota, admin, atau admin_pac pada wilayahnya)
+     *    - Ketua (pada tingkatan surat terkait)
+     *    - Sekretaris (pada tingkatan surat terkait)
+     *    - Wakil Ketua dan Wakil Sekretaris HANYA jika surat diajukan oleh anggota seksinya.
+     * 4. Di luar itu tidak bisa mengedit surat.
+     */
+    public function canEditLetter(Letter $letter): bool
+    {
+        // 1. Surat yang sudah ditandatangani lengkap (selesai) tidak bisa diedit oleh user apapun
+        if ($letter->status === Letter::STATUS_SELESAI) {
+            return false;
+        }
+
+        // 2. Pembuat surat selalu berhak mengedit surat buatannya
+        if ((int) $this->id === (int) $letter->user_id) {
+            return true;
+        }
+
+        // 3. Admin berhak mengedit surat
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        if ($this->isAdminPac()) {
+            if (! $letter->isLevelPac() || (int) $this->getManagedPacId() === (int) $letter->pac_id) {
+                return true;
+            }
+        }
+
+        $pos = $this->getOfficerPosition();
+        if (! $pos) {
+            return false;
+        }
+
+        $title = $pos->position_title;
+
+        // 4. Ketua (pada tingkatan surat terkait)
+        if (in_array($title, ['Ketua', 'Ketua Umum'], true)) {
+            if ($letter->isLevelPac()) {
+                $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+
+                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+            }
+
+            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+        }
+
+        // 5. Sekretaris (pada tingkatan surat terkait)
+        if (in_array($title, ['Sekretaris', 'Sekretaris Umum'], true)) {
+            if ($letter->isLevelPac()) {
+                $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+
+                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+            }
+
+            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+        }
+
+        // 6. Wakil Sekretaris dan Wakil Ketua dapat mengedit surat yang diajukan oleh anggota seksinya
+        if (in_array($title, ['Wakil Ketua', 'Wakil Sekretaris'], true)) {
+            $userSectionId = $this->getOfficerSectionId();
+            $authorSectionId = $letter->user?->getOfficerSectionId();
+
+            if ($userSectionId !== null && $authorSectionId !== null && (int) $userSectionId === (int) $authorSectionId) {
+                if ($letter->isLevelPac()) {
+                    $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+
+                    return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
     }
 }

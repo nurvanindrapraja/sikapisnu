@@ -212,8 +212,12 @@ class LetterController extends Controller
 
         $letter = Letter::findOrFail($id);
 
-        if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isAdmin()) {
-            abort(403, 'Surat yang telah selesai ditandatangani tidak dapat disunting kembali.');
+        if (! auth()->user()->canEditLetter($letter)) {
+            if ($letter->status === Letter::STATUS_SELESAI) {
+                abort(403, 'Surat yang telah selesai ditandatangani secara lengkap oleh Sekretaris dan Ketua tidak dapat disunting kembali oleh siapapun.');
+            }
+
+            abort(403, 'Anda tidak memiliki hak akses untuk menyunting konsep surat ini.');
         }
 
         $pacs = Pac::orderBy('name')->get();
@@ -227,8 +231,12 @@ class LetterController extends Controller
 
         $letter = Letter::findOrFail($id);
 
-        if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isAdmin()) {
-            abort(403, 'Surat yang telah selesai ditandatangani tidak dapat disunting kembali.');
+        if (! auth()->user()->canEditLetter($letter)) {
+            if ($letter->status === Letter::STATUS_SELESAI) {
+                abort(403, 'Surat yang telah selesai ditandatangani secara lengkap oleh Sekretaris dan Ketua tidak dapat disunting kembali oleh siapapun.');
+            }
+
+            abort(403, 'Anda tidak memiliki hak akses untuk menyunting konsep surat ini.');
         }
 
         $validated = $request->validate([
@@ -287,6 +295,53 @@ class LetterController extends Controller
         if (isset($validated['action']) && $validated['action'] === 'submit_secretary') {
             $letter->status = Letter::STATUS_MENUNGGU_SEKRETARIS;
             $letter->rejection_note = null;
+
+            if ($letter->secretary_qr_path) {
+                Storage::disk('public')->delete($letter->secretary_qr_path);
+            }
+            $letter->secretary_user_id = null;
+            $letter->secretary_name = null;
+            $letter->secretary_registration_number = null;
+            $letter->secretary_position = null;
+            $letter->secretary_signed_at = null;
+            $letter->secretary_qr_path = null;
+
+            if ($letter->chairman_qr_path) {
+                Storage::disk('public')->delete($letter->chairman_qr_path);
+            }
+            $letter->chairman_user_id = null;
+            $letter->chairman_name = null;
+            $letter->chairman_registration_number = null;
+            $letter->chairman_position = null;
+            $letter->chairman_signed_at = null;
+            $letter->chairman_qr_path = null;
+
+            $letter->save();
+        } elseif (isset($validated['action']) && $validated['action'] === 'draft') {
+            if ($letter->status === Letter::STATUS_DITOLAK) {
+                $letter->status = Letter::STATUS_DRAFT;
+            }
+
+            if ($letter->secretary_qr_path) {
+                Storage::disk('public')->delete($letter->secretary_qr_path);
+            }
+            $letter->secretary_user_id = null;
+            $letter->secretary_name = null;
+            $letter->secretary_registration_number = null;
+            $letter->secretary_position = null;
+            $letter->secretary_signed_at = null;
+            $letter->secretary_qr_path = null;
+
+            if ($letter->chairman_qr_path) {
+                Storage::disk('public')->delete($letter->chairman_qr_path);
+            }
+            $letter->chairman_user_id = null;
+            $letter->chairman_name = null;
+            $letter->chairman_registration_number = null;
+            $letter->chairman_position = null;
+            $letter->chairman_signed_at = null;
+            $letter->chairman_qr_path = null;
+
             $letter->save();
         }
 
@@ -312,6 +367,10 @@ class LetterController extends Controller
 
         if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Surat yang sudah selesai ditandatangani tidak dapat dihapus.');
+        }
+
+        if (! auth()->user()->canEditLetter($letter) && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus konsep surat ini.');
         }
 
         if ($letter->secretary_qr_path) {
@@ -340,8 +399,34 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+
+        if (! auth()->user()->canEditLetter($letter)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengajukan konsep surat ini.');
+        }
+
         $letter->status = Letter::STATUS_MENUNGGU_SEKRETARIS;
         $letter->rejection_note = null;
+
+        if ($letter->secretary_qr_path) {
+            Storage::disk('public')->delete($letter->secretary_qr_path);
+        }
+        $letter->secretary_user_id = null;
+        $letter->secretary_name = null;
+        $letter->secretary_registration_number = null;
+        $letter->secretary_position = null;
+        $letter->secretary_signed_at = null;
+        $letter->secretary_qr_path = null;
+
+        if ($letter->chairman_qr_path) {
+            Storage::disk('public')->delete($letter->chairman_qr_path);
+        }
+        $letter->chairman_user_id = null;
+        $letter->chairman_name = null;
+        $letter->chairman_registration_number = null;
+        $letter->chairman_position = null;
+        $letter->chairman_signed_at = null;
+        $letter->chairman_qr_path = null;
+
         $letter->save();
 
         $letterService->generateDocx($letter);

@@ -89,6 +89,11 @@
                 <a href="{{ route('daftar.anggota') }}" class="btn {{ request()->routeIs('daftar.anggota') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-people-fill me-1"></i> Katalog Anggota
                 </a>
+                @if(auth()->user()->canAccessLetterSubmission())
+                <a href="{{ route('admin.letters.index') }}" class="btn {{ request()->routeIs('admin.letters.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-file-earmark-text-fill me-1"></i> Konsep Surat
+                </a>
+                @endif
                 @if(auth()->user()->isAdmin())
                 <a href="{{ route('admin.dashboard') }}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
                     <i class="bi bi-speedometer2 me-1"></i> Panel Pengurus
@@ -134,6 +139,11 @@
                     <a href="{{ route('daftar.anggota') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-people-fill text-success fs-5"></i> Katalog Anggota
                     </a>
+                    @if(auth()->user()->canAccessLetterSubmission())
+                    <a href="{{ route('admin.letters.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.letters.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-file-earmark-text-fill text-success fs-5"></i> Konsep Surat & E-TTD
+                    </a>
+                    @endif
                     @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                     <a href="{{ route('member.cv.download') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i> Download CV (PDF)

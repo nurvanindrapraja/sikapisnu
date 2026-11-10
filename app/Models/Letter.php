@@ -243,4 +243,14 @@ class Letter extends Model
 
         return $map[$month] ?? 'I';
     }
+
+    public function canBeEditedBy(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->canEditLetter($this);
+    }
 }
