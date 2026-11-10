@@ -25,6 +25,10 @@
             --isnu-gold: #d4af37;
         }
 
+        [x-cloak] {
+            display: none !important;
+        }
+
         @keyframes toastSlideIn {
             from {
                 transform: translateX(120%);
@@ -280,7 +284,7 @@
             </li>
 
             <li class="sidebar-header">Verifikasi & Keanggotaan</li>
-            @if(!auth()->user()->isPengurusAnggotaSeksi())
+            @if(!auth()->user()->isRestrictedOfficer())
             <li>
                 <a href="{{ route('admin.verifikasi.index') }}" class="sidebar-link {{ request()->routeIs('admin.verifikasi.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-check-fill"></i> Verifikasi Pendaftar
@@ -343,6 +347,8 @@
                     <i class="bi bi-card-checklist"></i> Master Program Kerja
                 </a>
             </li>
+            @endif
+            @if(!auth()->user()->isRestrictedOfficer())
             <li>
                 <a href="{{ route('admin.workgroups.index') }}" class="sidebar-link {{ request()->routeIs('admin.workgroups.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-workspace"></i> Master Kelompok Kerja
@@ -367,9 +373,30 @@
             </li>
             @endif
 
-            @if(!auth()->user()->isPengurusAnggotaSeksi() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota())))
+            @if(auth()->user()->canAccessLetterSubmission())
+            <li class="sidebar-header">Persuratan & E-TTD</li>
+            <li>
+                <a href="{{ route('admin.letters.index') }}" class="sidebar-link {{ request()->routeIs('admin.letters.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-file-earmark-text-fill"></i> Konsep Surat & E-TTD
+                    @php
+                        $pendingSignCount = 0;
+                        if (auth()->user()->canSignAsSecretary()) {
+                            $pendingSignCount += \App\Models\Letter::where('status', \App\Models\Letter::STATUS_MENUNGGU_SEKRETARIS)->count();
+                        }
+                        if (auth()->user()->canSignAsChairman()) {
+                            $pendingSignCount += \App\Models\Letter::where('status', \App\Models\Letter::STATUS_MENUNGGU_KETUA)->count();
+                        }
+                    @endphp
+                    @if($pendingSignCount > 0)
+                        <span class="badge bg-warning text-dark ms-auto rounded-pill">{{ $pendingSignCount }}</span>
+                    @endif
+                </a>
+            </li>
+            @endif
+
+            @if(!auth()->user()->isRestrictedOfficer() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota())))
             <li class="sidebar-header">Laporan & Keamanan</li>
-            @if(!auth()->user()->isPengurusAnggotaSeksi())
+            @if(!auth()->user()->isRestrictedOfficer())
             <li>
                 <a href="{{ route('admin.laporan.index') }}" class="sidebar-link {{ request()->routeIs('admin.laporan.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-file-earmark-bar-graph-fill"></i> Export Laporan
@@ -391,6 +418,18 @@
             @endif
 
             <li class="sidebar-header mt-3">Situs & Akun</li>
+            @if(auth()->user()->member)
+            <li>
+                <a href="{{ route('member.profile.edit') }}" class="sidebar-link {{ request()->routeIs('member.profile.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-vcard"></i> Kelola Biodata & Riwayat
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('member.dashboard') }}" class="sidebar-link {{ request()->routeIs('member.dashboard') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-badge"></i> Dashboard Profil Saya
+                </a>
+            </li>
+            @endif
             <li>
                 <a href="{{ route('admin.profile.index') }}" class="sidebar-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-circle"></i> Profil & Ubah Password
@@ -570,6 +609,46 @@
             const modalEl = document.getElementById('cardDownloadModal');
             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.show();
+        }
+
+        async function downloadPdfWithSpinner(url, defaultFilename, setDownloading) {
+            if (typeof setDownloading === 'function') setDownloading(true);
+            try {
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    window.location.href = url;
+                    return;
+                }
+                let filename = defaultFilename;
+                const disposition = response.headers.get('Content-Disposition');
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename || 'surat_resmi.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                window.location.href = url;
+            } finally {
+                if (typeof setDownloading === 'function') {
+                    setTimeout(() => setDownloading(false), 600);
+                }
+            }
         }
     </script>
 

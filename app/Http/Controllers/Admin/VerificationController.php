@@ -16,8 +16,8 @@ class VerificationController extends Controller
 {
     protected function checkAccess(): void
     {
-        if (auth()->user()?->isPengurusAnggotaSeksi()) {
-            abort(403, 'Anggota Seksi tidak memiliki hak akses untuk verifikasi pendaftaran.');
+        if (auth()->user()?->isRestrictedOfficer()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk verifikasi pendaftaran.');
         }
     }
 

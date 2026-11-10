@@ -157,6 +157,7 @@
     <div class="modal fade" id="modalPromoteOfficer" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <form id="formPromoteOfficer" action="#" method="POST" enctype="multipart/form-data" class="modal-content border-0 shadow-lg rounded-4" x-data="{
+                submitting: false,
                 selectedMemberId: '',
                 levelChoice: 'PC ISNU',
                 selectedPacId: '',
@@ -165,13 +166,13 @@
                         $el.action = '{{ url('admin/pengurus') }}/' + this.selectedMemberId + '/promote';
                     }
                 }
-            }" @submit="updateAction()">
+            }" @submit="updateAction(); submitting = true;">
                 @csrf
                 <div class="modal-header bg-success text-white border-0 rounded-top-4">
                     <h5 class="modal-title fw-bold">
                         <i class="bi bi-award-fill me-2"></i> Form Penetapan Pengurus ISNU
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" :disabled="submitting" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <!-- Pilih Anggota -->
@@ -254,9 +255,11 @@
                 </div>
                 <!-- 4.7.4 Buttons: Batal & Simpan full width on mobile -->
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 flex-column flex-sm-row justify-content-end gap-2">
-                    <button type="button" class="btn btn-secondary rounded-pill px-4 w-100 w-sm-auto" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 w-100 w-sm-auto" :disabled="!selectedMemberId">
-                        <i class="bi bi-save me-1"></i> Simpan Penetapan
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 w-100 w-sm-auto" data-bs-dismiss="modal" :disabled="submitting">Batal</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4 w-100 w-sm-auto d-inline-flex align-items-center justify-content-center gap-2" :disabled="!selectedMemberId || submitting">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="submitting" x-cloak></span>
+                        <i class="bi bi-save me-1" x-show="!submitting"></i>
+                        <span x-text="submitting ? 'Menyimpan Penetapan...' : 'Simpan Penetapan'">Simpan Penetapan</span>
                     </button>
                 </div>
             </form>

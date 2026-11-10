@@ -342,6 +342,47 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+        async function downloadPdfWithSpinner(url, defaultFilename, setDownloading) {
+            if (typeof setDownloading === 'function') setDownloading(true);
+            try {
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    window.location.href = url;
+                    return;
+                }
+                let filename = defaultFilename;
+                const disposition = response.headers.get('Content-Disposition');
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                    if (matches != null && matches[1]) {
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename || 'surat_resmi.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                window.location.href = url;
+            } finally {
+                if (typeof setDownloading === 'function') {
+                    setTimeout(() => setDownloading(false), 600);
+                }
+            }
+        }
+    </script>
     @yield('scripts')
 </body>
 </html>

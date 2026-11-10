@@ -277,13 +277,14 @@
 <div class="modal fade" id="modalPromote" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <form action="{{ route('admin.pengurus.promote', $member->id) }}" method="POST" enctype="multipart/form-data" class="modal-content" x-data="{
+            submitting: false,
             levelChoice: '{{ (optional($member->activePosition)->level === 'PAC' || optional($member->activePosition)->level === 'PAC ISNU') ? 'PAC ISNU' : 'PC ISNU' }}',
             selectedPacId: '{{ optional($member->activePosition)->pac_id ?? $member->pac_id ?? '' }}'
-        }">
+        }" @submit="submitting = true">
             @csrf
             <div class="modal-header bg-warning">
                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-award-fill me-1"></i> Form Penetapan Pengurus ISNU</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" :disabled="submitting"></button>
             </div>
             <div class="modal-body">
                 <div class="row g-3">
@@ -356,8 +357,14 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-warning rounded-pill fw-bold text-dark">Simpan Status Pengurus & Update Kartu</button>
+                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal" :disabled="submitting">Batal</button>
+                <button type="submit" 
+                        class="btn btn-warning rounded-pill fw-bold text-dark d-inline-flex align-items-center gap-2"
+                        :disabled="submitting">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="submitting" x-cloak></span>
+                    <i class="bi bi-check2-circle" x-show="!submitting"></i>
+                    <span x-text="submitting ? 'Menyimpan...' : 'Simpan Status Pengurus & Update Kartu'">Simpan Status Pengurus & Update Kartu</span>
+                </button>
             </div>
         </form>
     </div>
@@ -381,10 +388,12 @@
             </div>
             <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center gap-2">
                 <button type="button" class="btn btn-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
-                <form id="formDemoteOfficer" action="" method="POST" class="d-inline">
+                <form id="formDemoteOfficer" action="" method="POST" class="d-inline" x-data="{ submitting: false }" @submit="submitting = true">
                     @csrf
-                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
-                        <i class="bi bi-x-circle me-1"></i> Ya, Batalkan Status Pengurus
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold d-inline-flex align-items-center gap-2" :disabled="submitting">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="submitting" x-cloak></span>
+                        <i class="bi bi-x-circle me-1" x-show="!submitting"></i>
+                        <span x-text="submitting ? 'Membatalkan...' : 'Ya, Batalkan Status Pengurus'">Ya, Batalkan Status Pengurus</span>
                     </button>
                 </form>
             </div>

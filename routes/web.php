@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuditLogController as AdminAuditLog;
 use App\Http\Controllers\Admin\CardOrderController as AdminCardOrder;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\EventController as AdminEvent;
+use App\Http\Controllers\Admin\LetterController as AdminLetter;
 use App\Http\Controllers\Admin\LocationController as AdminLocation;
 use App\Http\Controllers\Admin\MemberController as AdminMember;
 use App\Http\Controllers\Admin\MwcController as AdminMwc;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Admin\WorkgroupController as AdminWorkgroup;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventPresenceController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LetterVerificationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Member\CardOrderController as MemberCardOrder;
 use App\Http\Controllers\Member\DashboardController as MemberDashboard;
@@ -27,6 +29,10 @@ use Illuminate\Support\Facades\Route;
 
 // Location API Route (Public for register & member profile)
 Route::get('/api/locations', [LocationController::class, 'getLocations'])->name('api.locations');
+
+// Verifikasi Surat Digital PC ISNU
+Route::get('/surat/verifikasi/{code}', [LetterVerificationController::class, 'verify'])->name('surat.verifikasi');
+Route::get('/surat/verifikasi/{code}/download-pdf', [LetterVerificationController::class, 'downloadPdf'])->name('surat.download-pdf');
 
 // 1. Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -210,4 +216,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/users/{id}', [AdminUser::class, 'update'])->name('users.update');
     Route::patch('/users/{id}/toggle-status', [AdminUser::class, 'toggleStatus'])->name('users.toggle_status');
     Route::delete('/users/{id}', [AdminUser::class, 'destroy'])->name('users.destroy');
+
+    // Persuratan & E-TTD (Konsep Surat Template Word & E-TTD Bertahap)
+    Route::resource('letters', AdminLetter::class)->parameters(['letters' => 'id']);
+    Route::post('/letters/{id}/submit-secretary', [AdminLetter::class, 'submitSecretary'])->name('letters.submit-secretary');
+    Route::post('/letters/{id}/sign-secretary', [AdminLetter::class, 'signSecretary'])->name('letters.sign-secretary');
+    Route::post('/letters/{id}/sign-chairman', [AdminLetter::class, 'signChairman'])->name('letters.sign-chairman');
+    Route::post('/letters/{id}/reject', [AdminLetter::class, 'reject'])->name('letters.reject');
+    Route::get('/letters/{id}/download-pdf', [AdminLetter::class, 'downloadPdf'])->name('letters.download-pdf');
 });

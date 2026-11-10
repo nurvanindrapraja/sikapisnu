@@ -6,7 +6,9 @@ use App\Models\Card;
 use App\Models\CardOrder;
 use App\Models\CustomLocation;
 use App\Models\Event;
+use App\Models\Letter;
 use App\Models\Member;
+use App\Models\Mwc;
 use App\Models\Pac;
 use App\Models\Position;
 use App\Models\Section;
@@ -15,6 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class SikapIsnuTest extends TestCase
@@ -114,6 +117,11 @@ class SikapIsnuTest extends TestCase
     {
         $admin = User::where('role', 'admin_kota')->first();
         $member = Member::where('membership_status', 'terverifikasi')->first();
+
+        $showRes = $this->actingAs($admin)->get(route('admin.anggota.show', $member->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee(':disabled="submitting"', false);
+        $showRes->assertSee('spinner-border', false);
 
         $response = $this->actingAs($admin)
             ->post('/admin/pengurus/'.$member->id.'/promote', [
@@ -1576,5 +1584,1313 @@ class SikapIsnuTest extends TestCase
         $failResponse2 = $this->post(route('admin.events.store'), $nullSectionPayload);
         $failResponse2->assertStatus(403);
         $this->assertDatabaseMissing('events', ['title' => 'Kegiatan Tanpa Seksi']);
+    }
+
+    public function test_koordinator_seksi_access_restrictions_and_personal_account_management()
+    {
+        $section = Section::create(['name' => 'Seksi Riset Kebijakan', 'level' => 'PC ISNU']);
+
+        $user = User::factory()->create([
+            'role' => 'member',
+            'email' => 'koor_test@isnu.id',
+            'phone' => '089912345678',
+            'is_active' => true,
+        ]);
+
+        $member = Member::create([
+            'user_id' => $user->id,
+            'full_name' => 'H. Koordinator Riset',
+            'nik' => '3578010101019999',
+            'email' => 'koor_test@isnu.id',
+            'phone' => '089912345678',
+            'occupation' => 'Peneliti Madya',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1988-05-15',
+            'gender' => 'L',
+            'address' => 'Jl. Dharmawangsa No. 12',
+            'kelurahan' => 'Kertajaya',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'pengurus',
+        ]);
+
+        Position::create([
+            'member_id' => $member->id,
+            'position_title' => 'Koordinator Seksi',
+            'level' => 'Kota',
+            'section_id' => $section->id,
+            'period' => '2026 - 2030',
+            'is_active' => true,
+        ]);
+
+        $otherMember = Member::create([
+            'user_id' => User::factory()->create(['role' => 'member'])->id,
+            'full_name' => 'Anggota Lain Test',
+            'nik' => '3578010101019998',
+            'email' => 'anggota_lain@isnu.id',
+            'phone' => '089912345679',
+            'occupation' => 'Guru',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1992-02-02',
+            'gender' => 'L',
+            'address' => 'Jl. Ngagel No. 1',
+            'kelurahan' => 'Ngagel',
+            'kecamatan' => 'Wonokromo',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        $this->actingAs($user);
+
+        // 1. Dashboard: restricted menus are not visible
+        $dashboardResponse = $this->get(route('admin.dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertDontSee('Verifikasi Pendaftar');
+        $dashboardResponse->assertDontSee('Database Potensi Kader');
+        $dashboardResponse->assertDontSee('Master Kelompok Kerja');
+        $dashboardResponse->assertDontSee('Export Laporan');
+        $dashboardResponse->assertDontSee('Audit Log System');
+        $dashboardResponse->assertDontSee('Antrean Verifikasi Pendaftar Baru');
+        // Allowed menus are visible
+        $dashboardResponse->assertSee('Master Program Kerja');
+        $dashboardResponse->assertSee('Kegiatan & Presensi', false);
+        $dashboardResponse->assertSee('Pengurus ISNU');
+
+        // 2. Direct access to forbidden routes returns 403 Forbidden
+        $this->get(route('admin.verifikasi.index'))->assertStatus(403);
+        $this->get(route('admin.anggota.index'))->assertStatus(403);
+        $this->get(route('admin.workgroups.index'))->assertStatus(403);
+        $this->post(route('admin.workgroups.store'), [
+            'level' => 'PC ISNU',
+            'name' => 'Pokja Baru Tidak Boleh',
+        ])->assertStatus(403);
+        $this->get(route('admin.laporan.index'))->assertStatus(403);
+        $this->get(route('admin.audit.index'))->assertStatus(403);
+
+        // 3. Pengurus ISNU: can view list, but CANNOT view detail of other members
+        $pengurusResponse = $this->get(route('admin.pengurus.index'));
+        $pengurusResponse->assertStatus(200);
+        $pengurusResponse->assertDontSee('KARTU PENGURUS');
+        $pengurusResponse->assertDontSee('Detail & Kelola');
+
+        // Cannot view other member's detail (403)
+        $this->get(route('admin.anggota.show', $otherMember->id))->assertStatus(403);
+
+        // 4. Personal Account & History Management
+        // Can access member profile edit
+        $this->get(route('member.profile.edit'))->assertStatus(200);
+
+        // Add, update, delete Organization History
+        $orgResponse = $this->post(route('member.profile.organization.add'), [
+            'organization_name' => 'IPNU Surabaya',
+            'position' => 'Ketua PAC',
+            'period' => '2015 - 2017',
+        ]);
+        $orgResponse->assertSessionHas('success');
+        $org = $member->organizations()->first();
+        $this->assertNotNull($org);
+        $this->assertEquals('IPNU Surabaya', $org->organization_name);
+
+        $this->put(route('member.profile.organization.update', $org->id), [
+            'organization_name' => 'IPNU Surabaya Cabang',
+            'position' => 'Ketua PC',
+            'period' => '2015 - 2017',
+        ])->assertSessionHas('success');
+        $this->assertEquals('IPNU Surabaya Cabang', $org->fresh()->organization_name);
+
+        $this->delete(route('member.profile.organization.delete', $org->id))->assertSessionHas('success');
+        $this->assertDatabaseMissing('member_organizations', ['id' => $org->id]);
+
+        // Add Employment History
+        $this->post(route('member.profile.employment.add'), [
+            'company_name' => 'Pusat Riset Kebijakan',
+            'position' => 'Peneliti Senior',
+            'start_year' => 2020,
+        ])->assertSessionHas('success');
+        $this->assertDatabaseHas('member_employments', [
+            'member_id' => $member->id,
+            'company_name' => 'Pusat Riset Kebijakan',
+        ]);
+
+        // Add Certification
+        $this->post(route('member.profile.certification.add'), [
+            'certification_name' => 'Sertifikasi Peneliti Utama',
+            'field' => 'Riset Kebijakan Publik',
+        ])->assertSessionHas('success');
+        $this->assertDatabaseHas('member_certifications', [
+            'member_id' => $member->id,
+            'certification_name' => 'Sertifikasi Peneliti Utama',
+        ]);
+
+        // Add NU Cadre Training
+        $this->post(route('member.profile.nu_training.add'), [
+            'training_type' => 'PKPNU',
+            'organizer' => 'PCNU Kota Surabaya',
+            'year' => 2021,
+        ])->assertSessionHas('success');
+        $this->assertDatabaseHas('member_nu_trainings', [
+            'member_id' => $member->id,
+            'training_type' => 'PKPNU',
+        ]);
+    }
+
+    public function test_wakil_ketua_and_wakil_sekretaris_access_restrictions_and_left_menu_retained()
+    {
+        $section = Section::create(['name' => 'Seksi Advokasi & Hukum', 'level' => 'PC ISNU']);
+
+        // 1. Setup Wakil Ketua user
+        $userWakilKetua = User::factory()->create([
+            'role' => 'member',
+            'email' => 'wakil_ketua@isnu.id',
+            'phone' => '089912345688',
+            'is_active' => true,
+        ]);
+
+        $memberWakilKetua = Member::create([
+            'user_id' => $userWakilKetua->id,
+            'full_name' => 'Dr. H. Wakil Ketua ISNU',
+            'nik' => '3578010101017777',
+            'email' => 'wakil_ketua@isnu.id',
+            'phone' => '089912345688',
+            'occupation' => 'Advokat Senior',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1985-04-10',
+            'gender' => 'L',
+            'address' => 'Jl. Ketintang No. 10',
+            'kelurahan' => 'Ketintang',
+            'kecamatan' => 'Gayungan',
+            'membership_status' => 'pengurus',
+        ]);
+
+        Position::create([
+            'member_id' => $memberWakilKetua->id,
+            'position_title' => 'Wakil Ketua',
+            'level' => 'Kota',
+            'section_id' => $section->id,
+            'period' => '2026 - 2030',
+            'is_active' => true,
+        ]);
+
+        // 2. Setup Wakil Sekretaris user
+        $userWakilSekretaris = User::factory()->create([
+            'role' => 'member',
+            'email' => 'wakil_sekretaris@isnu.id',
+            'phone' => '089912345689',
+            'is_active' => true,
+        ]);
+
+        $memberWakilSekretaris = Member::create([
+            'user_id' => $userWakilSekretaris->id,
+            'full_name' => 'M. Wakil Sekretaris ISNU',
+            'nik' => '3578010101017778',
+            'email' => 'wakil_sekretaris@isnu.id',
+            'phone' => '089912345689',
+            'occupation' => 'Notaris',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1987-07-20',
+            'gender' => 'L',
+            'address' => 'Jl. Wonokromo No. 25',
+            'kelurahan' => 'Wonokromo',
+            'kecamatan' => 'Wonokromo',
+            'membership_status' => 'pengurus',
+        ]);
+
+        Position::create([
+            'member_id' => $memberWakilSekretaris->id,
+            'position_title' => 'Wakil Sekretaris',
+            'level' => 'Kota',
+            'section_id' => $section->id,
+            'period' => '2026 - 2030',
+            'is_active' => true,
+        ]);
+
+        $otherMember = Member::create([
+            'user_id' => User::factory()->create(['role' => 'member'])->id,
+            'full_name' => 'Kader Biasa Lainnya',
+            'nik' => '3578010101017779',
+            'email' => 'kader_biasa@isnu.id',
+            'phone' => '089912345690',
+            'occupation' => 'Wirausaha',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1995-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Barata Jaya No. 7',
+            'kelurahan' => 'Baratajaya',
+            'kecamatan' => 'Gubeng',
+            'membership_status' => 'terverifikasi',
+        ]);
+
+        // TEST FOR WAKIL KETUA
+        $this->actingAs($userWakilKetua);
+
+        // Sidebar & Dashboard: Restricted menus are hidden, allowed menus are shown
+        $dashResponse = $this->get(route('admin.dashboard'));
+        $dashResponse->assertStatus(200);
+        $dashResponse->assertDontSee('Verifikasi Pendaftar');
+        $dashResponse->assertDontSee('Database Potensi Kader');
+        $dashResponse->assertDontSee('Master Kelompok Kerja');
+        $dashResponse->assertDontSee('Export Laporan');
+        $dashResponse->assertDontSee('Audit Log System');
+        $dashResponse->assertDontSee('Antrean Verifikasi Pendaftar Baru');
+        $dashResponse->assertSee('Master Program Kerja');
+        $dashResponse->assertSee('Kegiatan & Presensi', false);
+        $dashResponse->assertSee('Pengurus ISNU');
+
+        // Direct access to forbidden routes returns 403 Forbidden
+        $this->get(route('admin.verifikasi.index'))->assertStatus(403);
+        $this->get(route('admin.anggota.index'))->assertStatus(403);
+        $this->get(route('admin.workgroups.index'))->assertStatus(403);
+        $this->post(route('admin.workgroups.store'), ['level' => 'PC ISNU', 'name' => 'Pokja Ilegal'])->assertStatus(403);
+        $this->get(route('admin.laporan.index'))->assertStatus(403);
+        $this->get(route('admin.audit.index'))->assertStatus(403);
+
+        // Pengurus ISNU: can view list, but cannot see card download or detail actions
+        $pengurusResponse = $this->get(route('admin.pengurus.index'));
+        $pengurusResponse->assertStatus(200);
+        $pengurusResponse->assertDontSee('KARTU PENGURUS');
+        $pengurusResponse->assertDontSee('Detail & Kelola');
+        $this->get(route('admin.anggota.show', $otherMember->id))->assertStatus(403);
+
+        // Kelola Biodata Riwayat: retains left menu
+        $profileEditResponse = $this->get(route('member.profile.edit'));
+        $profileEditResponse->assertStatus(200);
+        $profileEditResponse->assertSee('sidebar');
+        $profileEditResponse->assertSee('Kelola Biodata & Riwayat');
+        $profileEditResponse->assertSee('Pengurus ISNU');
+
+        // TEST FOR WAKIL SEKRETARIS
+        $this->actingAs($userWakilSekretaris);
+
+        $dashSekResponse = $this->get(route('admin.dashboard'));
+        $dashSekResponse->assertStatus(200);
+        $dashSekResponse->assertDontSee('Verifikasi Pendaftar');
+        $dashSekResponse->assertDontSee('Database Potensi Kader');
+        $dashSekResponse->assertDontSee('Master Kelompok Kerja');
+        $dashSekResponse->assertDontSee('Export Laporan');
+        $dashSekResponse->assertDontSee('Audit Log System');
+
+        $this->get(route('admin.verifikasi.index'))->assertStatus(403);
+        $this->get(route('admin.anggota.index'))->assertStatus(403);
+        $this->get(route('admin.workgroups.index'))->assertStatus(403);
+        $this->get(route('admin.laporan.index'))->assertStatus(403);
+        $this->get(route('admin.audit.index'))->assertStatus(403);
+        $this->get(route('admin.anggota.show', $otherMember->id))->assertStatus(403);
+
+        // Kelola Biodata Riwayat: retains left menu
+        $profileEditSekResponse = $this->get(route('member.profile.edit'));
+        $profileEditSekResponse->assertStatus(200);
+        $profileEditSekResponse->assertSee('sidebar');
+        $profileEditSekResponse->assertSee('Kelola Biodata & Riwayat');
+    }
+
+    /**
+     * Test pengajuan konsep surat, aksesibilitas role (admin, ketua, sekretaris, wakil ketua, wakil sekretaris),
+     * injeksi template Word template_surat.docx, dan alur penandatanganan digital bertahap (Sekretaris lalu Ketua).
+     */
+    public function test_letter_concept_and_two_step_digital_signature_workflow(): void
+    {
+        Storage::fake('public');
+
+        $section = Section::create([
+            'name' => 'Seksi Kaderisasi Surat',
+            'code' => 'SKS',
+            'level' => 'PC ISNU',
+            'description' => 'Seksi Kaderisasi',
+        ]);
+
+        // 1. Setup Admin
+        $admin = User::factory()->create(['role' => 'admin_kota']);
+
+        $createTestMember = function (User $user, string $name, string $positionTitle, string $memberNumber, ?int $secId = null) {
+            $member = Member::create([
+                'user_id' => $user->id,
+                'member_number' => $memberNumber,
+                'nik' => '3578'.str_pad((string) $user->id, 12, '0', STR_PAD_LEFT),
+                'full_name' => $name,
+                'email' => $user->email,
+                'phone' => '081234567890',
+                'occupation' => 'Dosen / Akademisi',
+                'birth_place' => 'Surabaya',
+                'birth_date' => '1985-01-01',
+                'gender' => 'L',
+                'address' => 'Jl. Bubutan No. 20',
+                'kelurahan' => 'Bubutan',
+                'kecamatan' => 'Bubutan',
+                'membership_status' => 'pengurus',
+            ]);
+
+            Position::create([
+                'member_id' => $member->id,
+                'position_title' => $positionTitle,
+                'section_id' => $secId,
+                'level' => 'PC ISNU',
+                'start_date' => now()->subMonth(),
+                'is_active' => true,
+            ]);
+
+            return $member;
+        };
+
+        // 2. Setup Ketua
+        $userKetua = User::factory()->create(['name' => 'Prof. Dr. H. M. Mas\'ud Said, M.Si.']);
+        $memberKetua = $createTestMember($userKetua, 'Prof. Dr. H. M. Mas\'ud Said, M.Si.', 'Ketua', '13.01.2024.0001');
+
+        // 3. Setup Sekretaris
+        $userSekretaris = User::factory()->create(['name' => 'M. Dawud, M.Pd.']);
+        $memberSekretaris = $createTestMember($userSekretaris, 'M. Dawud, M.Pd.', 'Sekretaris', '13.01.2024.0002');
+
+        // 4. Setup Wakil Ketua
+        $userWakilKetua = User::factory()->create(['name' => 'Dr. H. Ahmad Wakil Ketua']);
+        $memberWakilKetua = $createTestMember($userWakilKetua, 'Dr. H. Ahmad Wakil Ketua', 'Wakil Ketua', '13.01.2024.0003');
+
+        // 5. Setup Wakil Sekretaris
+        $userWakilSekretaris = User::factory()->create(['name' => 'Ahmad Wakil Sekretaris']);
+        $memberWakilSekretaris = $createTestMember($userWakilSekretaris, 'Ahmad Wakil Sekretaris', 'Wakil Sekretaris', '13.01.2024.0004');
+
+        // 6. Setup Koordinator Seksi (tidak berhak)
+        $userKoordinator = User::factory()->create(['name' => 'Koordinator Seksi Test']);
+        $memberKoordinator = $createTestMember($userKoordinator, 'Koordinator Seksi Test', 'Koordinator Seksi', '13.01.2024.0005', $section->id);
+
+        // 7. Setup Anggota Seksi (tidak berhak)
+        $userAnggotaSeksi = User::factory()->create(['name' => 'Anggota Seksi Test']);
+        $memberAnggotaSeksi = $createTestMember($userAnggotaSeksi, 'Anggota Seksi Test', 'Anggota Seksi', '13.01.2024.0006', $section->id);
+
+        // A. CEK HAK AKSES MENU DAN ROUTE
+        // 1. Pengguna Berhak: Admin, Ketua, Sekretaris, Wakil Ketua, Wakil Sekretaris
+        $allowedUsers = [$admin, $userKetua, $userSekretaris, $userWakilKetua, $userWakilSekretaris];
+        foreach ($allowedUsers as $u) {
+            $this->actingAs($u);
+            $indexRes = $this->get(route('admin.letters.index'));
+            $indexRes->assertStatus(200);
+            $indexRes->assertSee('Konsep Surat & E-TTD');
+            $this->get(route('admin.letters.create'))->assertStatus(200);
+        }
+
+        // 2. Pengguna Tidak Berhak: Koordinator Seksi, Anggota Seksi
+        $forbiddenUsers = [$userKoordinator, $userAnggotaSeksi];
+        foreach ($forbiddenUsers as $u) {
+            $this->actingAs($u);
+            $this->get(route('admin.letters.index'))->assertStatus(403);
+            $this->get(route('admin.letters.create'))->assertStatus(403);
+
+            $dashRes = $this->get(route('admin.dashboard'));
+            $dashRes->assertStatus(200);
+            $dashRes->assertDontSee('Konsep Surat & E-TTD');
+        }
+
+        // B. BUAT KONSEP SURAT DRAFT OLEH WAKIL SEKRETARIS
+        $this->actingAs($userWakilSekretaris);
+        $postData = [
+            'level' => 'PC ISNU',
+            'letter_number' => '045/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'lampiran' => '1 (Satu) Berkas',
+            'perihal' => 'Permohonan Narasumber Seminar Nasional',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Ketua PW ISNU Jawa Timur',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Dengan <strong>hormat</strong>, sehubungan dengan pelaksanaan <em>Seminar Nasional</em> Keumatan, kami mengundang:</p><ul><li>Sesi Utama</li><li>Diskusi Panel</li></ul><p>Demikian surat permohonan ini kami sampaikan.</p>',
+            'action' => 'draft',
+        ];
+
+        $storeResponse = $this->post(route('admin.letters.store'), $postData);
+        $storeResponse->assertRedirect();
+
+        $letter = Letter::where('letter_number', '045/PC-VI/ISNU-SBY/XI/2026')->first();
+        $this->assertNotNull($letter);
+        $this->assertEquals(Letter::STATUS_DRAFT, $letter->status);
+        $this->assertEquals('13.01.2024.0004', $userWakilSekretaris->member->member_number);
+
+        // Dokumen DOCX dan PDF awal ter-generate
+        $this->assertNotNull($letter->docx_path);
+        $this->assertNotNull($letter->pdf_path);
+        Storage::disk('public')->assertExists($letter->docx_path);
+        Storage::disk('public')->assertExists($letter->pdf_path);
+
+        // KETENTUAN: File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap (403 Forbidden)
+        $this->get(route('admin.letters.download-pdf', $letter->id))->assertStatus(403);
+        $this->get(route('surat.download-pdf', $letter->letter_code))->assertStatus(403);
+
+        // C. AJUKAN KE SEKRETARIS
+        $this->post(route('admin.letters.submit-secretary', $letter->id))
+            ->assertRedirect(route('admin.letters.show', $letter->id));
+        $letter->refresh();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_SEKRETARIS, $letter->status);
+
+        // D. ADMIN MENCOBA MENANDATANGANI SURAT -> HARUS DITOLAK (403 Forbidden)
+        $this->actingAs($admin);
+        $this->post(route('admin.letters.sign-secretary', $letter->id))->assertStatus(403);
+        $this->post(route('admin.letters.sign-chairman', $letter->id))->assertStatus(403);
+
+        // E. KETUA MENCOBA MENANDATANGANI SEBELUM SEKRETARIS -> HARUS DITOLAK
+        $this->actingAs($userKetua);
+        $chairEarlySign = $this->post(route('admin.letters.sign-chairman', $letter->id));
+        $chairEarlySign->assertRedirect();
+        $chairEarlySign->assertSessionHas('error');
+        $letter->refresh();
+        $this->assertNull($letter->chairman_signed_at);
+        $this->assertEquals(Letter::STATUS_MENUNGGU_SEKRETARIS, $letter->status);
+
+        // E. SEKRETARIS MENANDATANGANI SECARA DIGITAL (TAHAP 1)
+        $this->actingAs($userSekretaris);
+        $secShowRes = $this->get(route('admin.letters.show', $letter->id));
+        $secShowRes->assertStatus(200);
+        $secShowRes->assertSee('Konfirmasi E-TTD Sekretaris');
+        $secShowRes->assertSee('Ya, Tandatangani');
+
+        $secSignRes = $this->post(route('admin.letters.sign-secretary', $letter->id));
+        $secSignRes->assertRedirect(route('admin.letters.show', $letter->id));
+        $secSignRes->assertSessionHas('success');
+
+        $letter->refresh();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_KETUA, $letter->status);
+        $this->assertNotNull($letter->secretary_signed_at);
+        $this->assertEquals('M. Dawud, M.Pd.', $letter->secretary_name);
+        $this->assertEquals('13.01.2024.0002', $letter->secretary_registration_number);
+        $this->assertEquals('Sekretaris', $letter->secretary_position);
+        $this->assertNotNull($letter->secretary_qr_path);
+        Storage::disk('public')->assertExists($letter->secretary_qr_path);
+
+        // F. KETUA MENANDATANGANI SECARA DIGITAL (TAHAP 2)
+        $this->actingAs($userKetua);
+        $chairShowRes = $this->get(route('admin.letters.show', $letter->id));
+        $chairShowRes->assertStatus(200);
+        $chairShowRes->assertSee('Konfirmasi E-TTD Ketua');
+        $chairShowRes->assertSee('Ya, Sahkan dan Terbitkan');
+
+        $chairSignRes = $this->post(route('admin.letters.sign-chairman', $letter->id));
+        $chairSignRes->assertRedirect(route('admin.letters.show', $letter->id));
+        $chairSignRes->assertSessionHas('success');
+
+        $letter->refresh();
+        $this->assertEquals(Letter::STATUS_SELESAI, $letter->status);
+        $this->assertNotNull($letter->chairman_signed_at);
+        $this->assertEquals('Prof. Dr. H. M. Mas\'ud Said, M.Si.', $letter->chairman_name);
+        $this->assertEquals('13.01.2024.0001', $letter->chairman_registration_number);
+        $this->assertEquals('Ketua', $letter->chairman_position);
+        $this->assertNotNull($letter->chairman_qr_path);
+        Storage::disk('public')->assertExists($letter->chairman_qr_path);
+
+        // Final DOCX and PDF exist
+        Storage::disk('public')->assertExists($letter->docx_path);
+        Storage::disk('public')->assertExists($letter->pdf_path);
+
+        // G. VERIFIKASI PUBLIK VIA QR CODE URL
+        $verifyRes = $this->get(route('surat.verifikasi', $letter->letter_code));
+        $verifyRes->assertStatus(200);
+        $verifyRes->assertSee('DOKUMEN RESMI TERVERIFIKASI');
+        $verifyRes->assertSee('045/PC-VI/ISNU-SBY/XI/2026');
+        $verifyRes->assertSee('IKATAN SARJANA NAHDLATUL');
+        $verifyRes->assertSee('ULAMA KOTA SURABAYA');
+        $verifyRes->assertSee('<strong>hormat</strong>', false);
+        $verifyRes->assertSee('M. Dawud, M.Pd.');
+        $verifyRes->assertSee('Prof. Dr. H. M. Mas\'ud Said, M.Si.');
+        $verifyRes->assertSee('13.01.2024.0001');
+        $verifyRes->assertSee('13.01.2024.0002');
+
+        // H. UNDUH DOKUMEN PDF (ADMIN / PENGURUS)
+        $downloadPdf = $this->get(route('admin.letters.download-pdf', $letter->id));
+        $downloadPdf->assertStatus(200);
+
+        // I. UNDUH DOKUMEN RESMI DARI HALAMAN VERIFIKASI PUBLIK (TANPA LOGIN / GUEST)
+        auth()->logout();
+        $this->get(route('surat.download-pdf', $letter->letter_code))->assertStatus(200);
+    }
+
+    /**
+     * Test alur penolakan / revisi konsep surat dan penyuntingan ulang.
+     */
+    public function test_letter_rejection_and_edit_cycle(): void
+    {
+        Storage::fake('public');
+
+        $userSekretaris = User::factory()->create(['name' => 'Sekretaris Test']);
+        Member::create([
+            'user_id' => $userSekretaris->id,
+            'member_number' => '13.01.2024.0099',
+            'nik' => '3578000000000099',
+            'full_name' => 'Sekretaris Test',
+            'email' => $userSekretaris->email,
+            'phone' => '081234567899',
+            'occupation' => 'Akademisi',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1985-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Bubutan',
+            'kelurahan' => 'Bubutan',
+            'kecamatan' => 'Bubutan',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $userSekretaris->member->id,
+            'position_title' => 'Sekretaris',
+            'level' => 'PC ISNU',
+            'start_date' => now()->subMonth(),
+            'is_active' => true,
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $userSekretaris->id,
+            'letter_code' => 'SRT-20261109-TEST01',
+            'letter_number' => '099/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'lampiran' => '-',
+            'perihal' => 'Undangan Rapat Konsep Awal',
+            'tujuan_surat' => 'Seluruh Pengurus Harian',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => 'Harap hadir dalam rapat koordinasi.',
+            'status' => Letter::STATUS_MENUNGGU_SEKRETARIS,
+        ]);
+
+        // 1. Sekretaris menolak dengan catatan
+        $this->actingAs($userSekretaris);
+        $rejectRes = $this->post(route('admin.letters.reject', $letter->id), [
+            'rejection_note' => 'Mohon tambahkan rincian agenda dan tempat pelaksanaan pada isi surat.',
+        ]);
+        $rejectRes->assertRedirect(route('admin.letters.show', $letter->id));
+
+        $letter->refresh();
+        $this->assertEquals(Letter::STATUS_DITOLAK, $letter->status);
+        $this->assertEquals('Mohon tambahkan rincian agenda dan tempat pelaksanaan pada isi surat.', $letter->rejection_note);
+
+        // 2. Tampilkan halaman show dan edit: catatan terlihat
+        $showRes = $this->get(route('admin.letters.show', $letter->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('Mohon tambahkan rincian agenda dan tempat pelaksanaan pada isi surat.');
+
+        $editRes = $this->get(route('admin.letters.edit', $letter->id));
+        $editRes->assertStatus(200);
+        $editRes->assertSee('Mohon tambahkan rincian agenda dan tempat pelaksanaan pada isi surat.');
+
+        // 3. Pengaju menyunting dan mengajukan kembali
+        $updateRes = $this->put(route('admin.letters.update', $letter->id), [
+            'level' => 'PC ISNU',
+            'letter_number' => '099/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'lampiran' => '-',
+            'perihal' => 'Undangan Rapat Koordinasi PC ISNU',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Seluruh Pengurus Harian',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => "Harap hadir dalam rapat koordinasi.\nWaktu: 19.00 WIB\nTempat: Graha NU Bubutan.",
+            'action' => 'submit_secretary',
+        ]);
+        $updateRes->assertRedirect(route('admin.letters.show', $letter->id));
+
+        $letter->refresh();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_SEKRETARIS, $letter->status);
+        $this->assertNull($letter->rejection_note);
+        $this->assertStringContainsString('Graha NU Bubutan', $letter->isi_surat);
+
+        // 4. Hapus konsep surat
+        $delRes = $this->delete(route('admin.letters.destroy', $letter->id));
+        $delRes->assertRedirect(route('admin.letters.index'));
+        $this->assertDatabaseMissing('letters', ['id' => $letter->id]);
+    }
+
+    /**
+     * Test pembuatan dan penampilan surat dengan tabel HTML (bergaris maupun tanpa border).
+     */
+    public function test_letter_with_html_tables_bordered_and_borderless(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['name' => 'Admin PC Surat', 'role' => 'admin_kota']);
+
+        $this->actingAs($admin);
+
+        // Verifikasi fitur lebar kolom tersedia pada form create
+        // serta verifikasi header banner kop surat TIDAK dimunculkan di form input
+        $createRes = $this->get(route('admin.letters.create'));
+        $createRes->assertStatus(200);
+        $createRes->assertSee('Lebar Kolom');
+        $createRes->assertSee('columnWidthModal');
+        $createRes->assertSee('Atur Semua Kolom...');
+        $createRes->assertDontSee('Kop Surat Resmi (Header)');
+        $createRes->assertSee('Kota Asal Surat');
+        $createRes->assertSee('Kota / Lokasi Tujuan');
+
+        // Konten isi surat memuat tabel tanpa border (rincian) dengan lebar kolom dan tabel bergaris (agenda)
+        $htmlIsiSurat = '<p>Sehubungan dengan pelaksanaan program kerja, kami mengundang kehadiran Bapak/Ibu pada:</p>'.
+            '<table class="table-borderless" border="0" style="width: 100%; border: none;">'.
+            '<tbody>'.
+            '<tr><td style="width: 25%;">Hari / Tanggal</td><td style="width: 5%;">:</td><td style="width: 70%;">Sabtu, 14 November 2026</td></tr>'.
+            '<tr><td style="width: 25%;">Waktu</td><td style="width: 5%;">:</td><td style="width: 70%;">08.30 WIB - Selesai</td></tr>'.
+            '<tr><td style="width: 25%;">Tempat</td><td style="width: 5%;">:</td><td style="width: 70%;">Aula PCNU Kota Surabaya</td></tr>'.
+            '</tbody></table>'.
+            '<p>Adapun susunan agenda kegiatan adalah sebagai berikut:</p>'.
+            '<table class="table-bordered" border="1" style="width: 100%; border: 1px solid #333;">'.
+            '<thead><tr style="background-color: #f1f5f9;"><th style="width: 10%;">No</th><th style="width: 25%;">Waktu</th><th style="width: 45%;">Agenda</th><th style="width: 20%;">PJ</th></tr></thead>'.
+            '<tbody>'.
+            '<tr><td style="width: 10%;">1</td><td style="width: 25%;">08.30 - 09.30</td><td style="width: 45%;">Registrasi &amp; Pembukaan</td><td style="width: 20%;">Panitia</td></tr>'.
+            '<tr><td style="width: 10%;">2</td><td style="width: 25%;">09.30 - 11.30</td><td style="width: 45%;">Rapat Kerja PC ISNU</td><td style="width: 20%;">Sekretaris</td></tr>'.
+            '</tbody></table>'.
+            '<p>Demikian surat undangan ini kami sampaikan, atas perhatian dan kehadirannya diucapkan terima kasih.</p>';
+
+        $postRes = $this->post(route('admin.letters.store'), [
+            'level' => 'PC ISNU',
+            'letter_number' => '101/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'lampiran' => '1 Lembar',
+            'perihal' => 'Undangan Rapat Kerja dengan Tabel Agenda',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Seluruh Anggota Pleno',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => $htmlIsiSurat,
+            'action' => 'draft',
+        ]);
+
+        $letter = Letter::where('letter_number', '101/PC-VI/ISNU-SBY/XI/2026')->first();
+        $this->assertNotNull($letter);
+        $postRes->assertRedirect(route('admin.letters.show', $letter->id));
+
+        // Verifikasi tabel dan lebar kolom tersimpan utuh di database
+        $this->assertStringContainsString('table-borderless', $letter->isi_surat);
+        $this->assertStringContainsString('width: 25%', $letter->isi_surat);
+        $this->assertStringContainsString('width: 70%', $letter->isi_surat);
+        $this->assertStringContainsString('table-bordered', $letter->isi_surat);
+        $this->assertStringContainsString('width: 45%', $letter->isi_surat);
+        $this->assertStringContainsString('Aula PCNU Kota Surabaya', $letter->isi_surat);
+        $this->assertStringContainsString('Rapat Kerja PC ISNU', $letter->isi_surat);
+
+        // Verifikasi tabel dan penyesuaian lebar kolom tampil pada halaman edit
+        // serta header banner kop surat TIDAK dimunculkan di form edit
+        $editRes = $this->get(route('admin.letters.edit', $letter->id));
+        $editRes->assertStatus(200);
+        $editRes->assertSee('Lebar Kolom');
+        $editRes->assertSee('columnWidthModal');
+        $editRes->assertSee('Atur Semua Kolom...');
+        $editRes->assertSee('width: 25%', false);
+        $editRes->assertDontSee('Kop Surat Resmi (Header)');
+        $editRes->assertSee('Kota Asal Surat');
+        $editRes->assertSee('Kota / Lokasi Tujuan');
+
+        // Verifikasi tidak ada duplikasi navbar atas (header title hanya muncul tepat 1 kali pada output HTML)
+        $this->assertEquals(1, substr_count($createRes->getContent(), 'Pengajuan Konsep Surat Resmi'));
+        $this->assertEquals(1, substr_count($editRes->getContent(), 'Sunting Konsep Surat Resmi'));
+
+        // Verifikasi tabel tampil pada halaman preview (show)
+        $showRes = $this->get(route('admin.letters.show', $letter->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('table-borderless', false);
+        $showRes->assertSee('table-bordered', false);
+        $showRes->assertSee('width: 25%', false);
+        $showRes->assertSee('width: 70%', false);
+        $showRes->assertSee('Aula PCNU Kota Surabaya');
+        $showRes->assertSee('Rapat Kerja PC ISNU');
+
+        // Verifikasi bagian atas tanda tangan tidak ada tulisan jabatan (hanya judul PC ISNU lalu box QR/TTD)
+        $showRes->assertDontSee('<div class="signer-title">', false);
+        $showRes->assertSee('PIMPINAN CABANG');
+        $showRes->assertSee('IKATAN SARJANA NAHDLATUL ULAMA KOTA SURABAYA');
+
+        // Verifikasi footer slogan pada halaman preview
+        $showRes->assertSee('Dari Kontemplasi Menjadi Aksi [] Menyapa Semua [] Merangkul Umat [] Menanam untuk Bangsa');
+
+        // Verifikasi PDF ter-generate dan terkunci sebelum status selesai
+        $this->assertNotNull($letter->pdf_path);
+        Storage::disk('public')->assertExists($letter->pdf_path);
+
+        $this->get(route('admin.letters.download-pdf', $letter->id))->assertStatus(403);
+        $letter->status = Letter::STATUS_SELESAI;
+        $letter->save();
+
+        $downloadPdf = $this->get(route('admin.letters.download-pdf', $letter->id));
+        $downloadPdf->assertStatus(200);
+
+        // Reload $showRes with completed letter status to check un-disabled download button
+        $showRes = $this->get(route('admin.letters.show', $letter->id));
+
+        // Verifikasi teks keamanan yang telah dipersingkat pada preview dan PDF
+        $showRes->assertSee('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen.');
+        $showRes->assertSee('Kode Surat: '.$letter->letter_code);
+        $showRes->assertSee(':disabled="isDownloadingPdf"', false);
+        $showRes->assertSee('downloadPdfWithSpinner', false);
+
+        // Verifikasi pada daftar surat admin terdapat button download berspinner & disabled
+        $indexRes = $this->get(route('admin.letters.index'));
+        $indexRes->assertSee(':disabled="downloadingId === '.$letter->id.'"', false);
+        $indexRes->assertSee('downloadPdfWithSpinner', false);
+
+        // Verifikasi pada preview (show) header banner kop surat TETAP dimunculkan
+        // serta memuat kota asal surat sebelum tanggal
+        $showRes->assertSee('IKATAN SARJANA NAHDLATUL');
+        $showRes->assertSee('ULAMA KOTA SURABAYA');
+        $showRes->assertSee($letter->kota_asal.', '.$letter->formatted_date_letter);
+        $showRes->assertSee('di - '.$letter->kota_tujuan);
+
+        // Verifikasi template PDF dan dokumen fisik memuat header banner, footer slogan, serta teks keamanan ringkas
+        $renderedPdfView = view('admin.letters.pdf', [
+            'letter' => $letter,
+            'secQrBase64' => null,
+            'chairQrBase64' => null,
+            'kopLogoBase64' => null,
+        ])->render();
+        $this->assertStringContainsString('Dari Kontemplasi Menjadi Aksi', $renderedPdfView);
+        $this->assertStringContainsString('header-bar', $renderedPdfView);
+        $this->assertStringContainsString('footer-bar', $renderedPdfView);
+        $this->assertStringContainsString($letter->kota_asal.', '.$letter->formatted_date_letter, $renderedPdfView);
+        $this->assertStringContainsString('<u>'.$letter->kota_tujuan.'</u>', $renderedPdfView);
+        $this->assertStringContainsString('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen. Kode Surat: '.$letter->letter_code, $renderedPdfView);
+
+        $pdfFullPath = Storage::disk('public')->path($letter->pdf_path);
+        $fitzProcess = new Process(['python3', '-c', 'import fitz; doc = fitz.open("'.$pdfFullPath.'"); print(doc[0].get_text())']);
+        $fitzProcess->run();
+        $this->assertStringContainsString('Dari Kontemplasi Menjadi Aksi', $fitzProcess->getOutput());
+        $this->assertStringContainsString($letter->kota_asal, $fitzProcess->getOutput());
+    }
+
+    /**
+     * Test pemilihan jenis surat pada daftar surat, pembuatan Surat Mandat,
+     * serta verifikasi template Word template_mandat.docx, pratinjau, dan PDF.
+     */
+    public function test_letter_mandat_creation_and_generation(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['name' => 'Admin PC Surat', 'role' => 'admin_kota']);
+        $this->actingAs($admin);
+
+        // 1. Verifikasi modal pemilihan jenis surat di index
+        $indexRes = $this->get(route('admin.letters.index'));
+        $indexRes->assertStatus(200);
+        $indexRes->assertSee('chooseLetterTypeModal');
+        $indexRes->assertSee('Surat Mandat');
+        $indexRes->assertSee('Surat Rekomendasi');
+        $indexRes->assertSee('Surat Dinas / Biasa');
+        $indexRes->assertSee(route('admin.letters.create', ['type' => Letter::TYPE_SURAT_MANDAT]));
+        $indexRes->assertSee(route('admin.letters.create', ['type' => Letter::TYPE_SURAT_REKOMENDASI]));
+
+        // 2. Akses form create dengan parameter type=surat_mandat
+        $createRes = $this->get(route('admin.letters.create', ['type' => Letter::TYPE_SURAT_MANDAT]));
+        $createRes->assertStatus(200);
+        $createRes->assertSee('Surat Mandat');
+        $createRes->assertSee('Informasi Kegiatan yang Dimandatkan');
+        $createRes->assertSee('Nama Kegiatan');
+        $createRes->assertSee('Tanggal Pelaksanaan Kegiatan');
+        $createRes->assertSee('Lokasi / Tempat Pelaksanaan');
+        $createRes->assertSee('Tabel Penerima Mandat');
+
+        // 3. Simpan Surat Mandat
+        $tabelMandat = '<table class="table-bordered" border="1" style="width: 100%;">'.
+            '<thead><tr><th>No</th><th>Nama Lengkap</th><th>NIRA / NIK</th><th>Jabatan</th></tr></thead>'.
+            '<tbody>'.
+            '<tr><td>1</td><td>Dr. Ahmad Fauzi, M.Pd.</td><td>3578012345670001</td><td>Wakil Sekretaris</td></tr>'.
+            '<tr><td>2</td><td>Siti Aminah, M.Ag.</td><td>3578012345670002</td><td>Departemen Pendidikan</td></tr>'.
+            '</tbody></table>';
+
+        $postRes = $this->post(route('admin.letters.store'), [
+            'level' => 'PC ISNU',
+            'letter_type' => Letter::TYPE_SURAT_MANDAT,
+            'letter_number' => '055/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'kota_asal' => 'Surabaya',
+            'kegiatan' => 'Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim',
+            'tanggal_pelaksanaan' => '14 - 16 November 2026',
+            'lokasi_pelaksanaan' => 'Balai Diklat Keagamaan Surabaya',
+            'isi_surat' => $tabelMandat,
+            'action' => 'draft',
+        ]);
+
+        $letter = Letter::where('letter_number', '055/PC-VI/ISNU-SBY/XI/2026')->first();
+        $this->assertNotNull($letter);
+        $postRes->assertRedirect(route('admin.letters.show', $letter->id));
+
+        $this->assertEquals(Letter::TYPE_SURAT_MANDAT, $letter->letter_type);
+        $this->assertTrue($letter->isMandat());
+        $this->assertFalse($letter->isBiasa());
+        $this->assertFalse($letter->isRekomendasi());
+        $this->assertEquals('Surat Mandat', $letter->letter_type_label);
+        $this->assertEquals('Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim', $letter->kegiatan);
+        $this->assertEquals('14 - 16 November 2026', $letter->tanggal_pelaksanaan);
+        $this->assertEquals('Balai Diklat Keagamaan Surabaya', $letter->lokasi_pelaksanaan);
+
+        // 4. Verifikasi file Word DOCX dihasilkan menggunakan template template_mandat.docx
+        $this->assertNotNull($letter->docx_path);
+        Storage::disk('public')->assertExists($letter->docx_path);
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('public')->path($letter->docx_path)));
+        $docxXml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        $this->assertStringContainsString('MANDAT', $docxXml);
+        $this->assertStringContainsString('Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim', $docxXml);
+        $this->assertStringContainsString('Balai Diklat Keagamaan Surabaya', $docxXml);
+        $this->assertStringContainsString('Dr. Ahmad Fauzi, M.Pd.', $docxXml);
+
+        // 5. Verifikasi halaman show menampilkan layout Surat Mandat
+        $showRes = $this->get(route('admin.letters.show', $letter->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('SURAT MANDAT');
+        $showRes->assertSee('Nomor : 055/PC-VI/ISNU-SBY/XI/2026');
+        $showRes->assertDontSee('055/PC-VI/ISNU-SBY/XI/2026/PC-VI/ISNU-SBY');
+        $showRes->assertSee('Yang bertandatangan dibawah ini adalah Pengurus Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya merekomendasikan kepada:');
+        $showRes->assertSee('Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim');
+        $showRes->assertSee('Balai Diklat Keagamaan Surabaya');
+        $showRes->assertSee('Dr. Ahmad Fauzi, M.Pd.');
+        $showRes->assertSee('Demikian surat mandat ini dibuat dengan sebenar-benarnya untuk dapat dipergunakan sebagaimana mestinya.');
+
+        // 6. Verifikasi cetak PDF memuat format Surat Mandat
+        $this->get(route('admin.letters.download-pdf', $letter->id))->assertStatus(403);
+        $letter->status = Letter::STATUS_SELESAI;
+        $letter->save();
+
+        $downloadPdf = $this->get(route('admin.letters.download-pdf', $letter->id));
+        $downloadPdf->assertStatus(200);
+
+        $renderedPdfView = view('admin.letters.pdf', [
+            'letter' => $letter,
+            'secQrBase64' => null,
+            'chairQrBase64' => null,
+            'kopLogoBase64' => null,
+        ])->render();
+        $this->assertStringContainsString('SURAT MANDAT', $renderedPdfView);
+        $this->assertStringContainsString('Nomor : 055/PC-VI/ISNU-SBY/XI/2026', $renderedPdfView);
+        $this->assertStringNotContainsString('055/PC-VI/ISNU-SBY/XI/2026/PC-VI/ISNU-SBY', $renderedPdfView);
+        $this->assertStringContainsString('Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim', $renderedPdfView);
+
+        // 7. Verifikasi halaman edit memuat field kegiatan Surat Mandat
+        $editRes = $this->get(route('admin.letters.edit', $letter->id));
+        $editRes->assertStatus(200);
+        $editRes->assertSee('Surat Mandat');
+        $editRes->assertSee('Pelatihan Kader Tingkat Lanjut (PKTL) PW ISNU Jatim');
+        $editRes->assertSee('Balai Diklat Keagamaan Surabaya');
+    }
+
+    /**
+     * Test pembuatan Surat Rekomendasi, verifikasi template Word template_rekom.docx,
+     * pratinjau, dan PDF.
+     */
+    public function test_letter_rekomendasi_creation_and_generation(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['name' => 'Admin PC Surat', 'role' => 'admin_kota']);
+        $this->actingAs($admin);
+
+        // 1. Akses form create type=surat_rekomendasi
+        $createRes = $this->get(route('admin.letters.create', ['type' => Letter::TYPE_SURAT_REKOMENDASI]));
+        $createRes->assertStatus(200);
+        $createRes->assertSee('Surat Rekomendasi');
+        $createRes->assertSee('Format Biodata Rekomendasi');
+
+        // 2. Simpan Surat Rekomendasi
+        $biodataRekom = '<table class="table-borderless" border="0" style="width: 100%;">'.
+            '<tbody>'.
+            '<tr><td>Nama Lengkap</td><td>:</td><td>Dr. H. Muhammad Ilyas, M.Si.</td></tr>'.
+            '<tr><td>NIRA / NIA ISNU</td><td>:</td><td>ISNU-3578-2024-0012</td></tr>'.
+            '<tr><td>Instansi</td><td>:</td><td>UIN Sunan Ampel Surabaya</td></tr>'.
+            '</tbody></table>'.
+            '<p>Adalah benar merupakan pengurus aktif PC ISNU Kota Surabaya dengan integritas tinggi dan kami rekomendasikan untuk program beasiswa doktoral.</p>';
+
+        $postRes = $this->post(route('admin.letters.store'), [
+            'level' => 'PC ISNU',
+            'letter_type' => Letter::TYPE_SURAT_REKOMENDASI,
+            'letter_number' => '077/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-09',
+            'kota_asal' => 'Surabaya',
+            'perihal' => 'Rekomendasi Studi Doktoral S3 Luar Negeri',
+            'isi_surat' => $biodataRekom,
+            'action' => 'draft',
+        ]);
+
+        $letter = Letter::where('letter_number', '077/PC-VI/ISNU-SBY/XI/2026')->first();
+        $this->assertNotNull($letter);
+        $postRes->assertRedirect(route('admin.letters.show', $letter->id));
+
+        $this->assertEquals(Letter::TYPE_SURAT_REKOMENDASI, $letter->letter_type);
+        $this->assertTrue($letter->isRekomendasi());
+        $this->assertEquals('Surat Rekomendasi', $letter->letter_type_label);
+
+        // 3. Verifikasi file Word DOCX dihasilkan menggunakan template template_rekom.docx
+        $this->assertNotNull($letter->docx_path);
+        Storage::disk('public')->assertExists($letter->docx_path);
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('public')->path($letter->docx_path)));
+        $docxXml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        $this->assertStringContainsString('SURAT REKOMENDASI', $docxXml);
+        $this->assertStringContainsString('Dr. H. Muhammad Ilyas, M.Si.', $docxXml);
+        $this->assertStringContainsString('ISNU-3578-2024-0012', $docxXml);
+
+        // 4. Verifikasi halaman show menampilkan layout Surat Rekomendasi
+        $showRes = $this->get(route('admin.letters.show', $letter->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('SURAT REKOMENDASI');
+        $showRes->assertSee('Nomor : 077/PC-VI/ISNU-SBY/XI/2026');
+        $showRes->assertDontSee('077/PC-VI/ISNU-SBY/XI/2026/PC-VI/ISNU-SBY');
+        $showRes->assertSee('Yang bertandatangan dibawah ini adalah Pengurus Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya merekomendasikan kepada:');
+        $showRes->assertSee('Dr. H. Muhammad Ilyas, M.Si.');
+        $showRes->assertSee('Demikian surat rekomendasi ini dibuat dengan sebenar-benarnya untuk dapat dipergunakan sebagaimana mestinya.');
+
+        // 5. Verifikasi cetak PDF terkunci saat status draft dan dapat diunduh saat selesai
+        $this->get(route('admin.letters.download-pdf', $letter->id))->assertStatus(403);
+        $letter->status = Letter::STATUS_SELESAI;
+        $letter->save();
+
+        $downloadPdf = $this->get(route('admin.letters.download-pdf', $letter->id));
+        $downloadPdf->assertStatus(200);
+
+        $renderedPdfView = view('admin.letters.pdf', [
+            'letter' => $letter,
+            'secQrBase64' => null,
+            'chairQrBase64' => null,
+            'kopLogoBase64' => null,
+        ])->render();
+        $this->assertStringContainsString('SURAT REKOMENDASI', $renderedPdfView);
+        $this->assertStringContainsString('Nomor : 077/PC-VI/ISNU-SBY/XI/2026', $renderedPdfView);
+        $this->assertStringNotContainsString('077/PC-VI/ISNU-SBY/XI/2026/PC-VI/ISNU-SBY', $renderedPdfView);
+        $this->assertStringContainsString('Dr. H. Muhammad Ilyas, M.Si.', $renderedPdfView);
+    }
+
+    /**
+     * Test hak akses penandatanganan:
+     * - Hanya akun yang bertindak sebagai Sekretaris & Ketua (untuk surat level PC ISNU).
+     * - Atau Sekretaris PAC & Ketua PAC (untuk surat level PAC ISNU di masing-masing wilayah).
+     * - Admin tidak bisa menandatangani surat.
+     * - File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap.
+     */
+    public function test_letter_signing_authorization_and_pac_level_restrictions(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create(['role' => 'admin_kota']);
+
+        // PAC 1 (Bubutan) & PAC 2 (Gubeng)
+        $mwc = Mwc::first() ?? Mwc::create(['code' => 'MWC-TEST', 'name' => 'MWC Surabaya']);
+        $pac1 = Pac::firstOrCreate(['name' => 'PAC ISNU Bubutan'], [
+            'code' => 'PAC-TEST-01',
+            'mwc_id' => $mwc->id,
+            'kecamatan' => 'Bubutan',
+            'city' => 'Kota Surabaya',
+        ]);
+        $pac2 = Pac::firstOrCreate(['name' => 'PAC ISNU Gubeng'], [
+            'code' => 'PAC-TEST-02',
+            'mwc_id' => $pac1->mwc_id,
+            'kecamatan' => 'Gubeng',
+            'city' => 'Kota Surabaya',
+        ]);
+
+        $helperCreateOfficer = function (string $name, string $title, string $level, ?int $pacId = null) {
+            $user = User::factory()->create(['name' => $name, 'role' => 'member']);
+            $member = Member::create([
+                'user_id' => $user->id,
+                'full_name' => $name,
+                'email' => strtolower(str_replace(' ', '', $name)).'@example.com',
+                'phone' => '0812'.rand(10000000, 99999999),
+                'nik' => '3578'.rand(100000000000, 999999999999),
+                'gender' => 'L',
+                'birth_place' => 'Surabaya',
+                'birth_date' => '1985-01-01',
+                'address' => 'Surabaya',
+                'kelurahan' => 'Bubutan',
+                'city' => 'Kota Surabaya',
+                'kecamatan' => 'Kecamatan',
+                'occupation' => 'Akademisi',
+                'membership_status' => 'pengurus',
+                'pac_id' => $pacId,
+            ]);
+
+            Position::create([
+                'member_id' => $member->id,
+                'position_title' => $title,
+                'level' => $level,
+                'pac_id' => $pacId,
+                'start_date' => now()->subMonth(),
+                'is_active' => true,
+            ]);
+
+            return $user;
+        };
+
+        // Setup PC Officers
+        $pcSekretaris = $helperCreateOfficer('Sekretaris PC Test', 'Sekretaris', 'PC ISNU');
+        $pcKetua = $helperCreateOfficer('Ketua PC Test', 'Ketua', 'PC ISNU');
+
+        // Setup PAC 1 Officers (Bubutan)
+        $pac1Sekretaris = $helperCreateOfficer('Sekretaris PAC Bubutan', 'Sekretaris', 'PAC ISNU', $pac1->id);
+        $pac1Ketua = $helperCreateOfficer('Ketua PAC Bubutan', 'Ketua', 'PAC ISNU', $pac1->id);
+
+        // Setup PAC 2 Officers (Gubeng)
+        $pac2Sekretaris = $helperCreateOfficer('Sekretaris PAC Gubeng', 'Sekretaris', 'PAC ISNU', $pac2->id);
+        $pac2Ketua = $helperCreateOfficer('Ketua PAC Gubeng', 'Ketua', 'PAC ISNU', $pac2->id);
+
+        // -------------------------------------------------------------
+        // BAGIAN 1: SURAT LEVEL PC ISNU
+        // -------------------------------------------------------------
+        $this->actingAs($pcSekretaris);
+        $this->post(route('admin.letters.store'), [
+            'level' => 'PC ISNU',
+            'letter_number' => '201/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-10',
+            'perihal' => 'Surat Resmi PC ISNU',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Mitra Kerja PC',
+            'isi_surat' => '<p>Isi surat PC ISNU</p>',
+            'action' => 'submit_secretary',
+        ])->assertRedirect();
+
+        $pcLetter = Letter::where('letter_number', '201/PC-VI/ISNU-SBY/XI/2026')->firstOrFail();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_SEKRETARIS, $pcLetter->status);
+        $this->assertEquals('PC ISNU', $pcLetter->level);
+        $this->assertNull($pcLetter->pac_id);
+
+        // 1. PDF terkunci sebelum ditandatangani lengkap (403)
+        $this->get(route('admin.letters.download-pdf', $pcLetter->id))->assertStatus(403);
+        $this->get(route('surat.download-pdf', $pcLetter->letter_code))->assertStatus(403);
+
+        // 2. Admin TIDAK BISA menandatangani surat (403)
+        $this->actingAs($admin);
+        $this->post(route('admin.letters.sign-secretary', $pcLetter->id))->assertStatus(403);
+        $this->post(route('admin.letters.sign-chairman', $pcLetter->id))->assertStatus(403);
+
+        // 3. Sekretaris PAC TIDAK BISA menandatangani surat PC (403)
+        $this->actingAs($pac1Sekretaris);
+        $this->post(route('admin.letters.sign-secretary', $pcLetter->id))->assertStatus(403);
+
+        // 4. Sekretaris PC BISA menandatangani surat PC
+        $this->actingAs($pcSekretaris);
+        $this->post(route('admin.letters.sign-secretary', $pcLetter->id))->assertRedirect();
+        $pcLetter->refresh();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_KETUA, $pcLetter->status);
+
+        // PDF masih terkunci karena baru tahap 1
+        $this->get(route('admin.letters.download-pdf', $pcLetter->id))->assertStatus(403);
+
+        // 5. Ketua PAC TIDAK BISA menandatangani surat PC (403)
+        $this->actingAs($pac1Ketua);
+        $this->post(route('admin.letters.sign-chairman', $pcLetter->id))->assertStatus(403);
+
+        // 6. Admin juga TIDAK BISA menandatangani tahap Ketua (403)
+        $this->actingAs($admin);
+        $this->post(route('admin.letters.sign-chairman', $pcLetter->id))->assertStatus(403);
+
+        // 7. Ketua PC BISA menandatangani surat PC
+        $this->actingAs($pcKetua);
+        $this->post(route('admin.letters.sign-chairman', $pcLetter->id))->assertRedirect();
+        $pcLetter->refresh();
+        $this->assertEquals(Letter::STATUS_SELESAI, $pcLetter->status);
+
+        // 8. PDF baru dapat diunduh setelah status selesai
+        $this->get(route('admin.letters.download-pdf', $pcLetter->id))->assertStatus(200);
+        $this->get(route('surat.download-pdf', $pcLetter->letter_code))->assertStatus(200);
+
+        // -------------------------------------------------------------
+        // BAGIAN 2: SURAT LEVEL PAC ISNU (PAC BUBUTAN)
+        // -------------------------------------------------------------
+        $this->actingAs($pac1Sekretaris);
+        $this->post(route('admin.letters.store'), [
+            'level' => 'PAC ISNU',
+            'pac_id' => $pac1->id,
+            'letter_number' => '010/PAC-VI/ISNU-BBT/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => '2026-11-10',
+            'perihal' => 'Undangan Rapat PAC ISNU Bubutan',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Anggota PAC Bubutan',
+            'isi_surat' => '<p>Undangan rapat anggota PAC Bubutan.</p>',
+            'action' => 'submit_secretary',
+        ])->assertRedirect();
+
+        $pacLetter = Letter::where('letter_number', '010/PAC-VI/ISNU-BBT/XI/2026')->firstOrFail();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_SEKRETARIS, $pacLetter->status);
+        $this->assertEquals('PAC ISNU', $pacLetter->level);
+        $this->assertEquals($pac1->id, $pacLetter->pac_id);
+        $this->assertTrue($pacLetter->isLevelPac());
+
+        // 1. PDF terkunci sebelum selesai (403)
+        $this->get(route('admin.letters.download-pdf', $pacLetter->id))->assertStatus(403);
+        $this->get(route('surat.download-pdf', $pacLetter->letter_code))->assertStatus(403);
+
+        // 2. Admin TIDAK BISA menandatangani surat PAC (403)
+        $this->actingAs($admin);
+        $this->post(route('admin.letters.sign-secretary', $pacLetter->id))->assertStatus(403);
+
+        // 3. Sekretaris PC TIDAK BISA menandatangani surat PAC (403)
+        $this->actingAs($pcSekretaris);
+        $this->post(route('admin.letters.sign-secretary', $pacLetter->id))->assertStatus(403);
+
+        // 4. Sekretaris PAC Lain (PAC Gubeng) TIDAK BISA menandatangani surat PAC Bubutan (403)
+        $this->actingAs($pac2Sekretaris);
+        $this->post(route('admin.letters.sign-secretary', $pacLetter->id))->assertStatus(403);
+
+        // 5. Sekretaris PAC Bubutan BISA menandatangani surat PAC Bubutan
+        $this->actingAs($pac1Sekretaris);
+        $this->post(route('admin.letters.sign-secretary', $pacLetter->id))->assertRedirect();
+        $pacLetter->refresh();
+        $this->assertEquals(Letter::STATUS_MENUNGGU_KETUA, $pacLetter->status);
+        $this->assertStringContainsString('PAC ISNU Bubutan', $pacLetter->secretary_position);
+
+        // 6. Ketua PC TIDAK BISA menandatangani surat PAC (403)
+        $this->actingAs($pcKetua);
+        $this->post(route('admin.letters.sign-chairman', $pacLetter->id))->assertStatus(403);
+
+        // 7. Ketua PAC Lain (PAC Gubeng) TIDAK BISA menandatangani surat PAC Bubutan (403)
+        $this->actingAs($pac2Ketua);
+        $this->post(route('admin.letters.sign-chairman', $pacLetter->id))->assertStatus(403);
+
+        // 8. Ketua PAC Bubutan BISA menandatangani surat PAC Bubutan
+        $this->actingAs($pac1Ketua);
+        $this->post(route('admin.letters.sign-chairman', $pacLetter->id))->assertRedirect();
+        $pacLetter->refresh();
+        $this->assertEquals(Letter::STATUS_SELESAI, $pacLetter->status);
+        $this->assertStringContainsString('PAC ISNU Bubutan', $pacLetter->chairman_position);
+
+        // 9. PDF sekarang dapat diunduh (200)
+        $this->get(route('admin.letters.download-pdf', $pacLetter->id))->assertStatus(200);
+        $this->get(route('surat.download-pdf', $pacLetter->letter_code))->assertStatus(200);
+
+        // 10. Verifikasi tampilan Kop dan Footer mencerminkan PAC ISNU Kecamatan BUBUTAN
+        $showRes = $this->get(route('admin.letters.show', $pacLetter->id));
+        $showRes->assertSee('PIMPINAN ANAK CABANG');
+        $showRes->assertSee('KECAMATAN BUBUTAN');
+
+        $renderedPdf = view('admin.letters.pdf', [
+            'letter' => $pacLetter,
+            'secQrBase64' => null,
+            'chairQrBase64' => null,
+            'kopLogoBase64' => null,
+        ])->render();
+        $this->assertStringContainsString('PIMPINAN ANAK CABANG', $renderedPdf);
+        $this->assertStringContainsString('KECAMATAN BUBUTAN', $renderedPdf);
+    }
+
+    /**
+     * Test live AJAX search pada konsep surat dan rendering cardview mobile:
+     * - Tombol filter dihilangkan.
+     * - Input search live dengan AJAX (X-Requested-With: XMLHttpRequest).
+     * - Menampilkan data sesuai pencarian tanpa reload seluruh halaman.
+     * - Terdapat tampilan cardview khusus mobile (d-md-none) dan tabel desktop (d-none d-md-block).
+     */
+    public function test_letter_ajax_live_search_and_mobile_cardview_rendering(): void
+    {
+        $admin = User::where('role', 'admin_kota')->first();
+        $this->actingAs($admin);
+
+        // Buat 2 surat dengan perihal dan nomor berbeda
+        $letterA = Letter::create([
+            'letter_number' => '101/PC-ISNU/XI/2026',
+            'letter_code' => 'SRT-ALPHA-99',
+            'letter_type' => Letter::TYPE_SURAT_BIASA,
+            'level' => Letter::LEVEL_PC,
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'tujuan_surat' => 'Rektor Unair',
+            'kota_tujuan' => 'Surabaya',
+            'kota_asal' => 'Surabaya',
+            'perihal' => 'Undangan Diskusi Ilmiah Kampus',
+            'date_letter' => now()->toDateString(),
+            'isi_surat' => 'Isi surat A',
+            'status' => Letter::STATUS_DRAFT,
+            'user_id' => $admin->id,
+        ]);
+
+        $letterB = Letter::create([
+            'letter_number' => '102/PC-ISNU/XI/2026',
+            'letter_code' => 'SRT-BETA-88',
+            'letter_type' => Letter::TYPE_SURAT_MANDAT,
+            'level' => Letter::LEVEL_PC,
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'tujuan_surat' => 'Peserta Mandat',
+            'kota_tujuan' => 'Surabaya',
+            'kota_asal' => 'Surabaya',
+            'kegiatan' => 'Pelatihan Jurnalistik ISNU',
+            'perihal' => 'Surat Mandat Pelatihan',
+            'date_letter' => now()->toDateString(),
+            'isi_surat' => 'Isi surat B',
+            'status' => Letter::STATUS_MENUNGGU_SEKRETARIS,
+            'user_id' => $admin->id,
+        ]);
+
+        // 1. Akses halaman index non-AJAX
+        $indexRes = $this->get(route('admin.letters.index'));
+        $indexRes->assertStatus(200);
+
+        // Verifikasi tombol filter lama (bi-funnel) sudah dihilangkan
+        $indexRes->assertDontSee('bi-funnel');
+        $indexRes->assertDontSee('isFiltering ? \'Memproses...\' : \'Filter\'', false);
+
+        // Verifikasi search input dengan debounce dan fetch AJAX
+        $indexRes->assertSee('@input.debounce.300ms="applyFilter()"', false);
+        $indexRes->assertSee('lettersContainer', false);
+
+        // Verifikasi filter jenis surat dalam bentuk dropdown
+        $indexRes->assertSee('aria-label="Filter Jenis Surat"', false);
+        $indexRes->assertSee('x-model="letterType"', false);
+        $indexRes->assertSee('Semua Jenis Surat');
+        $indexRes->assertSee('Surat Dinas / Biasa');
+        $indexRes->assertSee('Surat Mandat');
+        $indexRes->assertSee('Surat Rekomendasi');
+
+        // Verifikasi terdapat struktur desktop table (d-none d-md-block) dan mobile cardview (d-md-none)
+        $indexRes->assertSee('d-none d-md-block table-responsive', false);
+        $indexRes->assertSee('d-md-none p-3 d-flex flex-column gap-3', false);
+        $indexRes->assertSee('101/PC-ISNU/XI/2026');
+        $indexRes->assertSee('102/PC-ISNU/XI/2026');
+
+        // 2. Akses pencarian via AJAX untuk query 'Diskusi'
+        $ajaxResA = $this->getJson(route('admin.letters.index', ['search' => 'Diskusi']), [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+        $ajaxResA->assertStatus(200);
+        $ajaxContentA = $ajaxResA->getContent();
+
+        // Surat A harus ada, Surat B tidak ada
+        $this->assertStringContainsString('101/PC-ISNU/XI/2026', $ajaxContentA);
+        $this->assertStringContainsString('Undangan Diskusi Ilmiah Kampus', $ajaxContentA);
+        $this->assertStringNotContainsString('102/PC-ISNU/XI/2026', $ajaxContentA);
+
+        // Verifikasi AJAX mengembalikan partial (tanpa layout induk)
+        $this->assertStringNotContainsString('<!DOCTYPE html>', $ajaxContentA);
+        $this->assertStringContainsString('d-md-none', $ajaxContentA);
+        $this->assertStringContainsString('d-none d-md-block table-responsive', $ajaxContentA);
+
+        // 3. Akses pencarian via AJAX untuk kegiatan 'Jurnalistik' (Surat Mandat)
+        $ajaxResB = $this->getJson(route('admin.letters.index', ['search' => 'Jurnalistik']), [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+        $ajaxResB->assertStatus(200);
+        $ajaxContentB = $ajaxResB->getContent();
+
+        $this->assertStringContainsString('102/PC-ISNU/XI/2026', $ajaxContentB);
+        $this->assertStringContainsString('Pelatihan Jurnalistik ISNU', $ajaxContentB);
+        $this->assertStringNotContainsString('101/PC-ISNU/XI/2026', $ajaxContentB);
+
+        // 4. Akses filter jenis surat via AJAX untuk 'surat_mandat'
+        $ajaxResMandat = $this->getJson(route('admin.letters.index', ['letter_type' => 'surat_mandat']), [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+        $ajaxResMandat->assertStatus(200);
+        $ajaxContentMandat = $ajaxResMandat->getContent();
+
+        $this->assertStringContainsString('102/PC-ISNU/XI/2026', $ajaxContentMandat);
+        $this->assertStringNotContainsString('101/PC-ISNU/XI/2026', $ajaxContentMandat);
+
+        // 5. Akses filter jenis surat via AJAX untuk 'surat_biasa'
+        $ajaxResBiasa = $this->getJson(route('admin.letters.index', ['letter_type' => 'surat_biasa']), [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+        $ajaxResBiasa->assertStatus(200);
+        $ajaxContentBiasa = $ajaxResBiasa->getContent();
+
+        $this->assertStringContainsString('101/PC-ISNU/XI/2026', $ajaxContentBiasa);
+        $this->assertStringNotContainsString('102/PC-ISNU/XI/2026', $ajaxContentBiasa);
     }
 }

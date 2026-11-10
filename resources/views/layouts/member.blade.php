@@ -89,6 +89,11 @@
                 <a href="{{ route('daftar.anggota') }}" class="btn {{ request()->routeIs('daftar.anggota') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-people-fill me-1"></i> Katalog Anggota
                 </a>
+                @if(auth()->user()->isAdmin())
+                <a href="{{ route('admin.dashboard') }}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
+                    <i class="bi bi-speedometer2 me-1"></i> Panel Pengurus
+                </a>
+                @endif
                 @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                 <a href="{{ route('member.cv.download') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download CV (PDF)
@@ -132,6 +137,11 @@
                     @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
                     <a href="{{ route('member.cv.download') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i> Download CV (PDF)
+                    </a>
+                    @endif
+                    @if(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.dashboard') }}" class="dropdown-item rounded-3 py-2 px-3 fw-bold text-dark bg-warning-subtle d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-speedometer2 text-dark fs-5"></i> Panel Pengurus
                     </a>
                     @endif
                     <div class="border-top my-1"></div>

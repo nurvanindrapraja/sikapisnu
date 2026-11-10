@@ -62,6 +62,25 @@
 
         <!-- Forms Column -->
         <div class="col-lg-8">
+            @if($user->member)
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-success-subtle border border-success-subtle">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px; font-size: 1.5rem;">
+                            <i class="bi bi-person-vcard"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-success-emphasis mb-1">Kelola Biodata & Riwayat Kader Anda</h6>
+                            <p class="small text-muted mb-0">Kelola riwayat organisasi, pekerjaan, sertifikasi keahlian, dan kaderisasi NU Anda.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('member.profile.edit') }}" class="btn btn-success rounded-pill fw-bold px-3 py-2 text-nowrap shadow-sm">
+                        <i class="bi bi-pencil-square me-1"></i> Kelola Riwayat Lengkap
+                    </a>
+                </div>
+            </div>
+            @endif
+
             <!-- Form 1: Edit Informasi Profil -->
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
                 <h6 class="fw-bold text-dark border-bottom pb-3 mb-3">

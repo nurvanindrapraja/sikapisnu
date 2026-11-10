@@ -8,7 +8,7 @@
                 <th>Jabatan</th>
                 <th>Tingkat & Periode</th>
                 <th>PAC / Wilayah</th>
-                @if(!auth()->user()->isPengurusAnggotaSeksi())
+                @if(!auth()->user()->isRestrictedOfficer())
                     <th>Kartu Digital</th>
                     <th class="text-end">Aksi</th>
                 @endif
@@ -60,7 +60,7 @@
                             <span class="text-muted">PC ISNU Kota Surabaya</span>
                         @endif
                     </td>
-                    @if(!auth()->user()->isPengurusAnggotaSeksi())
+                    @if(!auth()->user()->isRestrictedOfficer())
                         <td>
                             <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
                                 <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
@@ -82,7 +82,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ auth()->user()->isPengurusAnggotaSeksi() ? 5 : 7 }}" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
+                    <td colspan="{{ auth()->user()->isRestrictedOfficer() ? 5 : 7 }}" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -145,7 +145,7 @@
                 </div>
             </div>
 
-            @if(!auth()->user()->isPengurusAnggotaSeksi())
+            @if(!auth()->user()->isRestrictedOfficer())
                 <div class="d-flex gap-2">
                     <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success flex-grow-1 rounded-pill fw-bold">
                         <i class="bi bi-eye me-1"></i> {{ auth()->user()->canManageMembersAndOfficers() ? 'Detail & Kelola' : 'Detail' }}

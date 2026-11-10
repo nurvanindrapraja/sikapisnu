@@ -64,6 +64,10 @@ class ProfileController extends Controller
             ]);
         }
 
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('member.profile.edit')->with('success', 'Profil Anda berhasil diperbarui!');
+        }
+
         return redirect()->route('member.dashboard')->with('success', 'Profil Anda berhasil diperbarui!');
     }
 

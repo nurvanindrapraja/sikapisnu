@@ -115,6 +115,10 @@ class User extends Authenticatable
      */
     public function isWakilPengurus(): bool
     {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return false;
+        }
+
         $title = $this->getOfficerPositionTitle();
 
         return in_array($title, ['Wakil Ketua', 'Wakil Sekretaris'], true);
@@ -125,6 +129,10 @@ class User extends Authenticatable
      */
     public function isKoordinatorSeksi(): bool
     {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return false;
+        }
+
         $title = $this->getOfficerPositionTitle();
 
         return in_array($title, ['Koordinator Seksi', 'Koordinator'], true);
@@ -185,6 +193,17 @@ class User extends Authenticatable
         }
 
         return $this->getOfficerPositionTitle() === 'Anggota Seksi';
+    }
+
+    /**
+     * Memeriksa apakah user adalah pengurus dengan hak akses terbatas
+     * (Anggota Seksi, Koordinator Seksi, Wakil Ketua, atau Wakil Sekretaris)
+     * pada menu verifikasi, database potensi kader, master kelompok kerja,
+     * export laporan, audit log, dan aksi lihat detail data pengurus lain.
+     */
+    public function isRestrictedOfficer(): bool
+    {
+        return $this->isPengurusAnggotaSeksi() || $this->isKoordinatorSeksi() || $this->isWakilPengurus();
     }
 
     public function getManagedPacId(): ?int
@@ -309,7 +328,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->isPengurusAnggotaSeksi()) {
+        if ($this->isRestrictedOfficer()) {
             return $this->member && (int) $this->member->id === (int) $member->id;
         }
 
@@ -352,5 +371,86 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * Memeriksa apakah user berhak mengakses menu pengajuan konsep surat dan e-TTD.
+     * Hak akses: Admin, Ketua, Sekretaris, Wakil Ketua, dan Wakil Sekretaris.
+     */
+    public function canAccessLetterSubmission(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return true;
+        }
+
+        $title = $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Ketua', 'Sekretaris', 'Wakil Ketua', 'Wakil Sekretaris'], true);
+    }
+
+    /**
+     * Memeriksa apakah user dapat menandatangani surat secara digital sebagai Sekretaris.
+     * Hak akses:
+     * - Surat level PC ISNU: Akun yang bertindak sebagai Sekretaris / Wakil Sekretaris PC ISNU.
+     * - Surat level PAC ISNU: Akun yang bertindak sebagai Sekretaris / Wakil Sekretaris PAC ISNU di wilayah PAC terkait.
+     * - Admin TIDAK BISA menandatangani surat kecuali memiliki jabatan pengurus yang sesuai.
+     */
+    public function canSignAsSecretary(?Letter $letter = null): bool
+    {
+        $pos = $this->getOfficerPosition();
+        if (! $pos) {
+            return false;
+        }
+
+        $title = $pos->position_title;
+        if (! in_array($title, ['Sekretaris', 'Wakil Sekretaris'], true)) {
+            return false;
+        }
+
+        if ($letter) {
+            if ($letter->isLevelPac()) {
+                $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+
+                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+            }
+
+            // Surat level PC ISNU
+            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+        }
+
+        return true;
+    }
+
+    /**
+     * Memeriksa apakah user dapat menandatangani surat secara digital sebagai Ketua.
+     * Hak akses:
+     * - Surat level PC ISNU: Akun yang bertindak sebagai Ketua / Wakil Ketua PC ISNU.
+     * - Surat level PAC ISNU: Akun yang bertindak sebagai Ketua / Wakil Ketua PAC ISNU di wilayah PAC terkait.
+     * - Admin TIDAK BISA menandatangani surat kecuali memiliki jabatan pengurus yang sesuai.
+     */
+    public function canSignAsChairman(?Letter $letter = null): bool
+    {
+        $pos = $this->getOfficerPosition();
+        if (! $pos) {
+            return false;
+        }
+
+        $title = $pos->position_title;
+        if (! in_array($title, ['Ketua', 'Wakil Ketua'], true)) {
+            return false;
+        }
+
+        if ($letter) {
+            if ($letter->isLevelPac()) {
+                $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+
+                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+            }
+
+            // Surat level PC ISNU
+            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+        }
+
+        return true;
     }
 }

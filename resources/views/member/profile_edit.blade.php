@@ -1,9 +1,25 @@
-@extends('layouts.member')
+@extends(auth()->check() && auth()->user()->isAdmin() ? 'layouts.admin' : 'layouts.member')
 
-@section('title', 'Edit Profil & Potensi')
+@section('title', 'Kelola Biodata & Riwayat')
+@section('header_title', 'Kelola Biodata & Riwayat Kader')
 
 @section('content')
 <style>
+.card-custom {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background: white;
+}
+.btn-isnu {
+    background: var(--isnu-green);
+    color: white;
+    font-weight: 600;
+}
+.btn-isnu:hover {
+    background: var(--isnu-green-dark);
+    color: white;
+}
 @keyframes toastSlideIn {
     from {
         transform: translateX(120%);
@@ -31,7 +47,7 @@
     editForm: {},
     successModal: null,
     successMessage: '',
-    redirectUrl: '{{ route('member.dashboard') }}',
+    redirectUrl: '{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}',
 
     openEdit(type, url, data) {
         this.editType = type;
@@ -393,8 +409,8 @@
             }">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold text-dark mb-0"><i class="bi bi-person-gear text-success me-2"></i> Edit Biodata Utama</h5>
-                    <a href="{{ route('member.dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
-                        <i class="bi bi-arrow-left me-1"></i> Kembali
+                    <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-arrow-left me-1"></i> Kembali ke Dashboard
                     </a>
                 </div>
 
@@ -855,7 +871,7 @@
                     <p class="text-muted mb-0" x-text="successMessage"></p>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom-4 justify-content-center p-3">
-                    <button type="button" class="btn btn-success fw-bold rounded-pill px-5 py-2 shadow-sm fs-6" data-bs-dismiss="modal" @click="redirectToDashboard()" onclick="window.location.href='{{ route('member.dashboard') }}'">
+                    <button type="button" class="btn btn-success fw-bold rounded-pill px-5 py-2 shadow-sm fs-6" data-bs-dismiss="modal" @click="redirectToDashboard()" onclick="window.location.href='{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}'">
                         OK
                     </button>
                 </div>

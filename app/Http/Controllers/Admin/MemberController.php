@@ -24,8 +24,8 @@ class MemberController extends Controller
 {
     public function index(Request $request)
     {
-        if (auth()->user()?->isPengurusAnggotaSeksi()) {
-            abort(403, 'Anggota Seksi tidak memiliki hak akses ke Database Potensi Kader.');
+        if (auth()->user()?->isRestrictedOfficer()) {
+            abort(403, 'Anda tidak memiliki hak akses ke Database Potensi Kader.');
         }
 
         $query = Member::with(['user', 'mwc', 'pac', 'activePosition']);
@@ -130,8 +130,11 @@ class MemberController extends Controller
 
     public function show($id)
     {
-        if (auth()->user()?->isPengurusAnggotaSeksi()) {
-            abort(403, 'Anggota Seksi tidak memiliki hak akses untuk melihat detail anggota.');
+        if (auth()->user()?->isRestrictedOfficer()) {
+            $currentMemberId = auth()->user()->member?->id;
+            if (! $currentMemberId || (int) $currentMemberId !== (int) $id) {
+                abort(403, 'Anda tidak memiliki hak akses untuk melihat detail anggota.');
+            }
         }
 
         $member = Member::with([
