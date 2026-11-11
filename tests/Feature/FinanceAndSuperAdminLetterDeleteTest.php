@@ -435,4 +435,55 @@ class FinanceAndSuperAdminLetterDeleteTest extends TestCase
         $response->assertSee('Rp 2.500.000');
         $response->assertSee('Diserahkan langsung secara tunai.');
     }
+
+    public function test_letter_qr_codes_render_even_if_files_are_missing_on_disk(): void
+    {
+        $superadmin = $this->createOfficer('Super Admin', 'super_admin');
+        $this->actingAs($superadmin);
+
+        // Simulasi kondisi hosting: surat sudah ditandatangani, tapi file PNG di storage/ belum ada / hilang
+        $letter = Letter::create([
+            'user_id' => $superadmin->id,
+            'letter_code' => 'SRT-HOSTING-TEST01',
+            'letter_type' => Letter::TYPE_SURAT_MANDAT,
+            'level' => Letter::LEVEL_PC,
+            'letter_number' => '002/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => 2026,
+            'date_letter' => '2026-11-10',
+            'perihal' => 'Surat Mandat MKISNU',
+            'kegiatan' => 'Madrasah Kader ISNU',
+            'tanggal_pelaksanaan' => '14 - 16 November 2026',
+            'lokasi_pelaksanaan' => 'Asrama Haji Sukolilo',
+            'tujuan_surat' => 'Penerima Mandat',
+            'isi_surat' => '<p>Daftar nama peserta...</p>',
+            'status' => Letter::STATUS_SELESAI,
+            'secretary_name' => 'Nurvan Indra Praja, S.Kom., M.MT.',
+            'secretary_position' => 'Sekretaris',
+            'secretary_registration_number' => 'ISNU-00001',
+            'secretary_signed_at' => now()->subDay(),
+            'secretary_qr_path' => 'letters/qrcodes/non_existent_sec.png',
+            'chairman_name' => 'Nurvan Indra Praja, S.Kom., M.MT.',
+            'chairman_position' => 'Ketua',
+            'chairman_registration_number' => 'ISNU-00001',
+            'chairman_signed_at' => now(),
+            'chairman_qr_path' => 'letters/qrcodes/non_existent_chair.png',
+        ]);
+
+        $this->assertNotNull($letter->secretary_qr_data_url);
+        $this->assertStringStartsWith('data:image/png;base64,', $letter->secretary_qr_data_url);
+
+        $this->assertNotNull($letter->chairman_qr_data_url);
+        $this->assertStringStartsWith('data:image/png;base64,', $letter->chairman_qr_data_url);
+
+        $response = $this->get(route('admin.letters.preview', $letter->id), [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertDontSee('Belum TTD Ketua');
+        $response->assertDontSee('Belum TTD Sekretaris');
+        $response->assertSee('alt="QR Ketua"', false);
+        $response->assertSee('alt="QR Sekretaris"', false);
+    }
 }

@@ -215,47 +215,69 @@ class LetterService
         $docXml = (string) $zip->getFromName('word/document.xml');
 
         $secretaryDrawingRun = '';
-        if ($letter->secretary_signed_at && $letter->secretary_qr_path && Storage::disk('public')->exists($letter->secretary_qr_path)) {
-            $secPngData = Storage::disk('public')->get($letter->secretary_qr_path);
-            $secMediaName = "qr_sec_{$letter->letter_code}.png";
-            $zip->addFromString("word/media/{$secMediaName}", $secPngData);
-
-            if (! str_contains($relsXml, 'Id="rIdQrSecretary"')) {
-                $relsXml = str_replace(
-                    '</Relationships>',
-                    '<Relationship Id="rIdQrSecretary" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$secMediaName.'"/></Relationships>',
-                    $relsXml
-                );
+        if ($letter->secretary_signed_at) {
+            $secPngData = null;
+            $secDataUrl = $letter->secretary_qr_data_url;
+            if ($secDataUrl && str_starts_with($secDataUrl, 'data:image/png;base64,')) {
+                $secPngData = base64_decode(substr($secDataUrl, strlen('data:image/png;base64,')));
+            } elseif ($letter->secretary_qr_path && Storage::disk('public')->exists($letter->secretary_qr_path)) {
+                $secPngData = Storage::disk('public')->get($letter->secretary_qr_path);
             }
 
-            $escapedSecName = htmlspecialchars($letter->secretary_name ?? '', ENT_XML1);
-            $escapedSecPos = htmlspecialchars($letter->secretary_position ?? 'Sekretaris', ENT_XML1);
-            $escapedSecReg = htmlspecialchars($letter->secretary_registration_number ?? '', ENT_XML1);
+            if ($secPngData) {
+                $secMediaName = "qr_sec_{$letter->letter_code}.png";
+                $zip->addFromString("word/media/{$secMediaName}", $secPngData);
 
-            $secretaryDrawingRun = '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="1080000" cy="1080000"/><wp:docPr id="101" name="QrSecretary"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="101" name="QrSecretary"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdQrSecretary" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1080000" cy="1080000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r><w:r><w:br/><w:b/><w:u w:val="single"/><w:t>'.$escapedSecName.'</w:t></w:r><w:r><w:br/><w:t>NIRA/Reg: '.$escapedSecReg.'</w:t></w:r>';
+                if (! str_contains($relsXml, 'Id="rIdQrSecretary"')) {
+                    $relsXml = str_replace(
+                        '</Relationships>',
+                        '<Relationship Id="rIdQrSecretary" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$secMediaName.'"/></Relationships>',
+                        $relsXml
+                    );
+                }
+
+                $escapedSecName = htmlspecialchars($letter->secretary_name ?? '', ENT_XML1);
+                $escapedSecPos = htmlspecialchars($letter->secretary_position ?? 'Sekretaris', ENT_XML1);
+                $escapedSecReg = htmlspecialchars($letter->secretary_registration_number ?? '', ENT_XML1);
+
+                $secretaryDrawingRun = '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="1080000" cy="1080000"/><wp:docPr id="101" name="QrSecretary"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="101" name="QrSecretary"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdQrSecretary" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1080000" cy="1080000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r><w:r><w:br/><w:b/><w:u w:val="single"/><w:t>'.$escapedSecName.'</w:t></w:r><w:r><w:br/><w:t>NIRA/Reg: '.$escapedSecReg.'</w:t></w:r>';
+            } else {
+                $secretaryDrawingRun = '<w:r><w:rPr><w:i/><w:color w:val="888888"/></w:rPr><w:t>(Menunggu Tanda Tangan Sekretaris)</w:t></w:r>';
+            }
         } else {
             $secretaryDrawingRun = '<w:r><w:rPr><w:i/><w:color w:val="888888"/></w:rPr><w:t>(Menunggu Tanda Tangan Sekretaris)</w:t></w:r>';
         }
 
         $chairmanDrawingRun = '';
-        if ($letter->chairman_signed_at && $letter->chairman_qr_path && Storage::disk('public')->exists($letter->chairman_qr_path)) {
-            $chairPngData = Storage::disk('public')->get($letter->chairman_qr_path);
-            $chairMediaName = "qr_chair_{$letter->letter_code}.png";
-            $zip->addFromString("word/media/{$chairMediaName}", $chairPngData);
-
-            if (! str_contains($relsXml, 'Id="rIdQrChairman"')) {
-                $relsXml = str_replace(
-                    '</Relationships>',
-                    '<Relationship Id="rIdQrChairman" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$chairMediaName.'"/></Relationships>',
-                    $relsXml
-                );
+        if ($letter->chairman_signed_at) {
+            $chairPngData = null;
+            $chairDataUrl = $letter->chairman_qr_data_url;
+            if ($chairDataUrl && str_starts_with($chairDataUrl, 'data:image/png;base64,')) {
+                $chairPngData = base64_decode(substr($chairDataUrl, strlen('data:image/png;base64,')));
+            } elseif ($letter->chairman_qr_path && Storage::disk('public')->exists($letter->chairman_qr_path)) {
+                $chairPngData = Storage::disk('public')->get($letter->chairman_qr_path);
             }
 
-            $escapedChairName = htmlspecialchars($letter->chairman_name ?? '', ENT_XML1);
-            $escapedChairPos = htmlspecialchars($letter->chairman_position ?? 'Ketua', ENT_XML1);
-            $escapedChairReg = htmlspecialchars($letter->chairman_registration_number ?? '', ENT_XML1);
+            if ($chairPngData) {
+                $chairMediaName = "qr_chair_{$letter->letter_code}.png";
+                $zip->addFromString("word/media/{$chairMediaName}", $chairPngData);
 
-            $chairmanDrawingRun = '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="1080000" cy="1080000"/><wp:docPr id="102" name="QrChairman"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="102" name="QrChairman"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdQrChairman" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1080000" cy="1080000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r><w:r><w:br/><w:b/><w:u w:val="single"/><w:t>'.$escapedChairName.'</w:t></w:r><w:r><w:br/><w:t>NIRA/Reg: '.$escapedChairReg.'</w:t></w:r>';
+                if (! str_contains($relsXml, 'Id="rIdQrChairman"')) {
+                    $relsXml = str_replace(
+                        '</Relationships>',
+                        '<Relationship Id="rIdQrChairman" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'.$chairMediaName.'"/></Relationships>',
+                        $relsXml
+                    );
+                }
+
+                $escapedChairName = htmlspecialchars($letter->chairman_name ?? '', ENT_XML1);
+                $escapedChairPos = htmlspecialchars($letter->chairman_position ?? 'Ketua', ENT_XML1);
+                $escapedChairReg = htmlspecialchars($letter->chairman_registration_number ?? '', ENT_XML1);
+
+                $chairmanDrawingRun = '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="1080000" cy="1080000"/><wp:docPr id="102" name="QrChairman"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="102" name="QrChairman"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdQrChairman" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1080000" cy="1080000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r><w:r><w:br/><w:b/><w:u w:val="single"/><w:t>'.$escapedChairName.'</w:t></w:r><w:r><w:br/><w:t>NIRA/Reg: '.$escapedChairReg.'</w:t></w:r>';
+            } else {
+                $chairmanDrawingRun = '<w:r><w:rPr><w:i/><w:color w:val="888888"/></w:rPr><w:t>(Menunggu Tanda Tangan Ketua)</w:t></w:r>';
+            }
         } else {
             $chairmanDrawingRun = '<w:r><w:rPr><w:i/><w:color w:val="888888"/></w:rPr><w:t>(Menunggu Tanda Tangan Ketua)</w:t></w:r>';
         }
@@ -415,13 +437,19 @@ class LetterService
     public function generatePdf(Letter $letter): string
     {
         $secQrBase64 = null;
-        if ($letter->secretary_qr_path && Storage::disk('public')->exists($letter->secretary_qr_path)) {
-            $secQrBase64 = base64_encode(Storage::disk('public')->get($letter->secretary_qr_path));
+        if ($letter->secretary_signed_at) {
+            $secDataUrl = $letter->secretary_qr_data_url;
+            if ($secDataUrl && str_starts_with($secDataUrl, 'data:image/png;base64,')) {
+                $secQrBase64 = substr($secDataUrl, strlen('data:image/png;base64,'));
+            }
         }
 
         $chairQrBase64 = null;
-        if ($letter->chairman_qr_path && Storage::disk('public')->exists($letter->chairman_qr_path)) {
-            $chairQrBase64 = base64_encode(Storage::disk('public')->get($letter->chairman_qr_path));
+        if ($letter->chairman_signed_at) {
+            $chairDataUrl = $letter->chairman_qr_data_url;
+            if ($chairDataUrl && str_starts_with($chairDataUrl, 'data:image/png;base64,')) {
+                $chairQrBase64 = substr($chairDataUrl, strlen('data:image/png;base64,'));
+            }
         }
 
         $logoPath = public_path('images/kop_logo_isnu.jpeg');

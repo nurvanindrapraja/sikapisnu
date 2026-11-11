@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Services\LetterService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Letter extends Model
 {
@@ -252,5 +255,95 @@ class Letter extends Model
         }
 
         return $user->canEditLetter($this);
+    }
+
+    public function getSecretaryQrDataUrlAttribute(): ?string
+    {
+        if (! $this->secretary_signed_at) {
+            return null;
+        }
+
+        if ($this->secretary_qr_path && Storage::disk('public')->exists($this->secretary_qr_path)) {
+            try {
+                $content = Storage::disk('public')->get($this->secretary_qr_path);
+                if (! empty($content)) {
+                    return 'data:image/png;base64,'.base64_encode($content);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Error reading secretary QR: '.$e->getMessage());
+            }
+        }
+
+        try {
+            /** @var LetterService $letterService */
+            $letterService = app(LetterService::class);
+            $payload = $letterService->buildQrPayload($this, 'secretary');
+            $png = $letterService->generateQrPng($payload);
+
+            try {
+                $dir = 'letters/qrcodes';
+                Storage::disk('public')->makeDirectory($dir);
+                $path = "{$dir}/qr_sec_{$this->letter_code}.png";
+                Storage::disk('public')->put($path, $png);
+
+                if ($this->secretary_qr_path !== $path) {
+                    $this->secretary_qr_path = $path;
+                    $this->saveQuietly();
+                }
+            } catch (\Throwable $diskException) {
+                Log::warning('Could not write secretary QR to disk: '.$diskException->getMessage());
+            }
+
+            return 'data:image/png;base64,'.base64_encode($png);
+        } catch (\Throwable $e) {
+            Log::warning('Error generating secretary QR on the fly: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    public function getChairmanQrDataUrlAttribute(): ?string
+    {
+        if (! $this->chairman_signed_at) {
+            return null;
+        }
+
+        if ($this->chairman_qr_path && Storage::disk('public')->exists($this->chairman_qr_path)) {
+            try {
+                $content = Storage::disk('public')->get($this->chairman_qr_path);
+                if (! empty($content)) {
+                    return 'data:image/png;base64,'.base64_encode($content);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Error reading chairman QR: '.$e->getMessage());
+            }
+        }
+
+        try {
+            /** @var LetterService $letterService */
+            $letterService = app(LetterService::class);
+            $payload = $letterService->buildQrPayload($this, 'chairman');
+            $png = $letterService->generateQrPng($payload);
+
+            try {
+                $dir = 'letters/qrcodes';
+                Storage::disk('public')->makeDirectory($dir);
+                $path = "{$dir}/qr_chair_{$this->letter_code}.png";
+                Storage::disk('public')->put($path, $png);
+
+                if ($this->chairman_qr_path !== $path) {
+                    $this->chairman_qr_path = $path;
+                    $this->saveQuietly();
+                }
+            } catch (\Throwable $diskException) {
+                Log::warning('Could not write chairman QR to disk: '.$diskException->getMessage());
+            }
+
+            return 'data:image/png;base64,'.base64_encode($png);
+        } catch (\Throwable $e) {
+            Log::warning('Error generating chairman QR on the fly: '.$e->getMessage());
+
+            return null;
+        }
     }
 }

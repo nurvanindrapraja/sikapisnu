@@ -202,8 +202,16 @@
     <!-- Kolom Ketua (Kiri) -->
     <div class="col-6">
         <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
-            @if($letter->chairman_qr_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($letter->chairman_qr_path))
-                <img src="{{ asset('storage/' . $letter->chairman_qr_path) }}" alt="QR Ketua" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+            @if($letter->chairman_signed_at)
+                @php $chairQr = $letter->chairman_qr_data_url; @endphp
+                @if($chairQr)
+                    <img src="{{ $chairQr }}" alt="QR Ketua" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                @else
+                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
+                        <span>Sah & Ditandatangani</span>
+                    </div>
+                @endif
             @else
                 <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
                     Belum TTD Ketua
@@ -217,8 +225,16 @@
     <!-- Kolom Sekretaris (Kanan) -->
     <div class="col-6">
         <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
-            @if($letter->secretary_qr_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($letter->secretary_qr_path))
-                <img src="{{ asset('storage/' . $letter->secretary_qr_path) }}" alt="QR Sekretaris" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+            @if($letter->secretary_signed_at)
+                @php $secQr = $letter->secretary_qr_data_url; @endphp
+                @if($secQr)
+                    <img src="{{ $secQr }}" alt="QR Sekretaris" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                @else
+                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
+                        <span>Sah & Ditandatangani</span>
+                    </div>
+                @endif
             @else
                 <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
                     Belum TTD Sekretaris
