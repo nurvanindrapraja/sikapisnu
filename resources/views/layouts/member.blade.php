@@ -94,6 +94,11 @@
                     <i class="bi bi-file-earmark-text-fill me-1"></i> Konsep Surat
                 </a>
                 @endif
+                @if(auth()->user()->canManageFinances())
+                <a href="{{ route('admin.finances.index') }}" class="btn {{ request()->routeIs('admin.finances.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-cash-coin me-1"></i> Keuangan Kas
+                </a>
+                @endif
                 @if(auth()->user()->isAdmin())
                 <a href="{{ route('admin.dashboard') }}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
                     <i class="bi bi-speedometer2 me-1"></i> Panel Pengurus
@@ -142,6 +147,11 @@
                     @if(auth()->user()->canAccessLetterSubmission())
                     <a href="{{ route('admin.letters.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.letters.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-file-earmark-text-fill text-success fs-5"></i> Konsep Surat & E-TTD
+                    </a>
+                    @endif
+                    @if(auth()->user()->canManageFinances())
+                    <a href="{{ route('admin.finances.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.finances.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-cash-coin text-success fs-5"></i> Keuangan Kas
                     </a>
                     @endif
                     @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))

@@ -190,6 +190,24 @@
                 </div>
             </div>
             @endif
+
+            @if(auth()->user()->canManageFinances())
+            <!-- Quick Link Pengelolaan Keuangan Kas -->
+            <div class="card card-custom p-3 p-md-4 mb-2 mb-lg-4 border-start border-primary border-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary-subtle text-primary rounded-3 p-2.5 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-cash-coin fs-4"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="fw-bold text-dark mb-0">Pengelolaan Keuangan</h6>
+                        <small class="text-muted d-block" style="font-size: 0.8rem;">Catat arus uang masuk & uang keluar kas ISNU serta pantau saldo terkini</small>
+                    </div>
+                    <a href="{{ route('admin.finances.index') }}" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold text-nowrap">
+                        Buka Kas <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+            @endif
         </div>
 
         <!-- Right Column: Profile Overview & Potensi Summary -->

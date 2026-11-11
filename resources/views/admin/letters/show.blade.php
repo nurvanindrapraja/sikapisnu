@@ -50,6 +50,11 @@
                     <i class="bi bi-pencil me-1"></i> Edit
                 </a>
             @endif
+            @if(auth()->user()->isSuperAdmin() || (($letter->status === 'draft' || $letter->status === 'ditolak') && auth()->user()->canEditLetter($letter)))
+                <button type="button" class="btn btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteLetterModal">
+                    <i class="bi bi-trash me-1"></i> Hapus
+                </button>
+            @endif
         </div>
     </div>
 
@@ -620,6 +625,52 @@
                             onclick="this.disabled = true; this.innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Memproses E-TTD...'; document.getElementById('formSignChairman').submit();">
                         <i class="bi bi-check-circle me-1"></i> Ya, Sahkan dan Terbitkan
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+ 
+    @if(auth()->user()->isSuperAdmin() || (($letter->status === 'draft' || $letter->status === 'ditolak') && auth()->user()->canEditLetter($letter)))
+    <!-- Modal Hapus Surat -->
+    <div class="modal fade" id="deleteLetterModal" tabindex="-1" aria-labelledby="deleteLetterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-body p-4 text-center">
+                    <div class="mb-3">
+                        <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                            <i class="bi bi-trash3-fill fs-2"></i>
+                        </div>
+                    </div>
+                    <h5 class="modal-title fw-bold text-dark mb-2" id="deleteLetterModalLabel">Hapus Surat</h5>
+                    <p class="text-muted small mb-0">
+                        Apakah Anda yakin ingin menghapus surat nomor:
+                    </p>
+                    <div class="fw-bold text-dark fs-6 my-2 bg-light p-2 rounded-3 border">
+                        {{ $letter->letter_number }}
+                    </div>
+                    @if($letter->status === 'selesai')
+                        <div class="alert alert-warning text-start small mt-3 mb-0 rounded-3">
+                            <i class="bi bi-shield-exclamation text-danger me-1"></i>
+                            <strong>Peringatan Khusus Super Admin:</strong> Surat ini telah selesai ditandatangani secara digital (E-TTD lengkap). Penghapusan akan menghapus seluruh arsip PDF, DOCX, dan riwayat tanda tangan digital secara permanen.
+                        </div>
+                    @else
+                        <p class="text-muted small mb-0 mt-2">
+                            Tindakan ini tidak dapat dibatalkan. Berkas konsep dan pratinjau surat akan dihapus dari sistem.
+                        </p>
+                    @endif
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0 d-flex gap-2">
+                    <button type="button" class="btn btn-light rounded-pill flex-fill py-2 fw-semibold" data-bs-dismiss="modal">
+                        Batal
+                    </button>
+                    <form action="{{ route('admin.letters.destroy', $letter->id) }}" method="POST" class="flex-fill m-0" onsubmit="document.getElementById('btnConfirmDeleteLetter').disabled = true; document.getElementById('btnConfirmDeleteLetter').innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Menghapus...';">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" id="btnConfirmDeleteLetter" class="btn btn-danger text-white rounded-pill w-100 py-2 fw-semibold shadow-sm">
+                            <i class="bi bi-trash me-1"></i> Ya, Hapus Surat
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

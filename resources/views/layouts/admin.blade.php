@@ -29,6 +29,10 @@
             display: none !important;
         }
 
+        [style*="display: none"] {
+            display: none !important;
+        }
+
         @keyframes toastSlideIn {
             from {
                 transform: translateX(120%);
@@ -369,6 +373,15 @@
             <li>
                 <a href="{{ route('admin.locations.index') }}" class="sidebar-link {{ request()->routeIs('admin.locations.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-geo-alt-fill"></i> Master Lokasi
+                </a>
+            </li>
+            @endif
+
+            @if(auth()->user()->canManageFinances())
+            <li class="sidebar-header">Keuangan & Kas</li>
+            <li>
+                <a href="{{ route('admin.finances.index') }}" class="sidebar-link {{ request()->routeIs('admin.finances.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-cash-coin"></i> Pengelolaan Keuangan
                 </a>
             </li>
             @endif

@@ -276,6 +276,30 @@ class User extends Authenticatable
         return in_array($positionTitle, ['Ketua', 'Sekretaris', 'Bendahara'], true);
     }
 
+    /**
+     * Memeriksa apakah user adalah pengurus dengan jabatan Bendahara / Wakil Bendahara.
+     */
+    public function isBendahara(): bool
+    {
+        $title = (string) $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Bendahara', 'Bendahara Umum', 'Wakil Bendahara'], true)
+            || stripos($title, 'Bendahara') !== false;
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola menu Keuangan (Kas Masuk & Kas Keluar).
+     * Hak akses: Bendahara dan Admin (Superadmin, Admin Kota, Admin PAC, Admin MWC).
+     */
+    public function canManageFinances(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
+            return true;
+        }
+
+        return $this->isBendahara();
+    }
+
     public function canManageMember(?Member $member): bool
     {
         if (! $member) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuditLogController as AdminAuditLog;
 use App\Http\Controllers\Admin\CardOrderController as AdminCardOrder;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\EventController as AdminEvent;
+use App\Http\Controllers\Admin\FinancialTransactionController as AdminFinance;
 use App\Http\Controllers\Admin\LetterController as AdminLetter;
 use App\Http\Controllers\Admin\LocationController as AdminLocation;
 use App\Http\Controllers\Admin\MemberController as AdminMember;
@@ -218,10 +219,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/users/{id}', [AdminUser::class, 'destroy'])->name('users.destroy');
 
     // Persuratan & E-TTD (Konsep Surat Template Word & E-TTD Bertahap)
+    Route::get('/letters/{id}/preview', [AdminLetter::class, 'preview'])->name('letters.preview');
     Route::resource('letters', AdminLetter::class)->parameters(['letters' => 'id']);
     Route::post('/letters/{id}/submit-secretary', [AdminLetter::class, 'submitSecretary'])->name('letters.submit-secretary');
     Route::post('/letters/{id}/sign-secretary', [AdminLetter::class, 'signSecretary'])->name('letters.sign-secretary');
     Route::post('/letters/{id}/sign-chairman', [AdminLetter::class, 'signChairman'])->name('letters.sign-chairman');
     Route::post('/letters/{id}/reject', [AdminLetter::class, 'reject'])->name('letters.reject');
     Route::get('/letters/{id}/download-pdf', [AdminLetter::class, 'downloadPdf'])->name('letters.download-pdf');
+
+    // Pengelolaan Keuangan (Uang Masuk & Uang Keluar)
+    Route::get('/finances/export', [AdminFinance::class, 'export'])->name('finances.export');
+    Route::get('/finances/{id}/preview', [AdminFinance::class, 'preview'])->name('finances.preview');
+    Route::resource('finances', AdminFinance::class)->parameters(['finances' => 'id']);
 });

@@ -63,6 +63,56 @@
         const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteLetterConfirmModal'));
         modal.show();
     },
+    previewModalLetterId: null,
+    isPreviewLoading: false,
+    openPreviewModal(id) {
+        this.previewModalLetterId = id;
+        this.isPreviewLoading = true;
+        const modalEl = document.getElementById('previewLetterModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        const contentEl = document.getElementById('previewLetterModalContent');
+        contentEl.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Memuat pratinjau...</span>
+                </div>
+                <div class="text-muted small mt-3">Sedang memuat pratinjau surat resmi...</div>
+            </div>
+        `;
+
+        fetch('{{ url('/admin/letters') }}/' + id + '/preview', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Network error');
+            return res.text();
+        })
+        .then(html => {
+            contentEl.innerHTML = html;
+            this.isPreviewLoading = false;
+        })
+        .catch(err => {
+            console.error('Error loading letter preview:', err);
+            contentEl.innerHTML = `
+                <div class="modal-header border-bottom px-4 py-3 bg-light">
+                    <h5 class="modal-title fw-bold text-danger mb-0">Gagal Memuat Pratinjau</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i> Terjadi kesalahan saat memuat dokumen pratinjau. Silakan coba kembali atau buka langsung halaman rincian.
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-2 bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
+                    <a href="{{ url('/admin/letters') }}/${id}" class="btn btn-primary rounded-pill px-3">Buka Rincian</a>
+                </div>
+            `;
+            this.isPreviewLoading = false;
+        });
+    },
     executeDelete() {
         if (this.targetDeleteId) {
             this.deletingId = this.targetDeleteId;
@@ -330,6 +380,15 @@
                         <span x-text="deletingId !== null ? 'Menghapus...' : 'Ya, Hapus'">Ya, Hapus</span>
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Preview Konsep Surat -->
+    <div class="modal fade" id="previewLetterModal" tabindex="-1" aria-labelledby="previewLetterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden" id="previewLetterModalContent">
+                <!-- Content will be loaded dynamically via AJAX -->
             </div>
         </div>
     </div>

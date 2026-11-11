@@ -83,9 +83,10 @@
                     </td>
                     <td class="text-end pe-4">
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ route('admin.letters.show', $item->id) }}" class="btn btn-outline-primary" title="Lihat Detail & E-TTD">
+                            <button type="button" class="btn btn-outline-primary" title="Pratinjau Surat (Popup Modal)"
+                                    @click="openPreviewModal({{ $item->id }})">
                                 <i class="bi bi-eye"></i>
-                            </a>
+                            </button>
                             @if(auth()->user()->canEditLetter($item))
                                 <a href="{{ route('admin.letters.edit', $item->id) }}" class="btn btn-outline-secondary" title="Sunting Konsep">
                                     <i class="bi bi-pencil"></i>
@@ -103,8 +104,8 @@
                                     <i class="bi bi-lock-fill"></i>
                                 </button>
                             @endif
-                            @if(($item->status === 'draft' || $item->status === 'ditolak') && (auth()->user()->canEditLetter($item) || auth()->user()->isSuperAdmin()))
-                                <button type="button" class="btn btn-outline-danger" title="Hapus Konsep"
+                            @if(auth()->user()->isSuperAdmin() || (($item->status === 'draft' || $item->status === 'ditolak') && auth()->user()->canEditLetter($item)))
+                                <button type="button" class="btn btn-outline-danger" title="{{ $item->status === 'selesai' ? 'Hapus Surat Resmi (Super Admin)' : 'Hapus Konsep' }}"
                                         :disabled="deletingId !== null"
                                         @click="openDeleteModal({{ $item->id }}, '{{ addslashes($item->letter_number) }}')">
                                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="deletingId === {{ $item->id }}" x-cloak></span>
@@ -112,7 +113,7 @@
                                 </button>
                             @endif
                         </div>
-                        @if(($item->status === 'draft' || $item->status === 'ditolak') && (auth()->user()->canEditLetter($item) || auth()->user()->isSuperAdmin()))
+                        @if(auth()->user()->isSuperAdmin() || (($item->status === 'draft' || $item->status === 'ditolak') && auth()->user()->canEditLetter($item)))
                             <form id="delete-letter-{{ $item->id }}" action="{{ route('admin.letters.destroy', $item->id) }}" method="POST" class="d-none">
                                 @csrf
                                 @method('DELETE')
@@ -222,10 +223,11 @@
 
                 <!-- Action Buttons -->
                 <div class="d-flex gap-2 pt-2 border-top">
-                    <a href="{{ route('admin.letters.show', $item->id) }}" class="btn btn-sm btn-outline-primary rounded-pill flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-1.5 fw-semibold">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill flex-grow-1 d-flex align-items-center justify-content-center gap-1 py-1.5 fw-semibold"
+                            @click="openPreviewModal({{ $item->id }})">
                         <i class="bi bi-eye"></i>
-                        <span>Detail & E-TTD</span>
-                    </a>
+                        <span>Preview</span>
+                    </button>
                     @if(auth()->user()->canEditLetter($item))
                         <a href="{{ route('admin.letters.edit', $item->id) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-flex align-items-center justify-content-center" title="Sunting Konsep">
                             <i class="bi bi-pencil"></i>
@@ -243,8 +245,8 @@
                             <i class="bi bi-lock-fill"></i>
                         </button>
                     @endif
-                    @if(($item->status === 'draft' || $item->status === 'ditolak') && (auth()->user()->canEditLetter($item) || auth()->user()->isSuperAdmin()))
-                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-flex align-items-center justify-content-center" title="Hapus Konsep"
+                    @if(auth()->user()->isSuperAdmin() || (($item->status === 'draft' || $item->status === 'ditolak') && auth()->user()->canEditLetter($item)))
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 d-flex align-items-center justify-content-center" title="{{ $item->status === 'selesai' ? 'Hapus Surat Resmi (Super Admin)' : 'Hapus Konsep' }}"
                                 :disabled="deletingId !== null"
                                 @click="openDeleteModal({{ $item->id }}, '{{ addslashes($item->letter_number) }}')">
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="deletingId === {{ $item->id }}" x-cloak></span>

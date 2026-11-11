@@ -197,6 +197,15 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', $message);
     }
 
+    public function preview(int $id): View
+    {
+        $this->checkAccess();
+
+        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac'])->findOrFail($id);
+
+        return view('admin.letters.partials.letter_preview_modal_content', compact('letter'));
+    }
+
     public function show(int $id): View
     {
         $this->checkAccess();
@@ -366,10 +375,10 @@ class LetterController extends Controller
         $letter = Letter::findOrFail($id);
 
         if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isSuperAdmin()) {
-            abort(403, 'Surat yang sudah selesai ditandatangani tidak dapat dihapus.');
+            abort(403, 'Surat yang telah selesai ditandatangani hanya dapat dihapus oleh Super Admin.');
         }
 
-        if (! auth()->user()->canEditLetter($letter) && ! auth()->user()->isSuperAdmin()) {
+        if (! auth()->user()->isSuperAdmin() && ! auth()->user()->canEditLetter($letter)) {
             abort(403, 'Anda tidak memiliki hak akses untuk menghapus konsep surat ini.');
         }
 
@@ -387,11 +396,16 @@ class LetterController extends Controller
         }
 
         $letterNumber = $letter->letter_number;
+        $statusWas = $letter->status;
         $letter->delete();
 
-        AuditLog::record(auth()->id(), 'delete_letter', "Menghapus konsep surat nomor: {$letterNumber}");
+        AuditLog::record(auth()->id(), 'delete_letter', "Menghapus surat nomor: {$letterNumber} (Status awal: {$statusWas})");
 
-        return redirect()->route('admin.letters.index')->with('success', 'Konsep surat berhasil dihapus.');
+        $message = $statusWas === Letter::STATUS_SELESAI
+            ? "Surat nomor {$letterNumber} yang telah selesai ditandatangani berhasil dihapus oleh Super Admin."
+            : 'Konsep surat berhasil dihapus.';
+
+        return redirect()->route('admin.letters.index')->with('success', $message);
     }
 
     public function submitSecretary(int $id, LetterService $letterService): RedirectResponse
