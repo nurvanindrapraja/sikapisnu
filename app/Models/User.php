@@ -96,7 +96,56 @@ class User extends Authenticatable
     }
 
     /**
-     * Memeriksa apakah user adalah Ketua atau Sekretaris (atau Super Admin / Admin Kota / Admin)
+     * Memeriksa apakah user adalah Pengurus tingkat PAC ISNU.
+     */
+    public function isOfficerPac(): bool
+    {
+        $pos = $this->getOfficerPosition();
+        if (! $pos) {
+            return false;
+        }
+
+        return in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || ! empty($pos->pac_id);
+    }
+
+    /**
+     * Memeriksa apakah user adalah Pengurus tingkat PC ISNU.
+     */
+    public function isOfficerPc(): bool
+    {
+        return $this->isOfficer() && ! $this->isOfficerPac();
+    }
+
+    /**
+     * Memeriksa apakah user adalah Ketua atau Sekretaris PAC ISNU.
+     */
+    public function isKetuaOrSekretarisPac(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return false;
+        }
+
+        $title = (string) $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Ketua', 'Sekretaris'], true) && $this->isOfficerPac();
+    }
+
+    /**
+     * Memeriksa apakah user adalah Ketua atau Sekretaris PC ISNU.
+     */
+    public function isKetuaOrSekretarisPc(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return false;
+        }
+
+        $title = (string) $this->getOfficerPositionTitle();
+
+        return in_array($title, ['Ketua', 'Sekretaris'], true) && $this->isOfficerPc();
+    }
+
+    /**
+     * Memeriksa apakah user adalah Ketua atau Sekretaris PC ISNU (atau Super Admin / Admin Kota / Admin)
      * yang memiliki hak akses penuh atas semua program dan kegiatan di semua seksi.
      */
     public function canManageAllProgramsAndEvents(): bool
@@ -107,7 +156,7 @@ class User extends Authenticatable
 
         $title = $this->getOfficerPositionTitle();
 
-        return in_array($title, ['Ketua', 'Sekretaris'], true);
+        return in_array($title, ['Ketua', 'Sekretaris'], true) && ! $this->isOfficerPac();
     }
 
     /**
@@ -157,6 +206,15 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->isKetuaOrSekretarisPac()) {
+            if ($sectionId === null) {
+                return false;
+            }
+            $section = Section::find($sectionId);
+
+            return $section && (int) $section->pac_id === (int) $this->getManagedPacId();
+        }
+
         if ($this->isSectionOfficer()) {
             $userSectionId = $this->getOfficerSectionId();
 
@@ -173,6 +231,10 @@ class User extends Authenticatable
     {
         if ($this->canManageAllProgramsAndEvents()) {
             return true;
+        }
+
+        if ($this->isKetuaOrSekretarisPac()) {
+            return $this->getManagedPacId() !== null;
         }
 
         return $this->isSectionOfficer() && $this->getOfficerSectionId() !== null;
@@ -223,13 +285,17 @@ class User extends Authenticatable
 
     /**
      * Memeriksa apakah user berhak mengelola data anggota dan data pengurus.
-     * Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data,
-     * sedangkan posisi pengurus lainnya hanya dapat melihat saja.
+     * Hanya Superadmin, Admin, Ketua PC, dan Sekretaris PC yang dapat mengelola data,
+     * sedangkan posisi pengurus lainnya (termasuk Ketua & Sekretaris PAC) hanya dapat melihat saja.
      */
     public function canManageMembersAndOfficers(): bool
     {
         if ($this->isSuperAdmin() || $this->isAdminKota() || $this->isAdminPac() || $this->isAdminMwc() || $this->role === 'admin') {
             return true;
+        }
+
+        if ($this->isKetuaOrSekretarisPac()) {
+            return false;
         }
 
         $positionTitle = $this->getOfficerPositionTitle();
@@ -247,11 +313,16 @@ class User extends Authenticatable
     }
 
     /**
-     * Memeriksa apakah user dapat mengelola Master PAC, Master Seksi, dan Data Sampah.
-     * Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengelola.
+     * Memeriksa apakah user dapat mengelola Master PAC dan Data Sampah.
+     * Hanya Superadmin, Admin PC, Ketua PC, dan Sekretaris PC yang berhak mengelola.
+     * Ketua dan Sekretaris PAC TIDAK DAPAT mengelola Master PAC dan Data Sampah.
      */
     public function canManagePacSectionTrash(): bool
     {
+        if ($this->isKetuaOrSekretarisPac()) {
+            return false;
+        }
+
         if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
             return true;
         }
@@ -262,11 +333,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Memeriksa apakah user dapat mengelola Master Seksi.
+     * Superadmin, Admin PC, Ketua/Sekretaris PC, dan Ketua/Sekretaris PAC berhak mengelola
+     * (untuk Ketua & Sekretaris PAC khusus seksi di wilayah PAC-nya).
+     */
+    public function canManageSections(): bool
+    {
+        return $this->canManagePacSectionTrash() || $this->isKetuaOrSekretarisPac();
+    }
+
+    /**
      * Memeriksa apakah user dapat mengelola menu Kartu Fisik.
-     * Hanya Superadmin, Admin PC, Ketua, Sekretaris, dan Bendahara yang berhak mengelola.
+     * Hanya Superadmin, Admin PC, Ketua PC, Sekretaris PC, dan Bendahara yang berhak mengelola.
+     * Ketua dan Sekretaris PAC tidak bisa mengakses menu kartu fisik.
      */
     public function canManageCardOrders(): bool
     {
+        if ($this->isKetuaOrSekretarisPac()) {
+            return false;
+        }
+
         if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
             return true;
         }

@@ -20,6 +20,15 @@ class EventController extends Controller
     {
         $query = Event::with(['section', 'program'])->withCount('presences');
 
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+        } else {
+            if ($request->filled('section_id')) {
+                $query->where('section_id', $request->section_id);
+            }
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -27,10 +36,6 @@ class EventController extends Controller
                     ->orWhere('location', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             });
-        }
-
-        if ($request->filled('section_id')) {
-            $query->where('section_id', $request->section_id);
         }
 
         if ($request->filled('program_id')) {
@@ -46,8 +51,11 @@ class EventController extends Controller
         }
 
         $events = $query->latest('event_date')->paginate(10)->withQueryString();
-        $sections = Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
-            ->orderBy('level')->orderBy('name')->get();
+        $sections = auth()->user()->isKetuaOrSekretarisPac()
+            ? Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+            : Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->orderBy('level')->orderBy('name')->get();
 
         if ($request->ajax()) {
             return view('admin.events.partials.event_list', compact('events', 'sections'));
@@ -63,7 +71,7 @@ class EventController extends Controller
                 $q->with('event')->latest('attended_at');
             }]);
 
-        if (auth()->user()->isAdminPac()) {
+        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
             $kecamatan = auth()->user()->member?->kecamatan;
             $query->where(function ($q) use ($pacId, $kecamatan) {
@@ -141,7 +149,7 @@ class EventController extends Controller
             },
         ])->findOrFail($member_id);
 
-        if (! auth()->user()->canManageMember($member)) {
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki wewenang untuk melihat detail kader di luar wilayah PAC Anda.',
@@ -230,9 +238,20 @@ class EventController extends Controller
     public function show($id)
     {
         $event = Event::with(['presences.member', 'presences.user', 'creator', 'section', 'program'])->withCount('presences')->findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ($event->section && (int) $event->section->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat melihat kegiatan di wilayah PAC Anda.');
+            }
+        }
+
         $presences = $event->presences()->latest('attended_at')->paginate(20)->withQueryString();
-        $sections = Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
-            ->orderBy('level')->orderBy('name')->get();
+        $sections = auth()->user()->isKetuaOrSekretarisPac()
+            ? Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+            : Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->orderBy('level')->orderBy('name')->get();
 
         return view('admin.events.show', compact('event', 'presences', 'sections'));
     }

@@ -12,8 +12,8 @@ class SectionController extends Controller
 {
     protected function checkAccess(): void
     {
-        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
-            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengakses dan mengelola Master Seksi.');
+        if (! auth()->user() || ! auth()->user()->canManageSections()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengelola Master Seksi.');
         }
     }
 
@@ -23,12 +23,17 @@ class SectionController extends Controller
 
         $query = Section::with('pac');
 
-        if ($request->filled('level')) {
-            $query->where('level', $request->level);
-        }
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $query->where('level', 'PAC ISNU')->where('pac_id', $pacId);
+        } else {
+            if ($request->filled('level')) {
+                $query->where('level', $request->level);
+            }
 
-        if ($request->filled('pac_id')) {
-            $query->where('pac_id', $request->pac_id);
+            if ($request->filled('pac_id')) {
+                $query->where('pac_id', $request->pac_id);
+            }
         }
 
         if ($request->filled('search')) {
@@ -41,7 +46,9 @@ class SectionController extends Controller
         }
 
         $sections = $query->orderBy('level')->orderBy('name')->paginate(15)->withQueryString();
-        $pacs = Pac::orderBy('name')->get();
+        $pacs = auth()->user()->isKetuaOrSekretarisPac()
+            ? Pac::where('id', auth()->user()->getManagedPacId())->get()
+            : Pac::orderBy('name')->get();
 
         if ($request->ajax()) {
             return view('admin.sections.partials.section_list', compact('sections', 'pacs'));
@@ -62,7 +69,10 @@ class SectionController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        if ($validated['level'] === 'PC ISNU') {
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $validated['level'] = 'PAC ISNU';
+            $validated['pac_id'] = auth()->user()->getManagedPacId();
+        } elseif ($validated['level'] === 'PC ISNU') {
             $validated['pac_id'] = null;
         }
 
@@ -85,6 +95,13 @@ class SectionController extends Controller
 
         $section = Section::findOrFail($id);
 
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $section->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola seksi di PAC Anda sendiri.');
+            }
+        }
+
         $validated = $request->validate([
             'level' => 'required|in:PC ISNU,PAC ISNU',
             'pac_id' => 'nullable|required_if:level,PAC ISNU|exists:pac,id',
@@ -93,7 +110,10 @@ class SectionController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        if ($validated['level'] === 'PC ISNU') {
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $validated['level'] = 'PAC ISNU';
+            $validated['pac_id'] = auth()->user()->getManagedPacId();
+        } elseif ($validated['level'] === 'PC ISNU') {
             $validated['pac_id'] = null;
         }
 
@@ -115,6 +135,14 @@ class SectionController extends Controller
         $this->checkAccess();
 
         $section = Section::findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $section->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat menghapus seksi di PAC Anda sendiri.');
+            }
+        }
+
         $name = $section->name;
         $section->delete();
 

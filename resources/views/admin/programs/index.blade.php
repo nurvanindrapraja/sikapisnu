@@ -137,13 +137,21 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-2">
-                <select x-model="level" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
-                    <option value="">-- Semua Tingkat --</option>
-                    <option value="PC ISNU">PC ISNU</option>
-                    <option value="PAC ISNU">PAC ISNU</option>
-                </select>
-            </div>
+            @if(auth()->user()->isKetuaOrSekretarisPac())
+                <div class="col-md-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle p-2 px-3 rounded-pill">
+                        <i class="bi bi-geo-alt-fill me-1"></i> PAC ISNU
+                    </span>
+                </div>
+            @else
+                <div class="col-md-2">
+                    <select x-model="level" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
+                        <option value="">-- Semua Tingkat --</option>
+                        <option value="PC ISNU">PC ISNU</option>
+                        <option value="PAC ISNU">PAC ISNU</option>
+                    </select>
+                </div>
+            @endif
             <div class="col-md-2">
                 <select x-model="status" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua Status --</option>

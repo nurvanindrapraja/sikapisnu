@@ -22,7 +22,7 @@ class OfficerController extends Controller
         $query = Member::where('membership_status', 'pengurus')
             ->with(['activePosition.pac', 'activePosition.section', 'activeCard', 'workgroups']);
 
-        if (auth()->user()->isAdminPac()) {
+        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
             $kecamatan = auth()->user()->member?->kecamatan;
             $query->where(function ($q) use ($pacId, $kecamatan) {
@@ -30,7 +30,9 @@ class OfficerController extends Controller
                     $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
                 }
                 if ($kecamatan) {
-                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                    $q->orWhere(function ($sub) use ($kecamatan) {
+                        $sub->whereNull('pac_id')->where('kecamatan', 'like', "%{$kecamatan}%");
+                    });
                 }
             });
         }
@@ -79,11 +81,15 @@ class OfficerController extends Controller
         }
 
         $officers = $query->latest()->paginate(15)->withQueryString();
-        $pacs = Pac::orderBy('name')->get();
-        $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
+        $pacs = auth()->user()->isKetuaOrSekretarisPac()
+            ? Pac::where('id', auth()->user()->getManagedPacId())->get()
+            : Pac::orderBy('name')->get();
+        $sections = auth()->user()->isKetuaOrSekretarisPac()
+            ? Section::with('pac')->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+            : Section::with('pac')->orderBy('level')->orderBy('name')->get();
 
         $eligibleQuery = Member::where('membership_status', 'terverifikasi')->whereDoesntHave('activePosition');
-        if (auth()->user()->isAdminPac()) {
+        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
             $kecamatan = auth()->user()->member?->kecamatan;
             $eligibleQuery->where(function ($q) use ($pacId, $kecamatan) {
@@ -91,7 +97,9 @@ class OfficerController extends Controller
                     $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
                 }
                 if ($kecamatan) {
-                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
+                    $q->orWhere(function ($sub) use ($kecamatan) {
+                        $sub->whereNull('pac_id')->where('kecamatan', 'like', "%{$kecamatan}%");
+                    });
                 }
             });
         }
@@ -118,8 +126,8 @@ class OfficerController extends Controller
 
         $member = Member::findOrFail($member_id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data pengurus.');
+        if (auth()->user()->isKetuaOrSekretarisPac() || ! auth()->user()->canManageMember($member)) {
+            abort(403, 'Ketua dan Sekretaris PAC hanya dapat melihat data pengurus di wilayah PAC-nya sendiri.');
         }
 
         DB::beginTransaction();
@@ -204,8 +212,8 @@ class OfficerController extends Controller
     {
         $member = Member::findOrFail($member_id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Hanya Superadmin, Admin, Ketua, dan Sekretaris yang dapat mengelola data pengurus.');
+        if (auth()->user()->isKetuaOrSekretarisPac() || ! auth()->user()->canManageMember($member)) {
+            abort(403, 'Ketua dan Sekretaris PAC hanya dapat melihat data pengurus di wilayah PAC-nya sendiri.');
         }
 
         DB::beginTransaction();

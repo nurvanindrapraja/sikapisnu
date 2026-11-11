@@ -288,7 +288,7 @@
             </li>
 
             <li class="sidebar-header">Verifikasi & Keanggotaan</li>
-            @if(!auth()->user()->isRestrictedOfficer())
+            @if(!auth()->user()->isRestrictedOfficer() && !auth()->user()->isKetuaOrSekretarisPac())
             <li>
                 <a href="{{ route('admin.verifikasi.index') }}" class="sidebar-link {{ request()->routeIs('admin.verifikasi.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-check-fill"></i> Verifikasi Pendaftar
@@ -298,6 +298,8 @@
                     @endif
                 </a>
             </li>
+            @endif
+            @if(!auth()->user()->isRestrictedOfficer())
             <li>
                 <a href="{{ route('admin.anggota.index') }}" class="sidebar-link {{ request()->routeIs('admin.anggota.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-people-fill"></i> Database Potensi Kader
@@ -339,6 +341,8 @@
                     <i class="bi bi-diagram-3-fill"></i> Master PAC ISNU
                 </a>
             </li>
+            @endif
+            @if(auth()->user()->canManageSections())
             <li>
                 <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-diagram-2-fill"></i> Master Seksi
@@ -407,7 +411,7 @@
             </li>
             @endif
 
-            @if(!auth()->user()->isRestrictedOfficer() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota())))
+            @if(!auth()->user()->isKetuaOrSekretarisPac() && (!auth()->user()->isRestrictedOfficer() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota()))))
             <li class="sidebar-header">Laporan & Keamanan</li>
             @if(!auth()->user()->isRestrictedOfficer())
             <li>

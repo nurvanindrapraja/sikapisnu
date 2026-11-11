@@ -31,12 +31,17 @@ class WorkgroupController extends Controller
 
         $query = Workgroup::with('pac')->withCount('members');
 
-        if ($request->filled('level')) {
-            $query->where('level', $request->level);
-        }
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $query->where('level', 'PAC ISNU')->where('pac_id', $pacId);
+        } else {
+            if ($request->filled('level')) {
+                $query->where('level', $request->level);
+            }
 
-        if ($request->filled('pac_id')) {
-            $query->where('pac_id', $request->pac_id);
+            if ($request->filled('pac_id')) {
+                $query->where('pac_id', $request->pac_id);
+            }
         }
 
         if ($request->filled('status')) {
@@ -53,14 +58,26 @@ class WorkgroupController extends Controller
         }
 
         $workgroups = $query->orderBy('level')->orderBy('name')->paginate(15)->withQueryString();
-        $pacs = Pac::orderBy('name')->get();
+        $pacs = auth()->user()->isKetuaOrSekretarisPac()
+            ? Pac::where('id', auth()->user()->getManagedPacId())->get()
+            : Pac::orderBy('name')->get();
 
-        $metrics = [
-            'total' => Workgroup::count(),
-            'pc' => Workgroup::where('level', 'PC ISNU')->count(),
-            'pac' => Workgroup::where('level', 'PAC ISNU')->count(),
-            'members' => WorkgroupMember::distinct('member_id')->count('member_id'),
-        ];
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $metrics = [
+                'total' => Workgroup::where('level', 'PAC ISNU')->where('pac_id', $pacId)->count(),
+                'pc' => 0,
+                'pac' => Workgroup::where('level', 'PAC ISNU')->where('pac_id', $pacId)->count(),
+                'members' => WorkgroupMember::whereHas('workgroup', fn ($q) => $q->where('level', 'PAC ISNU')->where('pac_id', $pacId))->distinct('member_id')->count('member_id'),
+            ];
+        } else {
+            $metrics = [
+                'total' => Workgroup::count(),
+                'pc' => Workgroup::where('level', 'PC ISNU')->count(),
+                'pac' => Workgroup::where('level', 'PAC ISNU')->count(),
+                'members' => WorkgroupMember::distinct('member_id')->count('member_id'),
+            ];
+        }
 
         if ($request->ajax()) {
             return view('admin.workgroups.partials.workgroup_list', compact('workgroups', 'pacs'));
@@ -85,7 +102,10 @@ class WorkgroupController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        if ($validated['level'] === 'PC ISNU') {
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $validated['level'] = 'PAC ISNU';
+            $validated['pac_id'] = auth()->user()->getManagedPacId();
+        } elseif ($validated['level'] === 'PC ISNU') {
             $validated['pac_id'] = null;
         }
 
@@ -118,7 +138,16 @@ class WorkgroupController extends Controller
             },
         ])->findOrFail($id);
 
-        $pacs = Pac::orderBy('name')->get();
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola kelompok kerja di PAC Anda sendiri.');
+            }
+        }
+
+        $pacs = auth()->user()->isKetuaOrSekretarisPac()
+            ? Pac::where('id', auth()->user()->getManagedPacId())->get()
+            : Pac::orderBy('name')->get();
 
         // Mengambil kandidat pengurus yang SAH masuk ke Pokja:
         // Syarat mutlak: Status pengurus, memiliki jabatan aktif, dan BERADA DI SEKSI (bukan di luar seksi).
@@ -131,8 +160,8 @@ class WorkgroupController extends Controller
             })
             ->with(['activePosition.section', 'activePosition.pac', 'pac']);
 
-        // Jika user admin PAC, batasi sesuai wilayah PAC
-        if (auth()->user()->isAdminPac()) {
+        // Jika user admin PAC atau Ketua/Sekretaris PAC, batasi sesuai wilayah PAC
+        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
             if ($pacId) {
                 $eligibleQuery->where(function ($q) use ($pacId) {
@@ -153,6 +182,13 @@ class WorkgroupController extends Controller
     {
         $workgroup = Workgroup::findOrFail($id);
 
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola kelompok kerja di PAC Anda sendiri.');
+            }
+        }
+
         $validated = $request->validate([
             'level' => 'required|in:PC ISNU,PAC ISNU',
             'pac_id' => 'nullable|required_if:level,PAC ISNU|exists:pac,id',
@@ -162,7 +198,10 @@ class WorkgroupController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        if ($validated['level'] === 'PC ISNU') {
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $validated['level'] = 'PAC ISNU';
+            $validated['pac_id'] = auth()->user()->getManagedPacId();
+        } elseif ($validated['level'] === 'PC ISNU') {
             $validated['pac_id'] = null;
         }
 
@@ -187,6 +226,14 @@ class WorkgroupController extends Controller
     public function destroy(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $workgroup = Workgroup::findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat menghapus kelompok kerja di PAC Anda sendiri.');
+            }
+        }
+
         $name = $workgroup->name;
         $workgroup->delete();
 
@@ -208,6 +255,13 @@ class WorkgroupController extends Controller
     public function addMember(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $workgroup = Workgroup::findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola kelompok kerja di PAC Anda sendiri.');
+            }
+        }
 
         $request->validate([
             'member_id' => 'required|exists:members,id',
@@ -264,6 +318,14 @@ class WorkgroupController extends Controller
     public function updateMember(Request $request, int $id, int $member_id): JsonResponse|RedirectResponse
     {
         $workgroup = Workgroup::findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola kelompok kerja di PAC Anda sendiri.');
+            }
+        }
+
         $member = Member::findOrFail($member_id);
 
         $request->validate([
@@ -297,6 +359,14 @@ class WorkgroupController extends Controller
     public function removeMember(Request $request, int $id, int $member_id): JsonResponse|RedirectResponse
     {
         $workgroup = Workgroup::findOrFail($id);
+
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            if ((int) $workgroup->pac_id !== (int) $pacId) {
+                abort(403, 'Anda hanya dapat mengelola kelompok kerja di PAC Anda sendiri.');
+            }
+        }
+
         $member = Member::findOrFail($member_id);
 
         $workgroup->members()->detach($member_id);

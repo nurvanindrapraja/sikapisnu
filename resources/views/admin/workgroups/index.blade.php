@@ -140,21 +140,29 @@
                     <input type="text" x-model="search" @input.debounce.400ms="fetchWorkgroups()" class="form-control bg-light border-start-0" placeholder="Cari nama pokja / kode / deskripsi...">
                 </div>
             </div>
-            <div class="col-md-3">
-                <select x-model="level" @change="fetchWorkgroups()" class="form-select form-select-sm bg-light">
-                    <option value="">-- Semua Tingkat Organisasi --</option>
-                    <option value="PC ISNU">PC ISNU Kota Surabaya</option>
-                    <option value="PAC ISNU">PAC ISNU (Kecamatan)</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select x-model="pac_id" @change="fetchWorkgroups()" class="form-select form-select-sm bg-light">
-                    <option value="">-- Semua PAC ISNU --</option>
-                    @foreach($pacs as $pac)
-                        <option value="{{ $pac->id }}">{{ $pac->name }}</option>
-                    @endforeach
-                </select>
-            </div>
+            @if(auth()->user()->isKetuaOrSekretarisPac())
+                <div class="col-md-5">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle p-2 px-3 rounded-pill">
+                        <i class="bi bi-geo-alt-fill me-1"></i> Wilayah PAC: <strong>{{ $pacs->first()?->name }}</strong>
+                    </span>
+                </div>
+            @else
+                <div class="col-md-3">
+                    <select x-model="level" @change="fetchWorkgroups()" class="form-select form-select-sm bg-light">
+                        <option value="">-- Semua Tingkat Organisasi --</option>
+                        <option value="PC ISNU">PC ISNU Kota Surabaya</option>
+                        <option value="PAC ISNU">PAC ISNU (Kecamatan)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select x-model="pac_id" @change="fetchWorkgroups()" class="form-select form-select-sm bg-light">
+                        <option value="">-- Semua PAC ISNU --</option>
+                        @foreach($pacs as $pac)
+                            <option value="{{ $pac->id }}">{{ $pac->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div class="col-md-2">
                 <select x-model="status" @change="fetchWorkgroups()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua Status --</option>
@@ -227,23 +235,32 @@
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tingkat Organisasi <span class="text-danger">*</span></label>
-                        <select name="level" class="form-select" x-model="level" required :disabled="loading">
-                            <option value="PC ISNU">PC ISNU Kota Surabaya (Tingkat Kota)</option>
-                            <option value="PAC ISNU">PAC ISNU (Tingkat Kecamatan)</option>
-                        </select>
-                    </div>
+                    @if(auth()->user()->isKetuaOrSekretarisPac())
+                        <input type="hidden" name="level" value="PAC ISNU">
+                        <input type="hidden" name="pac_id" value="{{ auth()->user()->getManagedPacId() }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Wilayah PAC ISNU</label>
+                            <input type="text" class="form-control bg-light" value="{{ $pacs->first()?->name ?? 'PAC ISNU' }}" readonly>
+                        </div>
+                    @else
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tingkat Organisasi <span class="text-danger">*</span></label>
+                            <select name="level" class="form-select" x-model="level" required :disabled="loading">
+                                <option value="PC ISNU">PC ISNU Kota Surabaya (Tingkat Kota)</option>
+                                <option value="PAC ISNU">PAC ISNU (Tingkat Kecamatan)</option>
+                            </select>
+                        </div>
 
-                    <div class="mb-3" x-show="level === 'PAC ISNU'" x-cloak>
-                        <label class="form-label fw-semibold">Pilih PAC ISNU <span class="text-danger">*</span></label>
-                        <select name="pac_id" class="form-select" :required="level === 'PAC ISNU'" :disabled="loading">
-                            <option value="">-- Pilih PAC ISNU --</option>
-                            @foreach($pacs as $pac)
-                                <option value="{{ $pac->id }}">{{ $pac->name }} ({{ $pac->kecamatan }})</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        <div class="mb-3" x-show="level === 'PAC ISNU'" x-cloak>
+                            <label class="form-label fw-semibold">Pilih PAC ISNU <span class="text-danger">*</span></label>
+                            <select name="pac_id" class="form-select" :required="level === 'PAC ISNU'" :disabled="loading">
+                                <option value="">-- Pilih PAC ISNU --</option>
+                                @foreach($pacs as $pac)
+                                    <option value="{{ $pac->id }}">{{ $pac->name }} ({{ $pac->kecamatan }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Nama Kelompok Kerja (Pokja) <span class="text-danger">*</span></label>

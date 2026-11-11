@@ -30,7 +30,7 @@ class MemberController extends Controller
 
         $query = Member::with(['user', 'mwc', 'pac', 'activePosition']);
 
-        if (auth()->user()->isAdminPac()) {
+        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
             $kecamatan = auth()->user()->member?->kecamatan;
             $query->where(function ($q) use ($pacId, $kecamatan) {
@@ -726,7 +726,7 @@ class MemberController extends Controller
     public function rekapPdf(Request $request)
     {
         $currentUser = auth()->user();
-        $isPacAdmin = $currentUser->isAdminPac();
+        $isPacAdmin = $currentUser->isAdminPac() || $currentUser->isKetuaOrSekretarisPac();
         $pacId = $isPacAdmin ? $currentUser->getManagedPacId() : null;
         $kecamatan = $isPacAdmin ? $currentUser->member?->kecamatan : null;
 
@@ -891,8 +891,8 @@ class MemberController extends Controller
             'certifications',
         ])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
+            abort(403, 'Anda tidak memiliki wewenang untuk melihat anggota di luar wilayah PAC Anda.');
         }
 
         $currentUser = auth()->user();
@@ -911,8 +911,8 @@ class MemberController extends Controller
     {
         $member = Member::withTrashed()->with(['activeCard', 'activePosition', 'mwc', 'pac'])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member)) {
-            abort(403, 'Anda tidak memiliki wewenang untuk mengelola anggota di luar wilayah PAC Anda.');
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
+            abort(403, 'Anda tidak memiliki wewenang untuk melihat anggota di luar wilayah PAC Anda.');
         }
 
         if (! in_array($member->membership_status, ['terverifikasi', 'pengurus']) || ! $member->activeCard) {

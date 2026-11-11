@@ -30,15 +30,20 @@ class ProgramController extends Controller
 
         $query = Program::with(['section.pac'])->withCount('events');
 
-        if ($request->filled('section_id')) {
-            $query->where('section_id', $request->section_id);
-        }
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+        } else {
+            if ($request->filled('section_id')) {
+                $query->where('section_id', $request->section_id);
+            }
 
-        if ($request->filled('level')) {
-            $level = $request->level;
-            $query->whereHas('section', function ($q) use ($level) {
-                $q->where('level', $level);
-            });
+            if ($request->filled('level')) {
+                $level = $request->level;
+                $query->whereHas('section', function ($q) use ($level) {
+                    $q->where('level', $level);
+                });
+            }
         }
 
         if ($request->filled('status')) {
@@ -64,14 +69,26 @@ class ProgramController extends Controller
         }
 
         $programs = $query->orderBy('name')->paginate(15)->withQueryString();
-        $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
+        $sections = auth()->user()->isKetuaOrSekretarisPac()
+            ? Section::with('pac')->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+            : Section::with('pac')->orderBy('level')->orderBy('name')->get();
 
-        $metrics = [
-            'total' => Program::count(),
-            'pc' => Program::whereHas('section', fn ($q) => $q->where('level', 'PC ISNU'))->count(),
-            'pac' => Program::whereHas('section', fn ($q) => $q->where('level', 'PAC ISNU'))->count(),
-            'events_count' => Event::whereNotNull('program_id')->count(),
-        ];
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $pacId = auth()->user()->getManagedPacId();
+            $metrics = [
+                'total' => Program::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->count(),
+                'pc' => 0,
+                'pac' => Program::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->count(),
+                'events_count' => Event::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->whereNotNull('program_id')->count(),
+            ];
+        } else {
+            $metrics = [
+                'total' => Program::count(),
+                'pc' => Program::whereHas('section', fn ($q) => $q->where('level', 'PC ISNU'))->count(),
+                'pac' => Program::whereHas('section', fn ($q) => $q->where('level', 'PAC ISNU'))->count(),
+                'events_count' => Event::whereNotNull('program_id')->count(),
+            ];
+        }
 
         if ($request->ajax()) {
             return view('admin.programs.partials.program_list', compact('programs', 'sections'));
@@ -219,6 +236,17 @@ class ProgramController extends Controller
      */
     public function getBySection(int $section_id): JsonResponse
     {
+        if (auth()->user()->isKetuaOrSekretarisPac()) {
+            $section = Section::find($section_id);
+            if (! $section || (int) $section->pac_id !== (int) auth()->user()->getManagedPacId()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke seksi ini.',
+                    'programs' => [],
+                ], 403);
+            }
+        }
+
         $programs = Program::where('section_id', $section_id)
             ->where('is_active', true)
             ->orderBy('name')

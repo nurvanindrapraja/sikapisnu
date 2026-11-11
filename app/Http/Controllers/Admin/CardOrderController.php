@@ -12,8 +12,8 @@ class CardOrderController extends Controller
 {
     protected function checkAccess(): void
     {
-        if (! auth()->user() || ! auth()->user()->canManageCardOrders()) {
-            abort(403, 'Hanya Superadmin, Admin PC, Ketua, Sekretaris, dan Bendahara yang berhak mengakses dan mengelola menu Kartu Fisik.');
+        if (! auth()->user() || ! auth()->user()->canManageCardOrders() || auth()->user()->isKetuaOrSekretarisPac()) {
+            abort(403, 'Anda tidak memiliki hak akses ke menu Kartu Fisik.');
         }
     }
 

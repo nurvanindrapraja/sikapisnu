@@ -11,7 +11,7 @@ class ReportController extends Controller
 {
     protected function checkAccess(): void
     {
-        if (auth()->user()?->isRestrictedOfficer()) {
+        if (auth()->user()?->isRestrictedOfficer() || auth()->user()?->isKetuaOrSekretarisPac()) {
             abort(403, 'Anda tidak memiliki hak akses ke Export Laporan.');
         }
     }

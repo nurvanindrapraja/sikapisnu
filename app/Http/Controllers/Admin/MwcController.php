@@ -14,8 +14,8 @@ class MwcController extends Controller
 {
     protected function checkAccess(): void
     {
-        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash()) {
-            abort(403, 'Hanya Superadmin, Admin PC, Ketua, dan Sekretaris yang berhak mengakses dan mengelola Master PAC.');
+        if (! auth()->user() || ! auth()->user()->canManagePacSectionTrash() || auth()->user()->isKetuaOrSekretarisPac()) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengelola Master PAC ISNU.');
         }
     }
 

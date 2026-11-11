@@ -99,7 +99,7 @@
 </div>
 
 <!-- Pending Registration Queue Section -->
-@if(!auth()->user()->isRestrictedOfficer() && $pendingMembers->count() > 0)
+@if(!auth()->user()->isRestrictedOfficer() && !auth()->user()->isKetuaOrSekretarisPac() && $pendingMembers->count() > 0)
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-header bg-warning-subtle border-0 p-3 d-flex justify-content-between align-items-center">
             <strong class="text-dark"><i class="bi bi-clock-history me-1"></i> Antrean Verifikasi Pendaftar Baru ({{ $stats['pending'] }})</strong>
