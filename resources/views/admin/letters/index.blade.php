@@ -4,123 +4,8 @@
 @section('header_title', 'Konsep Surat & Penandatanganan Digital (E-TTD)')
 
 @section('content')
-<div class="container-fluid px-0" x-data="{ 
-    search: '{{ addslashes(request('search', '')) }}',
-    status: '{{ addslashes(request('status', '')) }}',
-    letterType: '{{ addslashes(request('letter_type', '')) }}',
-    loading: false,
-    deletingId: null, 
-    downloadingId: null,
-    targetDeleteId: null,
-    targetDeleteNumber: '',
-    setStatus(newStatus) {
-        this.status = newStatus;
-        this.applyFilter();
-    },
-    applyFilter() {
-        this.loading = true;
-        const params = new URLSearchParams();
-        if (this.status) params.set('status', this.status);
-        if (this.letterType) params.set('letter_type', this.letterType);
-        if (this.search) params.set('search', this.search);
-        
-        const url = '{{ route('admin.letters.index') }}' + (params.toString() ? '?' + params.toString() : '');
-        this.fetchLettersData(url);
-    },
-    async fetchLettersData(url) {
-        this.loading = true;
-        try {
-            window.history.pushState({}, '', url);
-            const res = await fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            const html = await res.text();
-            const container = document.getElementById('lettersContainer');
-            if (container) {
-                container.innerHTML = html;
-                if (window.Alpine) {
-                    window.Alpine.initTree(container);
-                }
-            }
-        } catch (e) {
-            console.error('Error fetching letters data', e);
-        } finally {
-            this.loading = false;
-        }
-    },
-    handlePagination(e) {
-        const link = e.target.closest('a.page-link');
-        if (link && link.href) {
-            e.preventDefault();
-            this.fetchLettersData(link.href);
-        }
-    },
-    openDeleteModal(id, number) {
-        this.targetDeleteId = id;
-        this.targetDeleteNumber = number;
-        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteLetterConfirmModal'));
-        modal.show();
-    },
-    previewModalLetterId: null,
-    isPreviewLoading: false,
-    openPreviewModal(id) {
-        this.previewModalLetterId = id;
-        this.isPreviewLoading = true;
-        const modalEl = document.getElementById('previewLetterModal');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
+<div class="container-fluid px-0" x-data="lettersIndex()">
 
-        const contentEl = document.getElementById('previewLetterModalContent');
-        contentEl.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Memuat pratinjau...</span>
-                </div>
-                <div class="text-muted small mt-3">Sedang memuat pratinjau surat resmi...</div>
-            </div>
-        `;
-
-        fetch('{{ url('/admin/letters') }}/' + id + '/preview', {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Network error');
-            return res.text();
-        })
-        .then(html => {
-            contentEl.innerHTML = html;
-            this.isPreviewLoading = false;
-        })
-        .catch(err => {
-            console.error('Error loading letter preview:', err);
-            contentEl.innerHTML = `
-                <div class="modal-header border-bottom px-4 py-3 bg-light">
-                    <h5 class="modal-title fw-bold text-danger mb-0">Gagal Memuat Pratinjau</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <div class="alert alert-danger mb-0">
-                        <i class="bi bi-exclamation-circle-fill me-2"></i> Terjadi kesalahan saat memuat dokumen pratinjau. Silakan coba kembali atau buka langsung halaman rincian.
-                    </div>
-                </div>
-                <div class="modal-footer border-top px-4 py-2 bg-light">
-                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
-                    <a href="{{ url('/admin/letters') }}/${id}" class="btn btn-primary rounded-pill px-3">Buka Rincian</a>
-                </div>
-            `;
-            this.isPreviewLoading = false;
-        });
-    },
-    executeDelete() {
-        if (this.targetDeleteId) {
-            this.deletingId = this.targetDeleteId;
-            const form = document.getElementById('delete-letter-' + this.targetDeleteId);
-            if (form) form.submit();
-        }
-    }
-}">
 
     <!-- Header & Action Button -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -394,4 +279,133 @@
     </div>
 
 </div>
+
+<script>
+function lettersIndex() {
+    return {
+        search: '{{ addslashes(request('search', '')) }}',
+        status: '{{ addslashes(request('status', '')) }}',
+        letterType: '{{ addslashes(request('letter_type', '')) }}',
+        loading: false,
+        deletingId: null, 
+        downloadingId: null,
+        targetDeleteId: null,
+        targetDeleteNumber: '',
+        previewModalLetterId: null,
+        isPreviewLoading: false,
+
+        setStatus(newStatus) {
+            this.status = newStatus;
+            this.applyFilter();
+        },
+
+        applyFilter() {
+            this.loading = true;
+            const params = new URLSearchParams();
+            if (this.status) params.set('status', this.status);
+            if (this.letterType) params.set('letter_type', this.letterType);
+            if (this.search) params.set('search', this.search);
+            
+            const url = '{{ route('admin.letters.index') }}' + (params.toString() ? '?' + params.toString() : '');
+            this.fetchLettersData(url);
+        },
+
+        async fetchLettersData(url) {
+            this.loading = true;
+            try {
+                window.history.pushState({}, '', url);
+                const res = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const html = await res.text();
+                const container = document.getElementById('lettersContainer');
+                if (container) {
+                    container.innerHTML = html;
+                    if (window.Alpine) {
+                        window.Alpine.initTree(container);
+                    }
+                }
+            } catch (e) {
+                console.error('Error fetching letters data', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        handlePagination(e) {
+            const link = e.target.closest('a.page-link');
+            if (link && link.href) {
+                e.preventDefault();
+                this.fetchLettersData(link.href);
+            }
+        },
+
+        openDeleteModal(id, number) {
+            this.targetDeleteId = id;
+            this.targetDeleteNumber = number;
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteLetterConfirmModal'));
+            modal.show();
+        },
+
+        openPreviewModal(id) {
+            this.previewModalLetterId = id;
+            this.isPreviewLoading = true;
+            const modalEl = document.getElementById('previewLetterModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+
+            const contentEl = document.getElementById('previewLetterModalContent');
+            contentEl.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Memuat pratinjau...</span>
+                    </div>
+                    <div class="text-muted small mt-3">Sedang memuat pratinjau surat resmi...</div>
+                </div>
+            `;
+
+            fetch('{{ url('/admin/letters') }}/' + id + '/preview', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Network error');
+                return res.text();
+            })
+            .then(html => {
+                contentEl.innerHTML = html;
+                this.isPreviewLoading = false;
+            })
+            .catch(err => {
+                console.error('Error loading letter preview:', err);
+                contentEl.innerHTML = `
+                    <div class="modal-header border-bottom px-4 py-3 bg-light">
+                        <h5 class="modal-title fw-bold text-danger mb-0">Gagal Memuat Pratinjau</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-circle-fill me-2"></i> Terjadi kesalahan saat memuat dokumen pratinjau. Silakan coba kembali atau buka langsung halaman rincian.
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top px-4 py-2 bg-light">
+                        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Tutup</button>
+                        <a href="{{ url('/admin/letters') }}/${id}" class="btn btn-primary rounded-pill px-3">Buka Rincian</a>
+                    </div>
+                `;
+                this.isPreviewLoading = false;
+            });
+        },
+
+        executeDelete() {
+            if (this.targetDeleteId) {
+                this.deletingId = this.targetDeleteId;
+                const form = document.getElementById('delete-letter-' + this.targetDeleteId);
+                if (form) form.submit();
+            }
+        }
+    };
+}
+</script>
 @endsection
