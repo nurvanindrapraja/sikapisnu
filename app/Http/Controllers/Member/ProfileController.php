@@ -38,6 +38,7 @@ class ProfileController extends Controller
             'mwc_id' => 'nullable|exists:mwc,id',
             'pac_id' => 'nullable|exists:pac,id',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'signature' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
         if ($request->hasFile('photo')) {
@@ -46,6 +47,16 @@ class ProfileController extends Controller
             }
             $validated['photo'] = $request->file('photo')->store('member_photos', 'public');
         }
+
+        if ($request->hasFile('signature')) {
+            if ($member->signature_path && Storage::disk('public')->exists($member->signature_path)) {
+                Storage::disk('public')->delete($member->signature_path);
+            }
+            $sigPath = $request->file('signature')->store('signatures', 'public');
+            $validated['signature_path'] = $sigPath;
+            auth()->user()->update(['signature_path' => $sigPath]);
+        }
+        unset($validated['signature']);
 
         // Jika status sebelumnya perbaikan, kembalikan ke menunggu_verifikasi saat di-submit ulang
         if ($member->membership_status === 'perbaikan') {

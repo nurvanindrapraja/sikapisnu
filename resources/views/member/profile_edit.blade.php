@@ -519,6 +519,23 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Tanda Tangan Digital (Gambar TTD)</label>
+                            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
+                                <div class="position-relative flex-shrink-0 bg-white rounded-3 d-flex align-items-center justify-content-center p-2 shadow-sm" style="width: 140px; height: 80px; border: 1px solid #ced4da;">
+                                    @if(auth()->user()->signature_url)
+                                        <img src="{{ auth()->user()->signature_url }}" alt="TTD Saya" style="max-height: 65px; max-width: 125px; object-fit: contain;">
+                                    @else
+                                        <span class="text-secondary extra-small fst-italic text-center" style="font-size: 11px;">Belum Ada TTD</span>
+                                    @endif
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="file" name="signature" class="form-control form-control-sm mb-1" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Format: PNG transparan disarankan (atau JPG/WEBP), maks 3MB. Digunakan untuk E-TTD surat resmi jika Anda bertugas sebagai Penandatangan (Ketua/Sekretaris).</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-4 text-end">

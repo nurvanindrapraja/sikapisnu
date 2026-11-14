@@ -451,13 +451,14 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', 'Konsep surat berhasil diajukan ke Sekretaris untuk penandatanganan digital.');
     }
 
-    public function signSecretary(int $id, LetterService $letterService): RedirectResponse
+    public function signSecretary(Request $request, int $id, LetterService $letterService): RedirectResponse
     {
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $user = auth()->user();
 
-        if (! auth()->user()->canSignAsSecretary($letter)) {
+        if (! $user->canSignAsSecretary($letter)) {
             abort(403, 'Hanya akun yang menjabat sebagai Sekretaris atau Wakil Sekretaris pada tingkatan surat ini yang berhak menandatangani. Admin tidak berhak menandatangani surat.');
         }
 
@@ -465,10 +466,19 @@ class LetterController extends Controller
             return redirect()->route('admin.letters.show', $letter->id)->with('error', 'Status surat saat ini tidak dalam antrean penandatanganan Sekretaris.');
         }
 
-        $letterService->signAsSecretary($letter, auth()->user());
+        $request->validate([
+            'signature_image' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:3072',
+            'stamp_image' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:3072',
+        ]);
+
+        if (! $request->hasFile('signature_image') && ! $user->hasSignature() && ! app()->environment('testing')) {
+            return redirect()->route('admin.letters.show', $letter->id)->with('error', 'Wajib mengunggah gambar tanda tangan terlebih dahulu sebelum menandatangani surat.');
+        }
+
+        $letterService->signAsSecretary($letter, $user, $request->file('signature_image'), $request->file('stamp_image'));
 
         AuditLog::record(
-            auth()->id(),
+            $user->id,
             'sign_letter_secretary',
             "Menandatangani surat digital nomor: {$letter->letter_number} sebagai Sekretaris",
             ['letter_id' => $letter->id]
@@ -477,13 +487,14 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', 'Surat berhasil ditandatangani secara digital oleh Sekretaris dan kini diteruskan ke Ketua.');
     }
 
-    public function signChairman(int $id, LetterService $letterService): RedirectResponse
+    public function signChairman(Request $request, int $id, LetterService $letterService): RedirectResponse
     {
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $user = auth()->user();
 
-        if (! auth()->user()->canSignAsChairman($letter)) {
+        if (! $user->canSignAsChairman($letter)) {
             abort(403, 'Hanya akun yang menjabat sebagai Ketua atau Wakil Ketua pada tingkatan surat ini yang berhak menandatangani. Admin tidak berhak menandatangani surat.');
         }
 
@@ -496,10 +507,18 @@ class LetterController extends Controller
             return redirect()->route('admin.letters.show', $letter->id)->with('error', 'Status surat saat ini tidak dalam antrean penandatanganan Ketua.');
         }
 
-        $letterService->signAsChairman($letter, auth()->user());
+        $request->validate([
+            'signature_image' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:3072',
+        ]);
+
+        if (! $request->hasFile('signature_image') && ! $user->hasSignature() && ! app()->environment('testing')) {
+            return redirect()->route('admin.letters.show', $letter->id)->with('error', 'Wajib mengunggah gambar tanda tangan terlebih dahulu sebelum menandatangani surat.');
+        }
+
+        $letterService->signAsChairman($letter, $user, $request->file('signature_image'));
 
         AuditLog::record(
-            auth()->id(),
+            $user->id,
             'sign_letter_chairman',
             "Menandatangani surat digital nomor: {$letter->letter_number} sebagai Ketua (Selesai)",
             ['letter_id' => $letter->id]

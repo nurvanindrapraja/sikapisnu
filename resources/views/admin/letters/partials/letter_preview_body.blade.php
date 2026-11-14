@@ -203,17 +203,17 @@
     <div class="col-6">
         <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
             @if($letter->chairman_signed_at)
-                @php $chairQr = $letter->chairman_qr_data_url; @endphp
-                @if($chairQr)
-                    <img src="{{ $chairQr }}" alt="QR Ketua" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                @php $chairSig = $letter->chairman_signature_url; @endphp
+                @if($chairSig)
+                    <img src="{{ $chairSig }}" alt="TTD Ketua" style="max-height: 95px; max-width: 170px; object-fit: contain;">
                 @else
-                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                         <span>Sah & Ditandatangani</span>
                     </div>
                 @endif
             @else
-                <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
                     Belum TTD Ketua
                 </div>
             @endif
@@ -224,19 +224,28 @@
 
     <!-- Kolom Sekretaris (Kanan) -->
     <div class="col-6">
-        <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
+        <div class="d-flex align-items-center justify-content-center my-2 position-relative" style="height: 110px;">
             @if($letter->secretary_signed_at)
-                @php $secQr = $letter->secretary_qr_data_url; @endphp
-                @if($secQr)
-                    <img src="{{ $secQr }}" alt="QR Sekretaris" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                @php 
+                    $secSig = $letter->secretary_signature_url;
+                    $stampUrl = $letter->stamp_url;
+                @endphp
+                @if($secSig)
+                    <img src="{{ $secSig }}" alt="TTD Sekretaris" style="max-height: 95px; max-width: 170px; object-fit: contain; position: relative; z-index: 1;">
                 @else
-                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1;">
                         <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                         <span>Sah & Ditandatangani</span>
                     </div>
                 @endif
+
+                <!-- Gambar Stempel diletakkan di atas TTD Sekretaris -->
+                @if($stampUrl)
+                    <img src="{{ $stampUrl }}" alt="Stempel Resmi" 
+                         style="position: absolute; width: 110px; height: 110px; object-fit: contain; pointer-events: none; z-index: 2; opacity: 0.88; transform: translate(-25%, -5%) rotate(-8deg);">
+                @endif
             @else
-                <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
                     Belum TTD Sekretaris
                 </div>
             @endif
@@ -246,9 +255,19 @@
     </div>
 </div>
 
-<!-- Security Note Resmi SIKAP-ISNU -->
-<div class="text-center text-muted small mt-4 pt-2 border-top border-dashed" style="font-size: 0.75rem;">
-    Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
+<!-- Verifikasi Keamanan Dokumen Resmi SIKAP-ISNU -->
+<div class="d-flex align-items-center justify-content-center gap-3 mt-4 pt-3 border-top border-dashed">
+    <div class="flex-shrink-0 bg-white p-1 border rounded-2 shadow-sm d-flex align-items-center justify-content-center">
+        @php $verifyQr = $letter->verification_qr_data_url; @endphp
+        @if($verifyQr)
+            <img src="{{ $verifyQr }}" alt="QR Verifikasi Dokumen" style="width: 58px; height: 58px; object-fit: contain;">
+        @else
+            <i class="bi bi-qr-code text-muted" style="font-size: 2.5rem;"></i>
+        @endif
+    </div>
+    <div class="text-muted text-start" style="font-size: 0.78rem; line-height: 1.45; max-width: 560px;">
+        Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
+    </div>
 </div>
 
 <!-- Footer Banner Resmi ISNU -->

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -19,6 +20,8 @@ class User extends Authenticatable
         'is_active',
         'activation_token',
         'password',
+        'signature_path',
+        'stamp_path',
     ];
 
     protected $hidden = [
@@ -38,6 +41,43 @@ class User extends Authenticatable
     public function member()
     {
         return $this->hasOne(Member::class);
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        if ($this->signature_path && Storage::disk('public')->exists($this->signature_path)) {
+            return Storage::disk('public')->url($this->signature_path);
+        }
+
+        return null;
+    }
+
+    public function hasSignature(): bool
+    {
+        return ! empty($this->signature_path) && Storage::disk('public')->exists($this->signature_path);
+    }
+
+    public function getStampUrlAttribute(): ?string
+    {
+        if ($this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
+            return Storage::disk('public')->url($this->stamp_path);
+        }
+
+        if (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+            return Storage::disk('public')->url('stamps/official_stamp.png');
+        }
+
+        if (file_exists(public_path('images/stempel_isnu.png'))) {
+            return asset('images/stempel_isnu.png');
+        }
+
+        return null;
+    }
+
+    public function hasStamp(): bool
+    {
+        return (! empty($this->stamp_path) && Storage::disk('public')->exists($this->stamp_path))
+            || Storage::disk('public')->exists('stamps/official_stamp.png');
     }
 
     public function presences()

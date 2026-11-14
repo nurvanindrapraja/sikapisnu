@@ -61,14 +61,18 @@ class Letter extends Model
         'secretary_position',
         'secretary_signed_at',
         'secretary_qr_path',
+        'secretary_signature_path',
         'chairman_user_id',
         'chairman_name',
         'chairman_registration_number',
         'chairman_position',
         'chairman_signed_at',
         'chairman_qr_path',
+        'chairman_signature_path',
+        'stamp_path',
         'docx_path',
         'pdf_path',
+        'verification_qr_path',
     ];
 
     protected function casts(): array
@@ -342,6 +346,94 @@ class Letter extends Model
             return 'data:image/png;base64,'.base64_encode($png);
         } catch (\Throwable $e) {
             Log::warning('Error generating chairman QR on the fly: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    public function getSecretarySignatureUrlAttribute(): ?string
+    {
+        if ($this->secretary_signature_path && Storage::disk('public')->exists($this->secretary_signature_path)) {
+            return Storage::disk('public')->url($this->secretary_signature_path);
+        }
+
+        if ($this->secretary && $this->secretary->signature_url) {
+            return $this->secretary->signature_url;
+        }
+
+        if ($this->secretary_signed_at) {
+            return asset('images/default_signature.png');
+        }
+
+        return null;
+    }
+
+    public function getChairmanSignatureUrlAttribute(): ?string
+    {
+        if ($this->chairman_signature_path && Storage::disk('public')->exists($this->chairman_signature_path)) {
+            return Storage::disk('public')->url($this->chairman_signature_path);
+        }
+
+        if ($this->chairman && $this->chairman->signature_url) {
+            return $this->chairman->signature_url;
+        }
+
+        if ($this->chairman_signed_at) {
+            return asset('images/default_signature.png');
+        }
+
+        return null;
+    }
+
+    public function getStampUrlAttribute(): ?string
+    {
+        if ($this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
+            return Storage::disk('public')->url($this->stamp_path);
+        }
+
+        if (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+            return Storage::disk('public')->url('stamps/official_stamp.png');
+        }
+
+        return asset('images/stempel_isnu.png');
+    }
+
+    public function getVerificationQrDataUrlAttribute(): ?string
+    {
+        if ($this->verification_qr_path && Storage::disk('public')->exists($this->verification_qr_path)) {
+            try {
+                $content = Storage::disk('public')->get($this->verification_qr_path);
+                if (! empty($content)) {
+                    return 'data:image/png;base64,'.base64_encode($content);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Error reading verification QR: '.$e->getMessage());
+            }
+        }
+
+        try {
+            /** @var LetterService $letterService */
+            $letterService = app(LetterService::class);
+            $verificationUrl = route('surat.verifikasi', ['code' => $this->letter_code]);
+            $png = $letterService->generateQrPng($verificationUrl);
+
+            try {
+                $dir = 'letters/qrcodes';
+                Storage::disk('public')->makeDirectory($dir);
+                $path = "{$dir}/qr_verify_{$this->letter_code}.png";
+                Storage::disk('public')->put($path, $png);
+
+                if ($this->verification_qr_path !== $path) {
+                    $this->verification_qr_path = $path;
+                    $this->saveQuietly();
+                }
+            } catch (\Throwable $diskException) {
+                Log::warning('Could not write verification QR to disk: '.$diskException->getMessage());
+            }
+
+            return 'data:image/png;base64,'.base64_encode($png);
+        } catch (\Throwable $e) {
+            Log::warning('Error generating verification QR: '.$e->getMessage());
 
             return null;
         }

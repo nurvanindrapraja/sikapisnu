@@ -483,7 +483,9 @@ class FinanceAndSuperAdminLetterDeleteTest extends TestCase
         $response->assertStatus(200);
         $response->assertDontSee('Belum TTD Ketua');
         $response->assertDontSee('Belum TTD Sekretaris');
-        $response->assertSee('alt="QR Ketua"', false);
-        $response->assertSee('alt="QR Sekretaris"', false);
+        $response->assertSee('alt="TTD Ketua"', false);
+        $response->assertSee('alt="TTD Sekretaris"', false);
+        $response->assertSee('alt="Stempel Resmi"', false);
+        $response->assertSee('alt="QR Verifikasi Dokumen"', false);
     }
 }

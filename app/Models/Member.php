@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Member extends Model
 {
@@ -27,6 +28,7 @@ class Member extends Model
         'email',
         'occupation',
         'photo',
+        'signature_path',
         'membership_status',
         'mwc_id',
         'pac_id',
@@ -43,6 +45,15 @@ class Member extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        if ($this->signature_path && Storage::disk('public')->exists($this->signature_path)) {
+            return Storage::disk('public')->url($this->signature_path);
+        }
+
+        return $this->user?->signature_url;
     }
 
     public function verifier()

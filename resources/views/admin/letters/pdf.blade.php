@@ -1,3 +1,12 @@
+@php
+    $secSigBase64 = $secSigBase64 ?? null;
+    $chairSigBase64 = $chairSigBase64 ?? null;
+    $stampBase64 = $stampBase64 ?? null;
+    $verificationQrBase64 = $verificationQrBase64 ?? null;
+    $secQrBase64 = $secQrBase64 ?? null;
+    $chairQrBase64 = $chairQrBase64 ?? null;
+    $kopLogoBase64 = $kopLogoBase64 ?? null;
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -134,13 +143,24 @@
             font-weight: bold;
             margin-bottom: 8px;
         }
-        .qr-box {
-            height: 95px;
-            margin: 5px auto;
-        }
-        .qr-box img {
-            width: 85px;
+        .sig-box {
             height: 85px;
+            margin: 0 auto;
+            position: relative;
+            text-align: center;
+        }
+        .sig-box img.sig-img {
+            max-height: 75px;
+            max-width: 160px;
+            display: inline-block;
+        }
+        .sig-box img.stamp-img {
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            width: 95px;
+            height: 95px;
+            opacity: 0.85;
         }
         .signer-name {
             font-weight: bold;
@@ -156,16 +176,14 @@
         .waiting-sign {
             color: #888;
             font-style: italic;
-            height: 85px;
-            line-height: 85px;
+            height: 75px;
+            line-height: 75px;
         }
-        .security-footer {
-            margin-top: 25px;
-            padding-top: 6px;
+        .verification-table {
+            width: 100%;
+            margin-top: 18px;
             border-top: 1px dashed #aaa;
-            font-size: 8pt;
-            color: #666;
-            text-align: center;
+            padding-top: 6px;
         }
     </style>
 </head>
@@ -363,9 +381,11 @@
         <tr>
             <!-- KOLOM KETUA (KIRI) -->
             <td>
-                <div class="qr-box">
-                    @if($chairQrBase64)
-                        <img src="data:image/png;base64,{{ $chairQrBase64 }}" alt="QR Ketua">
+                <div class="sig-box">
+                    @if($chairSigBase64)
+                        <img src="data:image/png;base64,{{ $chairSigBase64 }}" class="sig-img" alt="TTD Ketua">
+                    @elseif($letter->chairman_signed_at)
+                        <div class="waiting-sign">(Telah Ditandatangani Digital)</div>
                     @else
                         <div class="waiting-sign">(Menunggu TTD Digital Ketua)</div>
                     @endif
@@ -376,11 +396,17 @@
 
             <!-- KOLOM SEKRETARIS (KANAN) -->
             <td>
-                <div class="qr-box">
-                    @if($secQrBase64)
-                        <img src="data:image/png;base64,{{ $secQrBase64 }}" alt="QR Sekretaris">
+                <div class="sig-box">
+                    @if($secSigBase64)
+                        <img src="data:image/png;base64,{{ $secSigBase64 }}" class="sig-img" alt="TTD Sekretaris">
+                    @elseif($letter->secretary_signed_at)
+                        <div class="waiting-sign">(Telah Ditandatangani Digital)</div>
                     @else
                         <div class="waiting-sign">(Menunggu TTD Digital Sekretaris)</div>
+                    @endif
+
+                    @if($letter->secretary_signed_at && $stampBase64)
+                        <img src="data:image/png;base64,{{ $stampBase64 }}" class="stamp-img" alt="Stempel Resmi">
                     @endif
                 </div>
                 <div class="signer-name">{{ $letter->secretary_name ?? '....................................' }}</div>
@@ -389,10 +415,19 @@
         </tr>
     </table>
 
-    <!-- FOOTER KEAMANAN & INTEGRITAS ELEKTRONIK -->
-    <div class="security-footer">
-        Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
-    </div>
+    <!-- FOOTER KEAMANAN & INTEGRITAS ELEKTRONIK (QR VERIFIKASI + KETERANGAN DI ATAS FOOTER) -->
+    <table class="verification-table">
+        <tr>
+            <td style="width: 55px; vertical-align: middle; text-align: center;">
+                @if($verificationQrBase64)
+                    <img src="data:image/png;base64,{{ $verificationQrBase64 }}" alt="QR Verifikasi" style="width: 48px; height: 48px;">
+                @endif
+            </td>
+            <td style="vertical-align: middle; padding-left: 10px; font-size: 8pt; color: #555; text-align: left; line-height: 1.35;">
+                Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

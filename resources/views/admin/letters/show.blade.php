@@ -297,17 +297,17 @@
                         <div class="col-6">
                             <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
                                 @if($letter->chairman_signed_at)
-                                    @php $chairQr = $letter->chairman_qr_data_url; @endphp
-                                    @if($chairQr)
-                                        <img src="{{ $chairQr }}" alt="QR Ketua" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                                    @php $chairSig = $letter->chairman_signature_url; @endphp
+                                    @if($chairSig)
+                                        <img src="{{ $chairSig }}" alt="TTD Ketua" style="max-height: 95px; max-width: 170px; object-fit: contain;">
                                     @else
-                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                             <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                                             <span>Sah & Ditandatangani</span>
                                         </div>
                                     @endif
                                 @else
-                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
                                         Belum TTD Ketua
                                     </div>
                                 @endif
@@ -318,19 +318,28 @@
 
                         <!-- Kolom Sekretaris (Kanan) -->
                         <div class="col-6">
-                            <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
+                            <div class="d-flex align-items-center justify-content-center my-2 position-relative" style="height: 110px;">
                                 @if($letter->secretary_signed_at)
-                                    @php $secQr = $letter->secretary_qr_data_url; @endphp
-                                    @if($secQr)
-                                        <img src="{{ $secQr }}" alt="QR Sekretaris" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: contain;">
+                                    @php 
+                                        $secSig = $letter->secretary_signature_url;
+                                        $stampUrl = $letter->stamp_url;
+                                    @endphp
+                                    @if($secSig)
+                                        <img src="{{ $secSig }}" alt="TTD Sekretaris" style="max-height: 95px; max-width: 170px; object-fit: contain; position: relative; z-index: 1;">
                                     @else
-                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1;">
                                             <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                                             <span>Sah & Ditandatangani</span>
                                         </div>
                                     @endif
+
+                                    <!-- Gambar Stempel diletakkan di atas TTD Sekretaris -->
+                                    @if($stampUrl)
+                                        <img src="{{ $stampUrl }}" alt="Stempel Resmi" 
+                                             style="position: absolute; width: 110px; height: 110px; object-fit: contain; pointer-events: none; z-index: 2; opacity: 0.88; transform: translate(-25%, -5%) rotate(-8deg);">
+                                    @endif
                                 @else
-                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
                                         Belum TTD Sekretaris
                                     </div>
                                 @endif
@@ -340,9 +349,19 @@
                         </div>
                     </div>
 
-                    <!-- Security Note Resmi SIKAP-ISNU -->
-                    <div class="text-center text-muted small mt-4 pt-2 border-top border-dashed" style="font-size: 0.75rem;">
-                        Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
+                    <!-- Verifikasi Keamanan Dokumen Resmi SIKAP-ISNU -->
+                    <div class="d-flex align-items-center justify-content-center gap-3 mt-4 pt-3 border-top border-dashed">
+                        <div class="flex-shrink-0 bg-white p-1 border rounded-2 shadow-sm d-flex align-items-center justify-content-center">
+                            @php $verifyQr = $letter->verification_qr_data_url; @endphp
+                            @if($verifyQr)
+                                <img src="{{ $verifyQr }}" alt="QR Verifikasi Dokumen" style="width: 58px; height: 58px; object-fit: contain;">
+                            @else
+                                <i class="bi bi-qr-code text-muted" style="font-size: 2.5rem;"></i>
+                            @endif
+                        </div>
+                        <div class="text-muted text-start" style="font-size: 0.78rem; line-height: 1.45; max-width: 560px;">
+                            Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen. Kode Surat: {{ $letter->letter_code }}.
+                        </div>
                     </div>
 
                     <!-- Footer Banner Resmi ISNU -->
@@ -417,14 +436,10 @@
                             <div class="alert alert-warning py-2 px-3 small border-0 rounded-3 mb-3">
                                 Anda memiliki wewenang untuk menandatangani surat ini sebagai Sekretaris.
                             </div>
-                            <form id="formSignSecretary" action="{{ route('admin.letters.sign-secretary', $letter->id) }}" method="POST" class="mb-2" @submit="isSigningSec = true">
-                                @csrf
-                                <button type="button" class="btn btn-success w-100 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#signSecretaryModal" :disabled="isSigningSec">
-                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isSigningSec" x-cloak></span>
-                                    <i class="bi bi-pen-fill me-1" x-show="!isSigningSec"></i>
-                                    <span x-text="isSigningSec ? 'Memproses E-TTD...' : 'Tandatangani Digital (Sekretaris)'">Tandatangani Digital (Sekretaris)</span>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-success w-100 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center justify-content-center mb-2" data-bs-toggle="modal" data-bs-target="#signSecretaryModal">
+                                <i class="bi bi-pen-fill me-1"></i>
+                                <span>Tandatangani Digital (Sekretaris)</span>
+                            </button>
                             <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#modalReject">
                                 <i class="bi bi-x-circle me-1"></i> Minta Revisi / Tolak
                             </button>
@@ -469,14 +484,10 @@
                             <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-3">
                                 Sekretaris telah menandatangani surat ini. Anda dapat melakukan penandatanganan digital final sebagai Ketua.
                             </div>
-                            <form id="formSignChairman" action="{{ route('admin.letters.sign-chairman', $letter->id) }}" method="POST" class="mb-2" @submit="isSigningChair = true">
-                                @csrf
-                                <button type="button" class="btn btn-primary w-100 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#signChairmanModal" :disabled="isSigningChair">
-                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isSigningChair" x-cloak></span>
-                                    <i class="bi bi-award-fill me-1" x-show="!isSigningChair"></i>
-                                    <span x-text="isSigningChair ? 'Memproses E-TTD...' : 'Tandatangani Digital (Ketua)'">Tandatangani Digital (Ketua)</span>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-primary w-100 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center justify-content-center mb-2" data-bs-toggle="modal" data-bs-target="#signChairmanModal">
+                                <i class="bi bi-award-fill me-1"></i>
+                                <span>Tandatangani Digital (Ketua)</span>
+                            </button>
                             <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#modalReject">
                                 <i class="bi bi-x-circle me-1"></i> Minta Revisi / Tolak
                             </button>
@@ -569,7 +580,8 @@
     <!-- Modal Konfirmasi E-TTD Sekretaris -->
     <div class="modal fade" id="signSecretaryModal" tabindex="-1" aria-labelledby="signSecretaryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <form id="formSignSecretary" action="{{ route('admin.letters.sign-secretary', $letter->id) }}" method="POST" enctype="multipart/form-data" class="modal-content border-0 rounded-4 shadow-lg overflow-hidden" onsubmit="document.getElementById('btnConfirmSignSecretary').disabled = true; document.getElementById('btnConfirmSignSecretary').innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Memproses E-TTD...';">
+                @csrf
                 <div class="modal-header border-0 pb-0 pt-4 px-4 justify-content-center position-relative">
                     <div class="p-3 bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
                         <i class="bi bi-pen-fill fs-2"></i>
@@ -581,27 +593,89 @@
                     <p class="text-muted small mb-0">
                         Apakah Anda yakin ingin menandatangani surat resmi ini secara digital sebagai <strong>Sekretaris / Wakil Sekretaris</strong>?
                     </p>
-                    <div class="alert alert-light border rounded-3 p-3 mt-3 mb-0 text-start small text-muted">
+
+                    <div class="alert alert-light border rounded-3 p-3 mt-3 mb-3 text-start small text-muted">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="bi bi-info-circle-fill text-success"></i>
                             <span class="fw-semibold text-dark">Informasi Penandatanganan:</span>
                         </div>
                         <div>Nama: <strong>{{ auth()->user()->name }}</strong></div>
                         <div>Jabatan: <strong>{{ auth()->user()->position ?? 'Sekretaris PC ISNU Kota Surabaya' }}</strong></div>
-                        <div class="mt-1 text-secondary">Tanda tangan digital (QR Code) akan dibubuhkan dan status surat otomatis diteruskan ke tahap verifikasi Ketua.</div>
+                        <div class="mt-1 text-secondary">
+                            <i class="bi bi-shield-check text-success me-1"></i> Stempel resmi ISNU akan otomatis disematkan di atas gambar tanda tangan Sekretaris.
+                        </div>
                     </div>
+
+                    @if(auth()->user()->signature_url)
+                        <div class="border rounded-3 p-3 bg-light text-start mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small fw-bold text-dark"><i class="bi bi-card-image text-success me-1"></i> Gambar TTD Tersimpan:</span>
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-circle me-1"></i>Siap Digunakan</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-white border rounded-2 p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 130px; height: 65px;">
+                                    <img src="{{ auth()->user()->signature_url }}" alt="TTD Saya" style="max-height: 55px; max-width: 115px; object-fit: contain;">
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.78rem;">
+                                    Gambar TTD Anda di profil akan dibubuhkan pada dokumen resmi ini.
+                                </div>
+                            </div>
+                            <div class="mt-3 pt-2 border-top">
+                                <a class="text-decoration-none small fw-semibold text-secondary" data-bs-toggle="collapse" href="#collapseUploadSec" role="button">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ganti gambar TTD untuk surat ini (opsional)
+                                </a>
+                                <div class="collapse mt-2" id="collapseUploadSec">
+                                    <input type="file" name="signature_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small">Unggah jika ingin mengganti berkas TTD (PNG transparan disarankan).</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pratinjau Stempel Resmi Organisasi -->
+                        <div class="border rounded-3 p-3 bg-light text-start mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small fw-bold text-dark"><i class="bi bi-patch-check-fill text-success me-1"></i> Stempel Resmi ISNU yang Dibubuhkan:</span>
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-circle me-1"></i>Stempel Aktif</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-white border rounded-2 p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 65px;">
+                                    <img src="{{ auth()->user()->stamp_url ?? asset('images/stempel_isnu.png') }}" alt="Stempel Resmi" style="max-height: 55px; max-width: 70px; object-fit: contain;">
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.78rem;">
+                                    Stempel ini akan otomatis dibubuhkan menimpa tanda tangan Sekretaris.
+                                </div>
+                            </div>
+                            <div class="mt-2 pt-2 border-top">
+                                <a class="text-decoration-none small fw-semibold text-secondary" data-bs-toggle="collapse" href="#collapseUploadStampSec" role="button">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ganti gambar stempel untuk surat ini (opsional)
+                                </a>
+                                <div class="collapse mt-2" id="collapseUploadStampSec">
+                                    <input type="file" name="stamp_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small">Unggah jika ingin memperbarui stempel resmi (PNG transparan disarankan).</div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning border-0 rounded-3 text-start small mb-3">
+                            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Wajib Mengunggah Gambar TTD Terlebih Dahulu</div>
+                            <div class="text-secondary">Anda belum memiliki gambar tanda tangan yang tersimpan. Silakan unggah berkas gambar tanda tangan Anda di bawah ini:</div>
+                        </div>
+                        <div class="text-start mb-2">
+                            <label class="form-label small fw-bold text-dark">Unggah Berkas Gambar Tanda Tangan <span class="text-danger">*</span></label>
+                            <input type="file" name="signature_image" required class="form-control rounded-3" accept="image/png,image/jpeg,image/webp">
+                            <div class="form-text small">Format PNG transparan disarankan (atau JPG/WEBP), maks. 3MB. TTD ini juga akan tersimpan ke profil Anda.</div>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0 d-flex gap-2">
                     <button type="button" class="btn btn-light rounded-pill flex-fill py-2 fw-semibold" data-bs-dismiss="modal">
                         Batal
                     </button>
-                    <button type="button" class="btn btn-success text-white rounded-pill flex-fill py-2 fw-semibold d-inline-flex align-items-center justify-content-center shadow-sm"
-                            id="btnConfirmSignSecretary"
-                            onclick="this.disabled = true; this.innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Memproses E-TTD...'; document.getElementById('formSignSecretary').submit();">
+                    <button type="submit" class="btn btn-success text-white rounded-pill flex-fill py-2 fw-semibold d-inline-flex align-items-center justify-content-center shadow-sm" id="btnConfirmSignSecretary">
                         <i class="bi bi-check-circle me-1"></i> Ya, Tandatangani
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
     @endif
@@ -610,7 +684,8 @@
     <!-- Modal Konfirmasi E-TTD Ketua -->
     <div class="modal fade" id="signChairmanModal" tabindex="-1" aria-labelledby="signChairmanModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <form id="formSignChairman" action="{{ route('admin.letters.sign-chairman', $letter->id) }}" method="POST" enctype="multipart/form-data" class="modal-content border-0 rounded-4 shadow-lg overflow-hidden" onsubmit="document.getElementById('btnConfirmSignChairman').disabled = true; document.getElementById('btnConfirmSignChairman').innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Memproses E-TTD...';">
+                @csrf
                 <div class="modal-header border-0 pb-0 pt-4 px-4 justify-content-center position-relative">
                     <div class="p-3 bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
                         <i class="bi bi-award-fill fs-2"></i>
@@ -622,7 +697,8 @@
                     <p class="text-muted small mb-0">
                         Apakah Anda yakin ingin menyelesaikan dan menandatangani surat ini secara digital sebagai <strong>Ketua / Wakil Ketua</strong>?
                     </p>
-                    <div class="alert alert-light border rounded-3 p-3 mt-3 mb-0 text-start small text-muted">
+
+                    <div class="alert alert-light border rounded-3 p-3 mt-3 mb-3 text-start small text-muted">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="bi bi-info-circle-fill text-primary"></i>
                             <span class="fw-semibold text-dark">Informasi Penandatanganan Final:</span>
@@ -631,18 +707,52 @@
                         <div>Jabatan: <strong>{{ auth()->user()->position ?? 'Ketua PC ISNU Kota Surabaya' }}</strong></div>
                         <div class="mt-1 text-secondary">Status surat akan menjadi <span class="badge bg-success-subtle text-success">Selesai</span> dan berkas surat resmi siap diedarkan serta divalidasi.</div>
                     </div>
+
+                    @if(auth()->user()->signature_url)
+                        <div class="border rounded-3 p-3 bg-light text-start mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small fw-bold text-dark"><i class="bi bi-card-image text-primary me-1"></i> Gambar TTD Tersimpan:</span>
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-circle me-1"></i>Siap Digunakan</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-white border rounded-2 p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 130px; height: 65px;">
+                                    <img src="{{ auth()->user()->signature_url }}" alt="TTD Saya" style="max-height: 55px; max-width: 115px; object-fit: contain;">
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.78rem;">
+                                    Gambar TTD Anda di profil akan dibubuhkan pada dokumen resmi ini.
+                                </div>
+                            </div>
+                            <div class="mt-3 pt-2 border-top">
+                                <a class="text-decoration-none small fw-semibold text-secondary" data-bs-toggle="collapse" href="#collapseUploadChair" role="button">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ganti gambar TTD untuk surat ini (opsional)
+                                </a>
+                                <div class="collapse mt-2" id="collapseUploadChair">
+                                    <input type="file" name="signature_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small">Unggah jika ingin mengganti berkas TTD (PNG transparan disarankan).</div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning border-0 rounded-3 text-start small mb-3">
+                            <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Wajib Mengunggah Gambar TTD Terlebih Dahulu</div>
+                            <div class="text-secondary">Anda belum memiliki gambar tanda tangan yang tersimpan. Silakan unggah berkas gambar tanda tangan Anda di bawah ini:</div>
+                        </div>
+                        <div class="text-start mb-2">
+                            <label class="form-label small fw-bold text-dark">Unggah Berkas Gambar Tanda Tangan <span class="text-danger">*</span></label>
+                            <input type="file" name="signature_image" required class="form-control rounded-3" accept="image/png,image/jpeg,image/webp">
+                            <div class="form-text small">Format PNG transparan disarankan (atau JPG/WEBP), maks. 3MB. TTD ini juga akan tersimpan ke profil Anda.</div>
+                        </div>
+                    @endif
                 </div>
                 <div class="modal-footer border-0 p-4 pt-0 d-flex gap-2">
                     <button type="button" class="btn btn-light rounded-pill flex-fill py-2 fw-semibold" data-bs-dismiss="modal">
                         Batal
                     </button>
-                    <button type="button" class="btn btn-primary text-white rounded-pill flex-fill py-2 fw-semibold d-inline-flex align-items-center justify-content-center shadow-sm"
-                            id="btnConfirmSignChairman"
-                            onclick="this.disabled = true; this.innerHTML = '<span class=\'spinner-border spinner-border-sm me-2\' role=\'status\' aria-hidden=\'true\'></span>Memproses E-TTD...'; document.getElementById('formSignChairman').submit();">
+                    <button type="submit" class="btn btn-primary text-white rounded-pill flex-fill py-2 fw-semibold d-inline-flex align-items-center justify-content-center shadow-sm" id="btnConfirmSignChairman">
                         <i class="bi bi-check-circle me-1"></i> Ya, Sahkan dan Terbitkan
                     </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
     @endif

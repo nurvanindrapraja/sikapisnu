@@ -7,6 +7,7 @@ use App\Models\User;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
@@ -90,7 +91,7 @@ class LetterService
     /**
      * Proses penandatanganan digital oleh Sekretaris (Tahap 1).
      */
-    public function signAsSecretary(Letter $letter, User $user): Letter
+    public function signAsSecretary(Letter $letter, User $user, $signatureFile = null, $stampFile = null): Letter
     {
         $member = $user->member;
         $name = $member?->full_name ?: $user->name;
@@ -108,7 +109,58 @@ class LetterService
         $letter->status = Letter::STATUS_MENUNGGU_KETUA;
         $letter->rejection_note = null;
 
-        // Generate QR code Sekretaris
+        // Simpan atau perbarui gambar TTD Sekretaris
+        if ($signatureFile instanceof UploadedFile) {
+            $dir = 'signatures';
+            Storage::disk('public')->makeDirectory($dir);
+            $sigPath = $signatureFile->store($dir, 'public');
+            $user->signature_path = $sigPath;
+            $user->saveQuietly();
+            if ($member) {
+                $member->signature_path = $sigPath;
+                $member->saveQuietly();
+            }
+            $letter->secretary_signature_path = $sigPath;
+        } elseif ($user->signature_path) {
+            $letter->secretary_signature_path = $user->signature_path;
+        } else {
+            $defaultSig = public_path('images/default_signature.png');
+            if (file_exists($defaultSig)) {
+                $sigPath = 'signatures/sec_default_'.$letter->letter_code.'.png';
+                Storage::disk('public')->put($sigPath, (string) file_get_contents($defaultSig));
+                $letter->secretary_signature_path = $sigPath;
+            }
+        }
+
+        // Sematkan stempel resmi organisasi
+        if ($stampFile instanceof UploadedFile) {
+            $stampDir = 'letters/stamps';
+            Storage::disk('public')->makeDirectory($stampDir);
+            $stampPath = $stampFile->store($stampDir, 'public');
+            $letter->stamp_path = $stampPath;
+
+            // Simpan salinan sebagai stempel resmi aktif organisasi
+            Storage::disk('public')->put('stamps/official_stamp.png', (string) file_get_contents($stampFile->getRealPath()));
+            $user->stamp_path = $stampPath;
+            $user->saveQuietly();
+        } elseif (! $letter->stamp_path) {
+            $destPath = 'letters/stamps/stempel_'.$letter->letter_code.'.png';
+            if ($user->stamp_path && Storage::disk('public')->exists($user->stamp_path)) {
+                Storage::disk('public')->copy($user->stamp_path, $destPath);
+                $letter->stamp_path = $destPath;
+            } elseif (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+                Storage::disk('public')->copy('stamps/official_stamp.png', $destPath);
+                $letter->stamp_path = $destPath;
+            } else {
+                $defaultStamp = public_path('images/stempel_isnu.png');
+                if (file_exists($defaultStamp)) {
+                    Storage::disk('public')->put($destPath, (string) file_get_contents($defaultStamp));
+                    $letter->stamp_path = $destPath;
+                }
+            }
+        }
+
+        // Generate QR code Sekretaris (untuk kompatibilitas)
         $qrContent = $this->buildQrPayload($letter, 'secretary');
         $qrPng = $this->generateQrPng($qrContent);
 
@@ -117,6 +169,13 @@ class LetterService
         $qrPath = "{$qrDir}/qr_sec_{$letter->letter_code}.png";
         Storage::disk('public')->put($qrPath, $qrPng);
         $letter->secretary_qr_path = $qrPath;
+
+        // Generate QR code Verifikasi Publik Dokumen di bawah halaman
+        $verificationUrl = route('surat.verifikasi', ['code' => $letter->letter_code]);
+        $verifyPng = $this->generateQrPng($verificationUrl);
+        $verifyPath = "{$qrDir}/qr_verify_{$letter->letter_code}.png";
+        Storage::disk('public')->put($verifyPath, $verifyPng);
+        $letter->verification_qr_path = $verifyPath;
 
         $letter->save();
 
@@ -130,7 +189,7 @@ class LetterService
     /**
      * Proses penandatanganan digital oleh Ketua (Tahap 2).
      */
-    public function signAsChairman(Letter $letter, User $user): Letter
+    public function signAsChairman(Letter $letter, User $user, $signatureFile = null): Letter
     {
         $member = $user->member;
         $name = $member?->full_name ?: $user->name;
@@ -148,6 +207,29 @@ class LetterService
         $letter->status = Letter::STATUS_SELESAI;
         $letter->rejection_note = null;
 
+        // Simpan atau perbarui gambar TTD Ketua
+        if ($signatureFile instanceof UploadedFile) {
+            $dir = 'signatures';
+            Storage::disk('public')->makeDirectory($dir);
+            $sigPath = $signatureFile->store($dir, 'public');
+            $user->signature_path = $sigPath;
+            $user->saveQuietly();
+            if ($member) {
+                $member->signature_path = $sigPath;
+                $member->saveQuietly();
+            }
+            $letter->chairman_signature_path = $sigPath;
+        } elseif ($user->signature_path) {
+            $letter->chairman_signature_path = $user->signature_path;
+        } else {
+            $defaultSig = public_path('images/default_signature.png');
+            if (file_exists($defaultSig)) {
+                $sigPath = 'signatures/chair_default_'.$letter->letter_code.'.png';
+                Storage::disk('public')->put($sigPath, (string) file_get_contents($defaultSig));
+                $letter->chairman_signature_path = $sigPath;
+            }
+        }
+
         // Generate QR code Ketua
         $qrContent = $this->buildQrPayload($letter, 'chairman');
         $qrPng = $this->generateQrPng($qrContent);
@@ -157,6 +239,15 @@ class LetterService
         $qrPath = "{$qrDir}/qr_chair_{$letter->letter_code}.png";
         Storage::disk('public')->put($qrPath, $qrPng);
         $letter->chairman_qr_path = $qrPath;
+
+        // Pastikan QR code Verifikasi Publik Dokumen ada
+        if (! $letter->verification_qr_path || ! Storage::disk('public')->exists($letter->verification_qr_path)) {
+            $verificationUrl = route('surat.verifikasi', ['code' => $letter->letter_code]);
+            $verifyPng = $this->generateQrPng($verificationUrl);
+            $verifyPath = "{$qrDir}/qr_verify_{$letter->letter_code}.png";
+            Storage::disk('public')->put($verifyPath, $verifyPng);
+            $letter->verification_qr_path = $verifyPath;
+        }
 
         $letter->save();
 
@@ -436,6 +527,54 @@ class LetterService
      */
     public function generatePdf(Letter $letter): string
     {
+        $secSigBase64 = null;
+        if ($letter->secretary_signed_at) {
+            if ($letter->secretary_signature_path && Storage::disk('public')->exists($letter->secretary_signature_path)) {
+                $secSigBase64 = base64_encode(Storage::disk('public')->get($letter->secretary_signature_path));
+            } elseif ($letter->secretary?->signature_path && Storage::disk('public')->exists($letter->secretary->signature_path)) {
+                $secSigBase64 = base64_encode(Storage::disk('public')->get($letter->secretary->signature_path));
+            } else {
+                $def = public_path('images/default_signature.png');
+                if (file_exists($def)) {
+                    $secSigBase64 = base64_encode((string) file_get_contents($def));
+                }
+            }
+        }
+
+        $chairSigBase64 = null;
+        if ($letter->chairman_signed_at) {
+            if ($letter->chairman_signature_path && Storage::disk('public')->exists($letter->chairman_signature_path)) {
+                $chairSigBase64 = base64_encode(Storage::disk('public')->get($letter->chairman_signature_path));
+            } elseif ($letter->chairman?->signature_path && Storage::disk('public')->exists($letter->chairman->signature_path)) {
+                $chairSigBase64 = base64_encode(Storage::disk('public')->get($letter->chairman->signature_path));
+            } else {
+                $def = public_path('images/default_signature.png');
+                if (file_exists($def)) {
+                    $chairSigBase64 = base64_encode((string) file_get_contents($def));
+                }
+            }
+        }
+
+        $stampBase64 = null;
+        if ($letter->secretary_signed_at) {
+            if ($letter->stamp_path && Storage::disk('public')->exists($letter->stamp_path)) {
+                $stampBase64 = base64_encode(Storage::disk('public')->get($letter->stamp_path));
+            } else {
+                $stampPath = public_path('images/stempel_isnu.png');
+                if (file_exists($stampPath)) {
+                    $stampBase64 = base64_encode((string) file_get_contents($stampPath));
+                }
+            }
+        }
+
+        $verificationQrBase64 = null;
+        if ($letter->verification_qr_path && Storage::disk('public')->exists($letter->verification_qr_path)) {
+            $verificationQrBase64 = base64_encode(Storage::disk('public')->get($letter->verification_qr_path));
+        } else {
+            $vQrPng = $this->generateQrPng(route('surat.verifikasi', ['code' => $letter->letter_code]));
+            $verificationQrBase64 = base64_encode($vQrPng);
+        }
+
         $secQrBase64 = null;
         if ($letter->secretary_signed_at) {
             $secDataUrl = $letter->secretary_qr_data_url;
@@ -457,6 +596,10 @@ class LetterService
 
         $pdf = Pdf::loadView('admin.letters.pdf', [
             'letter' => $letter,
+            'secSigBase64' => $secSigBase64,
+            'chairSigBase64' => $chairSigBase64,
+            'stampBase64' => $stampBase64,
+            'verificationQrBase64' => $verificationQrBase64,
             'secQrBase64' => $secQrBase64,
             'chairQrBase64' => $chairQrBase64,
             'kopLogoBase64' => $kopLogoBase64,

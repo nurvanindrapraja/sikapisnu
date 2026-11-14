@@ -87,7 +87,7 @@
                     <i class="bi bi-person-lines-fill text-success me-2"></i> Informasi Akun Administrator
                 </h6>
 
-                <form action="{{ route('admin.profile.update') }}" method="POST" x-data="{ loading: false }" @submit="loading = true">
+                <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data" x-data="{ loading: false }" @submit="loading = true">
                     @csrf
                     @method('PUT')
 
@@ -104,6 +104,55 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold small">Nomor WhatsApp / HP <span class="text-danger">*</span></label>
                             <input type="text" name="phone" class="form-control" value="{{ old('phone', $user->phone) }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <label class="form-label fw-semibold small text-dark mb-1 d-flex align-items-center gap-2">
+                            <i class="bi bi-pen-fill text-success"></i> Gambar Tanda Tangan Digital (E-TTD)
+                        </label>
+                        <p class="small text-muted mb-2">
+                            Tanda tangan ini akan otomatis dibubuhkan pada surat resmi digital saat Anda menandatangani sebagai Ketua atau Sekretaris.
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="border rounded-3 p-2 bg-white d-flex align-items-center justify-content-center shadow-sm" style="width: 140px; height: 80px;">
+                                @if($user->signature_url)
+                                    <img src="{{ $user->signature_url }}" alt="TTD Saya" style="max-height: 65px; max-width: 125px; object-fit: contain;">
+                                @else
+                                    <span class="text-muted small fst-italic text-center">Belum ada TTD</span>
+                                @endif
+                            </div>
+                            <div class="flex-grow-1">
+                                <input type="file" name="signature" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                <div class="form-text small mt-1">Format gambar PNG transparan disarankan (atau JPG/WEBP), maks. 3MB.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold small text-dark mb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-patch-check-fill text-primary"></i> Gambar Stempel Resmi Organisasi (E-Stempel Surat)
+                            </label>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                Stempel Aktif
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Stempel resmi ini akan otomatis dibubuhkan menimpa tanda tangan Sekretaris pada setiap penerbitan surat resmi digital SIKAP-ISNU.
+                        </p>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="border rounded-3 p-2 bg-white d-flex align-items-center justify-content-center shadow-sm" style="width: 140px; height: 80px;">
+                                @if($user->stamp_url)
+                                    <img src="{{ $user->stamp_url }}" alt="Stempel Resmi" style="max-height: 70px; max-width: 125px; object-fit: contain;">
+                                @else
+                                    <span class="text-muted small fst-italic text-center">Belum ada stempel</span>
+                                @endif
+                            </div>
+                            <div class="flex-grow-1">
+                                <input type="file" name="stamp" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                <div class="form-text small mt-1">Format PNG transparan lingkaran stempel disarankan, maks. 3MB. Unggah untuk memperbarui stempel resmi organisasi.</div>
+                            </div>
                         </div>
                     </div>
 

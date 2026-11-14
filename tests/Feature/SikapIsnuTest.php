@@ -2358,7 +2358,7 @@ class SikapIsnuTest extends TestCase
         $showRes = $this->get(route('admin.letters.show', $letter->id));
 
         // Verifikasi teks keamanan yang telah dipersingkat pada preview dan PDF
-        $showRes->assertSee('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen.');
+        $showRes->assertSee('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen.');
         $showRes->assertSee('Kode Surat: '.$letter->letter_code);
         $showRes->assertSee(':disabled="isDownloadingPdf"', false);
         $showRes->assertSee('downloadPdfWithSpinner', false);
@@ -2378,6 +2378,10 @@ class SikapIsnuTest extends TestCase
         // Verifikasi template PDF dan dokumen fisik memuat header banner, footer slogan, serta teks keamanan ringkas
         $renderedPdfView = view('admin.letters.pdf', [
             'letter' => $letter,
+            'secSigBase64' => null,
+            'chairSigBase64' => null,
+            'stampBase64' => null,
+            'verificationQrBase64' => null,
             'secQrBase64' => null,
             'chairQrBase64' => null,
             'kopLogoBase64' => null,
@@ -2387,7 +2391,7 @@ class SikapIsnuTest extends TestCase
         $this->assertStringContainsString('footer-bar', $renderedPdfView);
         $this->assertStringContainsString($letter->kota_asal.', '.$letter->formatted_date_letter, $renderedPdfView);
         $this->assertStringContainsString('<u>'.$letter->kota_tujuan.'</u>', $renderedPdfView);
-        $this->assertStringContainsString('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode di atas untuk verifikasi otentisitas dokumen. Kode Surat: '.$letter->letter_code, $renderedPdfView);
+        $this->assertStringContainsString('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen. Kode Surat: '.$letter->letter_code, $renderedPdfView);
 
         $pdfFullPath = Storage::disk('public')->path($letter->pdf_path);
         $fitzProcess = new Process(['python3', '-c', 'import fitz; doc = fitz.open("'.$pdfFullPath.'"); print(doc[0].get_text())']);
