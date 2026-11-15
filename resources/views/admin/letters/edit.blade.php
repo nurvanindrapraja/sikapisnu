@@ -82,9 +82,15 @@
             <h4 class="fw-bold mb-1 text-dark">Sunting Konsep Surat</h4>
             <p class="text-muted small mb-0">Nomor Surat: <strong>{{ $letter->letter_number }}</strong> (Kode: {{ $letter->letter_code }})</p>
         </div>
-        <a href="{{ route('admin.letters.show', $letter->id) }}" class="btn btn-outline-secondary rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Detail
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center"
+                    onclick="openDraftPreviewModal('letterEditForm')">
+                <i class="bi bi-eye-fill me-1"></i> Pratinjau Surat
+            </button>
+            <a href="{{ route('admin.letters.show', $letter->id) }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> Kembali ke Detail
+            </a>
+        </div>
     </div>
 
     @if ($errors->any())
@@ -113,6 +119,7 @@
                     <form action="{{ route('admin.letters.update', $letter->id) }}" method="POST" id="letterEditForm">
                         @csrf
                         @method('PUT')
+                        <input type="hidden" name="id" value="{{ $letter->id }}">
 
                         <!-- Informasi & Pemilihan Jenis Surat -->
                         <div class="p-3 mb-4 rounded-3 border d-flex align-items-center justify-content-between"
@@ -441,7 +448,13 @@
                             <a href="{{ route('admin.letters.show', $letter->id) }}" class="btn btn-outline-secondary rounded-pill px-4" :class="{ 'disabled': isSubmitting }">
                                 Batal
                             </a>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-primary rounded-pill px-4 d-inline-flex align-items-center justify-content-center shadow-sm"
+                                        id="btnPreviewDraftEditBottom"
+                                        :disabled="isSubmitting"
+                                        onclick="openDraftPreviewModal('letterEditForm')">
+                                    <i class="bi bi-eye-fill me-1"></i> Pratinjau Surat
+                                </button>
                                 <button type="button" class="btn btn-light border rounded-pill px-4 d-inline-flex align-items-center justify-content-center"
                                         :disabled="isSubmitting"
                                         @click="if (submitEditWithAction('draft')) { isSubmitting = true; activeBtn = 'draft'; }">
@@ -610,6 +623,21 @@
                 <button type="button" class="btn btn-danger rounded-pill flex-fill py-2 fw-semibold" onclick="confirmDeleteTable()">
                     <i class="bi bi-trash me-1"></i> Ya, Hapus Tabel
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Pratinjau Dokumen Surat Utuh -->
+<div class="modal fade" id="draftPreviewModal" tabindex="-1" aria-labelledby="draftPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden" id="draftPreviewModalContent">
+            <div class="p-5 text-center">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Memuat...</span>
+                </div>
+                <h6 class="fw-bold text-dark mt-3 mb-1">Menyiapkan Pratinjau Dokumen Surat...</h6>
+                <p class="text-muted small mb-0">Merender format dokumen resmi beserta kop, isi, dan format tanda tangan.</p>
             </div>
         </div>
     </div>
@@ -1180,6 +1208,62 @@
         document.getElementById('formEditAction').value = actionType;
         form.submit();
         return true;
+    }
+
+    function openDraftPreviewModal(formId = 'letterEditForm') {
+        if (typeof quillInstance !== 'undefined' && quillInstance) {
+            syncEditorContent();
+        }
+
+        const modalEl = document.getElementById('draftPreviewModal');
+        const contentEl = document.getElementById('draftPreviewModalContent');
+        if (!modalEl || !contentEl) return;
+
+        contentEl.innerHTML = `
+            <div class="p-5 text-center">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Memuat...</span>
+                </div>
+                <h6 class="fw-bold text-dark mt-3 mb-1">Menyiapkan Pratinjau Dokumen Surat...</h6>
+                <p class="text-muted small mb-0">Merender format dokumen resmi beserta kop, isi, dan format tanda tangan.</p>
+            </div>
+        `;
+
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalInstance.show();
+
+        const form = document.getElementById(formId) || document.querySelector('form');
+        const formData = new FormData(form);
+
+        fetch("{{ route('admin.letters.preview-draft') }}", {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Gagal merender pratinjau surat');
+            }
+            return response.text();
+        })
+        .then(html => {
+            contentEl.innerHTML = html;
+        })
+        .catch(err => {
+            contentEl.innerHTML = `
+                <div class="modal-header border-bottom px-4 py-3 bg-light">
+                    <h6 class="modal-title fw-bold text-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Gagal Memuat Pratinjau</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <p class="text-muted mb-3">Terjadi kendala saat merender pratinjau surat. Pastikan data form telah terisi dengan baik.</p>
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            `;
+        });
     }
 </script>
 @endsection

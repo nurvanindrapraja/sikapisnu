@@ -237,4 +237,42 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         $this->assertStringContainsString('alt="QR Verifikasi"', $renderedPdf);
         $this->assertStringContainsString('Dokumen ini diterbitkan secara resmi melalui SIKAP-ISNU. Scan QRCode ini untuk verifikasi otentisitas dokumen. Kode Surat: '.$letter->letter_code, $renderedPdf);
     }
+
+    public function test_user_can_preview_draft_letter_modal(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0894'.rand(10000000, 99999999),
+        ]);
+
+        $postData = [
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '009/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'kota_asal' => 'Surabaya',
+            'date_letter' => '2026-11-15',
+            'lampiran' => '1 Berkas',
+            'perihal' => 'Pratinjau Undangan Rapat Evaluasi',
+            'tujuan_surat' => 'Seluruh Pengurus Harian',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Ini adalah isi surat untuk pengujian pratinjau utuh.</p>',
+        ];
+
+        $response = $this->actingAs($user)->post(route('admin.letters.preview-draft'), $postData, [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertSee('Pratinjau Dokumen Utuh');
+        $response->assertSee('009/PC-VI/ISNU-SBY/XI/2026');
+        $response->assertSee('Pratinjau Undangan Rapat Evaluasi');
+        $response->assertSee('Ini adalah isi surat untuk pengujian pratinjau utuh.');
+        $response->assertSee('IKATAN SARJANA NAHDLATUL');
+        $response->assertSee('ULAMA KOTA SURABAYA');
+        $response->assertSee('Belum TTD Ketua');
+        $response->assertSee('Belum TTD Sekretaris');
+        $response->assertSee('Tutup & Lanjutkan Menyunting', false);
+    }
 }

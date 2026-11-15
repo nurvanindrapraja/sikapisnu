@@ -197,6 +197,47 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', $message);
     }
 
+    public function previewDraft(Request $request): View
+    {
+        $this->checkAccess();
+
+        if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac'])->find($request->id)) {
+            $letter = $existing;
+            $letter->fill($request->all());
+        } else {
+            $letter = new Letter;
+            $letter->fill($request->all());
+            $letter->user_id = auth()->id();
+            $letter->letter_code = $letter->letter_code ?: ('DRAFT-'.strtoupper(Str::random(6)));
+            $letter->status = Letter::STATUS_DRAFT;
+        }
+
+        if (empty($letter->letter_type)) {
+            $letter->letter_type = Letter::TYPE_SURAT_BIASA;
+        }
+
+        if (empty($letter->letter_number)) {
+            $letter->letter_number = '___/PC-VI/ISNU-SBY/'.($letter->roman_month ?: Letter::getRomanMonth((int) now()->month)).'/'.($letter->year ?: now()->year);
+        }
+
+        if (empty($letter->date_letter)) {
+            $letter->date_letter = now()->toDateString();
+        }
+
+        if (empty($letter->kota_asal)) {
+            $letter->kota_asal = 'Surabaya';
+        }
+
+        if ($letter->pac_id && ! $letter->relationLoaded('pac')) {
+            $letter->setRelation('pac', Pac::find($letter->pac_id));
+        }
+
+        return view('admin.letters.partials.letter_preview_modal_content', [
+            'letter' => $letter,
+            'isDraftPreview' => true,
+        ]);
+    }
+
     public function preview(int $id): View
     {
         $this->checkAccess();
