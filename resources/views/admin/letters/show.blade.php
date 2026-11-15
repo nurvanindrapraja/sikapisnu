@@ -500,6 +500,49 @@
                 </div>
             </div>
 
+            <!-- Berkas Lampiran Surat (PDF) -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-paperclip text-success me-1"></i>Berkas Lampiran (PDF)
+                        </h6>
+                        <span class="badge bg-light text-dark border">
+                            {{ $letter->attachments ? $letter->attachments->count() : 0 }} berkas
+                        </span>
+                    </div>
+
+                    @if($letter->attachments && $letter->attachments->isNotEmpty())
+                        <div class="list-group list-group-flush rounded-3 border">
+                            @foreach($letter->attachments as $attachment)
+                                <div class="list-group-item p-3 d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                        <i class="bi bi-file-earmark-pdf-fill text-danger fs-4 flex-shrink-0"></i>
+                                        <div class="text-truncate">
+                                            <div class="fw-semibold small text-truncate" title="{{ $attachment->file_name }}">
+                                                {{ $attachment->file_name }}
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                {{ $attachment->formatted_file_size }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('admin.letters.attachments.download', $attachment->id) }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0">
+                                        <i class="bi bi-download me-1"></i>Unduh
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="p-3 bg-light rounded-3 text-center text-muted small">
+                            <i class="bi bi-file-earmark-x me-1"></i>Tidak ada berkas lampiran yang diunggah.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Download & Verifikasi Box -->
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-4">

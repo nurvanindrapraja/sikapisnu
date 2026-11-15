@@ -2094,8 +2094,8 @@ class SikapIsnuTest extends TestCase
         $verifyRes->assertStatus(200);
         $verifyRes->assertSee('DOKUMEN RESMI TERVERIFIKASI');
         $verifyRes->assertSee('045/PC-VI/ISNU-SBY/XI/2026');
-        $verifyRes->assertSee('IKATAN SARJANA NAHDLATUL');
-        $verifyRes->assertSee('ULAMA KOTA SURABAYA');
+        $verifyRes->assertSee('Informasi Dokumen Surat');
+        $verifyRes->assertDontSee('images/kop_logo_isnu.jpeg');
         $verifyRes->assertSee('<strong>hormat</strong>', false);
         $verifyRes->assertSee('M. Dawud, M.Pd.');
         $verifyRes->assertSee('Prof. Dr. H. M. Mas\'ud Said, M.Si.');

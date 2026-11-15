@@ -109,7 +109,7 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-4">
-                    <form action="{{ route('admin.letters.store') }}" method="POST" id="letterForm">
+                    <form action="{{ route('admin.letters.store') }}" method="POST" id="letterForm" enctype="multipart/form-data">
                         @csrf
 
                         <!-- Pilihan Jenis Surat (Tab / Selector) -->
@@ -315,6 +315,38 @@
                                     <input type="text" name="kota_tujuan" class="form-control @error('kota_tujuan') is-invalid @enderror" 
                                            value="{{ old('kota_tujuan', 'Surabaya') }}" placeholder="Contoh: Surabaya">
                                     <div class="form-text small">Kota pihak penerima surat (tertera di "di - ...").</div>
+                                </div>
+                            </div>
+                        <!-- Upload Berkas Lampiran Surat (PDF) -->
+                        <div class="mt-4 mb-4">
+                            <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
+                                <i class="bi bi-paperclip me-2"></i>Berkas Lampiran Surat (PDF)
+                            </h5>
+
+                            <!-- Input Unggah Lampiran Baru -->
+                            <div class="p-3 bg-light rounded-3 border">
+                                <label for="inputAttachmentsCreate" class="form-label fw-semibold small mb-1">
+                                    Unggah Berkas Lampiran Surat <span class="badge bg-secondary-subtle text-secondary small ms-1">Opsional</span>
+                                </label>
+                                <input type="file" 
+                                       name="attachments[]" 
+                                       id="inputAttachmentsCreate" 
+                                       class="form-control @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror" 
+                                       multiple 
+                                       accept=".pdf,application/pdf"
+                                       onchange="handleAttachmentSelection(this)">
+                                @error('attachments')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                @error('attachments.*')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text small mt-1 text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Format yang didukung: <strong>PDF</strong> (.pdf). Lampiran bersifat opsional dan dapat memilih lebih dari 1 file (Maksimal 10MB per file).
+                                </div>
+                                <div id="selectedFilesList" class="mt-2 d-none">
+                                    <small class="fw-bold text-success d-block mb-1">File PDF yang dipilih:</small>
+                                    <ul class="list-unstyled small mb-0 ps-1" id="selectedFilesUl"></ul>
                                 </div>
                             </div>
                         </div>
@@ -1335,6 +1367,27 @@
                 </div>
             `;
         });
+    }
+
+    function handleAttachmentSelection(input) {
+        const container = document.getElementById('selectedFilesList');
+        const list = document.getElementById('selectedFilesUl');
+        if (!container || !list) return;
+
+        list.innerHTML = '';
+        if (input.files && input.files.length > 0) {
+            container.classList.remove('d-none');
+            Array.from(input.files).forEach(file => {
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const sizeText = file.size > 1048576 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : sizeKB + ' KB';
+                const li = document.createElement('li');
+                li.className = 'd-flex align-items-center gap-2 py-1 text-secondary';
+                li.innerHTML = `<i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span class="fw-semibold text-dark">${file.name}</span> <span class="text-muted">(${sizeText})</span>`;
+                list.appendChild(li);
+            });
+        } else {
+            container.classList.add('d-none');
+        }
     }
 </script>
 @endsection

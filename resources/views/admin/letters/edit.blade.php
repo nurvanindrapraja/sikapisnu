@@ -116,7 +116,7 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-body p-4">
-                    <form action="{{ route('admin.letters.update', $letter->id) }}" method="POST" id="letterEditForm">
+                    <form action="{{ route('admin.letters.update', $letter->id) }}" method="POST" id="letterEditForm" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         <input type="hidden" name="id" value="{{ $letter->id }}">
@@ -282,6 +282,76 @@
                                     <input type="text" name="lokasi_pelaksanaan" class="form-control @error('lokasi_pelaksanaan') is-invalid @enderror" 
                                            value="{{ old('lokasi_pelaksanaan', $letter->lokasi_pelaksanaan) }}" :required="letterType === 'surat_mandat'"
                                            placeholder="Contoh: Balai Diklat Keagamaan Surabaya, Jl. Ketintang No. 1">
+                                </div>
+                            </div>
+                        <!-- Upload Berkas Lampiran Surat (PDF) -->
+                        <div class="mt-4 mb-4">
+                            <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
+                                <i class="bi bi-paperclip me-2"></i>Berkas Lampiran Surat (PDF)
+                            </h5>
+
+                            <!-- Daftar Lampiran yang Sudah Diunggah Sebelumnya -->
+                            @if($letter->attachments && $letter->attachments->isNotEmpty())
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small text-muted mb-2">Lampiran Tersimpan ({{ $letter->attachments->count() }} berkas):</label>
+                                    <div class="list-group rounded-3 shadow-none border">
+                                        @foreach($letter->attachments as $attachment)
+                                            <div class="list-group-item d-flex flex-wrap align-items-center justify-content-between p-3 gap-2" id="attachment-item-{{ $attachment->id }}">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="p-2 bg-danger-subtle text-danger rounded-3">
+                                                        <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark text-break">{{ $attachment->file_name }}</div>
+                                                        <div class="small text-muted">
+                                                            <span>Ukuran: {{ $attachment->formatted_file_size }}</span> &bull; 
+                                                            <span>Diunggah: {{ $attachment->created_at->format('d/m/Y H:i') }} WIB</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <a href="{{ route('admin.letters.attachments.download', $attachment->id) }}" 
+                                                       target="_blank" 
+                                                       class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                        <i class="bi bi-eye me-1"></i> Lihat / Unduh
+                                                    </a>
+                                                    <div class="form-check ms-2">
+                                                        <input class="form-check-input border-danger" type="checkbox" name="delete_attachment_ids[]" value="{{ $attachment->id }}" id="delAtt{{ $attachment->id }}">
+                                                        <label class="form-check-label text-danger small fw-semibold" for="delAtt{{ $attachment->id }}">
+                                                            Hapus saat simpan
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Input Unggah Lampiran Baru -->
+                            <div class="p-3 bg-light rounded-3 border">
+                                <label for="inputAttachments" class="form-label fw-semibold small mb-1">
+                                    Unggah Berkas Lampiran Baru <span class="badge bg-secondary-subtle text-secondary small ms-1">Opsional</span>
+                                </label>
+                                <input type="file" 
+                                       name="attachments[]" 
+                                       id="inputAttachments" 
+                                       class="form-control @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror" 
+                                       multiple 
+                                       accept=".pdf,application/pdf"
+                                       onchange="handleAttachmentSelection(this)">
+                                @error('attachments')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                @error('attachments.*')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text small mt-1 text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>Format yang didukung: <strong>PDF</strong> (.pdf). Lampiran bersifat opsional dan dapat memilih lebih dari 1 file (Maksimal 10MB per file).
+                                </div>
+                                <div id="selectedFilesList" class="mt-2 d-none">
+                                    <small class="fw-bold text-success d-block mb-1">File PDF baru yang akan diunggah:</small>
+                                    <ul class="list-unstyled small mb-0 ps-1" id="selectedFilesUl"></ul>
                                 </div>
                             </div>
                         </div>
@@ -1264,6 +1334,27 @@
                 </div>
             `;
         });
+    }
+
+    function handleAttachmentSelection(input) {
+        const container = document.getElementById('selectedFilesList');
+        const list = document.getElementById('selectedFilesUl');
+        if (!container || !list) return;
+
+        list.innerHTML = '';
+        if (input.files && input.files.length > 0) {
+            container.classList.remove('d-none');
+            Array.from(input.files).forEach(file => {
+                const sizeKB = (file.size / 1024).toFixed(1);
+                const sizeText = file.size > 1048576 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : sizeKB + ' KB';
+                const li = document.createElement('li');
+                li.className = 'd-flex align-items-center gap-2 py-1 text-secondary';
+                li.innerHTML = `<i class="bi bi-file-earmark-pdf-fill text-danger"></i> <span class="fw-semibold text-dark">${file.name}</span> <span class="text-muted">(${sizeText})</span>`;
+                list.appendChild(li);
+            });
+        } else {
+            container.classList.add('d-none');
+        }
     }
 </script>
 @endsection

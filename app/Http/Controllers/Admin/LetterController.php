@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Letter;
+use App\Models\LetterAttachment;
 use App\Models\Pac;
 use App\Services\LetterService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -124,6 +126,8 @@ class LetterController extends Controller
             'tujuan_surat' => 'nullable|string|max:255',
             'kota_tujuan' => 'nullable|string|max:100',
             'isi_surat' => 'required|string',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'nullable|file|mimes:pdf|max:10240',
             'action' => 'required|in:draft,submit_secretary',
         ]);
 
@@ -179,6 +183,19 @@ class LetterController extends Controller
             'status' => $status,
         ]);
 
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('letters/attachments', 'public');
+                    $letter->attachments()->create([
+                        'file_path' => $path,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_size' => $file->getSize(),
+                    ]);
+                }
+            }
+        }
+
         // Generate dokumen draft DOCX & PDF
         $letterService->generateDocx($letter);
         $letterService->generatePdf($letter);
@@ -201,7 +218,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac'])->find($request->id)) {
+        if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac', 'attachments'])->find($request->id)) {
             $letter = $existing;
             $letter->fill($request->all());
         } else {
@@ -210,6 +227,7 @@ class LetterController extends Controller
             $letter->user_id = auth()->id();
             $letter->letter_code = $letter->letter_code ?: ('DRAFT-'.strtoupper(Str::random(6)));
             $letter->status = Letter::STATUS_DRAFT;
+            $letter->setRelation('attachments', collect());
         }
 
         if (empty($letter->letter_type)) {
@@ -242,7 +260,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac'])->findOrFail($id);
+        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
 
         return view('admin.letters.partials.letter_preview_modal_content', compact('letter'));
     }
@@ -251,7 +269,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with(['user', 'secretary', 'chairman'])->findOrFail($id);
+        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
 
         return view('admin.letters.show', compact('letter'));
     }
@@ -260,7 +278,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::findOrFail($id);
+        $letter = Letter::with('attachments')->findOrFail($id);
 
         if (! auth()->user()->canEditLetter($letter)) {
             if ($letter->status === Letter::STATUS_SELESAI) {
@@ -279,7 +297,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::findOrFail($id);
+        $letter = Letter::with('attachments')->findOrFail($id);
 
         if (! auth()->user()->canEditLetter($letter)) {
             if ($letter->status === Letter::STATUS_SELESAI) {
@@ -306,6 +324,10 @@ class LetterController extends Controller
             'tujuan_surat' => 'nullable|string|max:255',
             'kota_tujuan' => 'nullable|string|max:100',
             'isi_surat' => 'required|string',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'nullable|file|mimes:pdf|max:10240',
+            'delete_attachment_ids' => 'nullable|array',
+            'delete_attachment_ids.*' => 'integer|exists:letter_attachments,id',
             'action' => 'nullable|in:draft,submit_secretary',
         ]);
 
@@ -341,6 +363,29 @@ class LetterController extends Controller
             'kota_tujuan' => ($validated['kota_tujuan'] ?? null) ?: 'Surabaya',
             'isi_surat' => $validated['isi_surat'],
         ]);
+
+        // Hapus lampiran yang ditandai untuk dihapus
+        if ($request->filled('delete_attachment_ids')) {
+            $toDelete = $letter->attachments()->whereIn('id', $request->delete_attachment_ids)->get();
+            foreach ($toDelete as $att) {
+                Storage::disk('public')->delete($att->file_path);
+                $att->delete();
+            }
+        }
+
+        // Simpan berkas lampiran baru jika ada yang diunggah
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('letters/attachments', 'public');
+                    $letter->attachments()->create([
+                        'file_path' => $path,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_size' => $file->getSize(),
+                    ]);
+                }
+            }
+        }
 
         if (isset($validated['action']) && $validated['action'] === 'submit_secretary') {
             $letter->status = Letter::STATUS_MENUNGGU_SEKRETARIS;
@@ -409,11 +454,53 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', 'Perubahan konsep surat berhasil disimpan.');
     }
 
+    public function destroyAttachment(int $attachmentId): JsonResponse|RedirectResponse
+    {
+        $this->checkAccess();
+
+        $attachment = LetterAttachment::with('letter')->findOrFail($attachmentId);
+        $letter = $attachment->letter;
+
+        if (! auth()->user()->canEditLetter($letter)) {
+            if ($letter->status === Letter::STATUS_SELESAI) {
+                abort(403, 'Surat yang telah selesai tidak dapat diubah lampirannya.');
+            }
+
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus lampiran surat ini.');
+        }
+
+        Storage::disk('public')->delete($attachment->file_path);
+        $attachment->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Lampiran PDF berhasil dihapus.',
+            ]);
+        }
+
+        return back()->with('success', 'Lampiran PDF berhasil dihapus.');
+    }
+
+    public function downloadAttachment(int $attachmentId): BinaryFileResponse
+    {
+        $this->checkAccess();
+
+        $attachment = LetterAttachment::findOrFail($attachmentId);
+        $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+        if (! file_exists($fullPath)) {
+            abort(404, 'File lampiran tidak ditemukan di penyimpanan server.');
+        }
+
+        return response()->download($fullPath, $attachment->file_name);
+    }
+
     public function destroy(int $id): RedirectResponse
     {
         $this->checkAccess();
 
-        $letter = Letter::findOrFail($id);
+        $letter = Letter::with('attachments')->findOrFail($id);
 
         if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Surat yang telah selesai ditandatangani hanya dapat dihapus oleh Super Admin.');
@@ -434,6 +521,10 @@ class LetterController extends Controller
         }
         if ($letter->pdf_path) {
             Storage::disk('public')->delete($letter->pdf_path);
+        }
+
+        foreach ($letter->attachments as $attachment) {
+            Storage::disk('public')->delete($attachment->file_path);
         }
 
         $letterNumber = $letter->letter_number;

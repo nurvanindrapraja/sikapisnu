@@ -36,45 +36,6 @@
 
                 <div class="card-body p-4 p-md-5 bg-white">
                     <div class="row g-4">
-                        <!-- Kop Surat Resmi (Sesuai Gambar Template Asli) -->
-                        <div class="col-md-12">
-                            <div class="d-flex align-items-center mb-3 border rounded-3 p-2 bg-white overflow-hidden shadow-none">
-                                <div class="p-2 flex-shrink-0 text-center" style="width: 85px;">
-                                    <img src="{{ asset('images/kop_logo_isnu.jpeg') }}" alt="Logo ISNU" style="width: 68px; height: auto;" class="img-fluid">
-                                </div>
-                                <div class="flex-grow-1 p-3 ps-3 text-dark" style="background-color: #94b3d6; border-bottom-left-radius: 18px; font-family: 'Trebuchet MS', 'Plus Jakarta Sans', sans-serif;">
-                                    @if($letter->isLevelPac())
-                                        <div class="fw-normal text-uppercase text-dark" style="font-size: 0.9rem; letter-spacing: 0.8px; line-height: 1.1; margin-bottom: 2px;">
-                                            PIMPINAN ANAK CABANG
-                                        </div>
-                                        <div class="fw-bold text-uppercase text-dark" style="font-size: 1.15rem; line-height: 1.1; letter-spacing: -0.2px;">
-                                            IKATAN SARJANA NAHDLATUL ULAMA
-                                        </div>
-                                        <div class="fw-bold text-uppercase text-dark" style="font-size: 1.15rem; line-height: 1.1; letter-spacing: -0.2px; margin-bottom: 4px;">
-                                            KECAMATAN {{ strtoupper($letter->pac_kecamatan_name ?: ($letter->pac?->name ?? 'SURABAYA')) }}
-                                        </div>
-                                    @else
-                                        <div class="fw-normal text-uppercase text-dark" style="font-size: 0.95rem; letter-spacing: 0.8px; line-height: 1.1; margin-bottom: 2px;">
-                                            PIMPINAN CABANG
-                                        </div>
-                                        <div class="fw-bold text-uppercase text-dark" style="font-size: 1.25rem; line-height: 1.1; letter-spacing: -0.2px;">
-                                            IKATAN SARJANA NAHDLATUL
-                                        </div>
-                                        <div class="fw-bold text-uppercase text-dark" style="font-size: 1.25rem; line-height: 1.1; letter-spacing: -0.2px; margin-bottom: 4px;">
-                                            ULAMA KOTA SURABAYA
-                                        </div>
-                                    @endif
-                                    <div style="font-size: 0.78rem; color: #111; line-height: 1.3;">
-                                        Jalan Bubutan VI/2 Surabaya, HP: +6281330278721, +6281334300341
-                                    </div>
-                                    <div style="font-size: 0.78rem; color: #111; line-height: 1.3;">
-                                        Email: <a href="mailto:isnukotasurabaya@gmail.com" class="text-primary text-decoration-underline">isnukotasurabaya@gmail.com</a>, Website: <a href="https://www.isnusurabaya.or.id" target="_blank" class="text-primary text-decoration-underline">https://www.isnusurabaya.or.id</a>
-                                    </div>
-                                </div>
-                                <div class="flex-shrink-0" style="width: 14px; align-self: stretch; background-color: #006837;"></div>
-                            </div>
-                        </div>
-
                         <!-- Data Surat -->
                         <div class="col-md-12">
                             <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
@@ -111,7 +72,25 @@
                                         <tr>
                                             <td class="text-muted">Lampiran</td>
                                             <td>:</td>
-                                            <td>{{ $letter->lampiran ?: '-' }}</td>
+                                            <td>
+                                                <div>{{ $letter->lampiran ?: '-' }}</div>
+                                                @if($letter->attachments && $letter->attachments->isNotEmpty())
+                                                    <div class="mt-2 d-flex flex-wrap gap-2">
+                                                        @foreach($letter->attachments as $attachment)
+                                                            <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-3 bg-light border text-dark small">
+                                                                <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
+                                                                <span class="fw-semibold">{{ $attachment->file_name }}</span>
+                                                                <span class="text-muted small">({{ $attachment->formatted_file_size }})</span>
+                                                                <a href="{{ route('surat.download-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment->id]) }}" 
+                                                                   class="btn btn-sm btn-outline-primary rounded-pill ms-2 py-0 px-2"
+                                                                   target="_blank">
+                                                                    <i class="bi bi-download me-1"></i>Unduh
+                                                                </a>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td class="text-muted">Status Dokumen</td>

@@ -16,9 +16,25 @@ class LetterVerificationController extends Controller
      */
     public function verify(string $code): View
     {
-        $letter = Letter::where('letter_code', $code)->firstOrFail();
+        $letter = Letter::with('attachments')->where('letter_code', $code)->firstOrFail();
 
         return view('public.letter_verification', compact('letter'));
+    }
+
+    /**
+     * Unduh berkas lampiran surat dari halaman verifikasi publik.
+     */
+    public function downloadAttachment(string $code, int $attachmentId): BinaryFileResponse
+    {
+        $letter = Letter::where('letter_code', $code)->firstOrFail();
+        $attachment = $letter->attachments()->findOrFail($attachmentId);
+        $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+        if (! file_exists($fullPath)) {
+            abort(404, 'File lampiran tidak ditemukan di penyimpanan server.');
+        }
+
+        return response()->download($fullPath, $attachment->file_name);
     }
 
     /**

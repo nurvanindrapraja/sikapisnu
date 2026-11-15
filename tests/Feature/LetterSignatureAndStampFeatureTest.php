@@ -275,4 +275,196 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         $response->assertSee('Belum TTD Sekretaris');
         $response->assertSee('Tutup & Lanjutkan Menyunting', false);
     }
+
+    public function test_verification_page_does_not_have_header_with_isnu_logo(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0893'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-'.date('Ymd').'-TESTVERIF',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '010/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => now()->toDateString(),
+            'lampiran' => '1 Berkas',
+            'perihal' => 'Pengujian Halaman Verifikasi Tanpa Header Logo ISNU',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Pihak Terkait',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Uji verifikasi keaslian surat tanpa kop logo di verifikasi publik.</p>',
+            'status' => 'draft',
+        ]);
+
+        $response = $this->get(route('surat.verifikasi', $letter->letter_code));
+        $response->assertStatus(200);
+        $response->assertSee('Informasi Dokumen Surat');
+        $response->assertSee('010/PC-VI/ISNU-SBY/XI/2026');
+        $response->assertDontSee('images/kop_logo_isnu.jpeg');
+    }
+
+    public function test_user_can_upload_and_manage_multiple_pdf_attachments_in_edit_letter(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0892'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-'.date('Ymd').'-TESTATT',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '011/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => now()->toDateString(),
+            'lampiran' => '2 Berkas',
+            'perihal' => 'Pengujian Upload Lampiran PDF Lebih Dari Satu',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Pengurus dan Anggota',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Uji multi-upload lampiran file PDF.</p>',
+            'status' => 'draft',
+        ]);
+
+        $pdf1 = UploadedFile::fake()->create('Susunan_Acara.pdf', 250, 'application/pdf');
+        $pdf2 = UploadedFile::fake()->create('RAB_Kegiatan.pdf', 350, 'application/pdf');
+
+        $updateData = [
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => $letter->letter_number,
+            'roman_month' => $letter->roman_month,
+            'year' => $letter->year,
+            'date_letter' => $letter->date_letter->format('Y-m-d'),
+            'lampiran' => '2 Berkas',
+            'perihal' => $letter->perihal,
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => $letter->tujuan_surat,
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => $letter->isi_surat,
+            'action' => 'draft',
+            'attachments' => [$pdf1, $pdf2],
+        ];
+
+        $response = $this->actingAs($user)->put(route('admin.letters.update', $letter->id), $updateData);
+        $response->assertRedirect(route('admin.letters.show', $letter->id));
+        $response->assertSessionHas('success');
+
+        $letter->refresh();
+        $this->assertCount(2, $letter->attachments);
+
+        $attachment1 = $letter->attachments->firstWhere('file_name', 'Susunan_Acara.pdf');
+        $attachment2 = $letter->attachments->firstWhere('file_name', 'RAB_Kegiatan.pdf');
+
+        $this->assertNotNull($attachment1);
+        $this->assertNotNull($attachment2);
+        Storage::disk('public')->assertExists($attachment1->file_path);
+        Storage::disk('public')->assertExists($attachment2->file_path);
+
+        // Halaman Detail Surat menampilkan daftar lampiran
+        $showRes = $this->actingAs($user)->get(route('admin.letters.show', $letter->id));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('Susunan_Acara.pdf');
+        $showRes->assertSee('RAB_Kegiatan.pdf');
+
+        // Halaman Verifikasi Publik menampilkan lampiran
+        $verifRes = $this->get(route('surat.verifikasi', $letter->letter_code));
+        $verifRes->assertStatus(200);
+        $verifRes->assertSee('Susunan_Acara.pdf');
+        $verifRes->assertSee('RAB_Kegiatan.pdf');
+
+        // Unduh lampiran dari rute admin dan rute verifikasi publik
+        $this->actingAs($user)->get(route('admin.letters.attachments.download', $attachment1->id))->assertStatus(200);
+        $this->get(route('surat.download-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment2->id]))->assertStatus(200);
+
+        // Hapus salah satu lampiran saat edit berikutnya
+        $updateData2 = [
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => $letter->letter_number,
+            'roman_month' => $letter->roman_month,
+            'year' => $letter->year,
+            'date_letter' => $letter->date_letter->format('Y-m-d'),
+            'lampiran' => '1 Berkas',
+            'perihal' => $letter->perihal,
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => $letter->tujuan_surat,
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => $letter->isi_surat,
+            'action' => 'draft',
+            'delete_attachment_ids' => [$attachment1->id],
+        ];
+
+        $response2 = $this->actingAs($user)->put(route('admin.letters.update', $letter->id), $updateData2);
+        $response2->assertRedirect(route('admin.letters.show', $letter->id));
+
+        $letter->refresh();
+        $this->assertCount(1, $letter->attachments);
+        Storage::disk('public')->assertMissing($attachment1->file_path);
+        Storage::disk('public')->assertExists($attachment2->file_path);
+
+        // Hapus lampiran kedua via endpoint destroyAttachment
+        $delRes = $this->actingAs($user)->delete(route('admin.letters.attachments.destroy', $attachment2->id));
+        $delRes->assertRedirect();
+        Storage::disk('public')->assertMissing($attachment2->file_path);
+        $this->assertCount(0, $letter->fresh()->attachments);
+    }
+
+    public function test_attachment_upload_rejects_non_pdf_file(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0891'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-'.date('Ymd').'-TESTTXT',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '012/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => now()->toDateString(),
+            'lampiran' => '-',
+            'perihal' => 'Pengujian Validasi Format PDF',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Target',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Uji coba validasi file non-pdf.</p>',
+            'status' => 'draft',
+        ]);
+
+        $nonPdf = UploadedFile::fake()->create('dokumen.txt', 100, 'text/plain');
+
+        $response = $this->actingAs($user)->put(route('admin.letters.update', $letter->id), [
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => $letter->letter_number,
+            'roman_month' => $letter->roman_month,
+            'year' => $letter->year,
+            'date_letter' => $letter->date_letter->format('Y-m-d'),
+            'lampiran' => '-',
+            'perihal' => $letter->perihal,
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => $letter->tujuan_surat,
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => $letter->isi_surat,
+            'action' => 'draft',
+            'attachments' => [$nonPdf],
+        ]);
+
+        $response->assertSessionHasErrors(['attachments.0']);
+    }
 }

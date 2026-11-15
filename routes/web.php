@@ -34,6 +34,7 @@ Route::get('/api/locations', [LocationController::class, 'getLocations'])->name(
 // Verifikasi Surat Digital PC ISNU
 Route::get('/surat/verifikasi/{code}', [LetterVerificationController::class, 'verify'])->name('surat.verifikasi');
 Route::get('/surat/verifikasi/{code}/download-pdf', [LetterVerificationController::class, 'downloadPdf'])->name('surat.download-pdf');
+Route::get('/surat/verifikasi/{code}/lampiran/{attachment_id}', [LetterVerificationController::class, 'downloadAttachment'])->name('surat.download-attachment');
 
 // 1. Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -221,6 +222,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Persuratan & E-TTD (Konsep Surat Template Word & E-TTD Bertahap)
     Route::post('/letters/preview-draft', [AdminLetter::class, 'previewDraft'])->name('letters.preview-draft');
     Route::get('/letters/{id}/preview', [AdminLetter::class, 'preview'])->name('letters.preview');
+    Route::delete('/letters/attachments/{attachment_id}', [AdminLetter::class, 'destroyAttachment'])->name('letters.attachments.destroy');
+    Route::get('/letters/attachments/{attachment_id}/download', [AdminLetter::class, 'downloadAttachment'])->name('letters.attachments.download');
     Route::resource('letters', AdminLetter::class)->parameters(['letters' => 'id']);
     Route::post('/letters/{id}/submit-secretary', [AdminLetter::class, 'submitSecretary'])->name('letters.submit-secretary');
     Route::post('/letters/{id}/sign-secretary', [AdminLetter::class, 'signSecretary'])->name('letters.sign-secretary');
