@@ -312,11 +312,11 @@
                                                     </div>
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <a href="{{ route('admin.letters.attachments.download', $attachment->id) }}" 
-                                                       target="_blank" 
-                                                       class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                    <button type="button" 
+                                                            onclick="openAttachmentPreviewModal('{{ route('admin.letters.attachments.preview', $attachment->id) }}', '{{ route('admin.letters.attachments.download', $attachment->id) }}', '{{ addslashes($attachment->file_name) }}', '{{ $attachment->formatted_file_size }}')" 
+                                                            class="btn btn-sm btn-outline-primary rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm">
                                                         <i class="bi bi-eye me-1"></i> Lihat / Unduh
-                                                    </a>
+                                                    </button>
                                                     <div class="form-check ms-2">
                                                         <input class="form-check-input border-danger" type="checkbox" name="delete_attachment_ids[]" value="{{ $attachment->id }}" id="delAtt{{ $attachment->id }}">
                                                         <label class="form-check-label text-danger small fw-semibold" for="delAtt{{ $attachment->id }}">
@@ -1371,4 +1371,6 @@
         }
     }
 </script>
+
+@include('partials.attachment_preview_modal')
 @endsection

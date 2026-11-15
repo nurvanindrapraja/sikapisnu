@@ -22,6 +22,25 @@ class LetterVerificationController extends Controller
     }
 
     /**
+     * Pratinjau berkas lampiran surat langsung di browser (inline).
+     */
+    public function previewAttachment(string $code, int $attachmentId): BinaryFileResponse
+    {
+        $letter = Letter::where('letter_code', $code)->firstOrFail();
+        $attachment = $letter->attachments()->findOrFail($attachmentId);
+        $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+        if (! file_exists($fullPath)) {
+            abort(404, 'File lampiran tidak ditemukan di penyimpanan server.');
+        }
+
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$attachment->file_name.'"',
+        ]);
+    }
+
+    /**
      * Unduh berkas lampiran surat dari halaman verifikasi publik.
      */
     public function downloadAttachment(string $code, int $attachmentId): BinaryFileResponse

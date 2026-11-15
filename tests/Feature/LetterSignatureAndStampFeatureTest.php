@@ -370,17 +370,30 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         Storage::disk('public')->assertExists($attachment1->file_path);
         Storage::disk('public')->assertExists($attachment2->file_path);
 
-        // Halaman Detail Surat menampilkan daftar lampiran
+        // Halaman Detail Surat menampilkan daftar lampiran dan modal pratinjau
         $showRes = $this->actingAs($user)->get(route('admin.letters.show', $letter->id));
         $showRes->assertStatus(200);
         $showRes->assertSee('Susunan_Acara.pdf');
         $showRes->assertSee('RAB_Kegiatan.pdf');
+        $showRes->assertSee('attachmentPreviewModal');
+        $showRes->assertSee('openAttachmentPreviewModal');
 
-        // Halaman Verifikasi Publik menampilkan lampiran
+        // Halaman Verifikasi Publik menampilkan lampiran dan modal pratinjau
         $verifRes = $this->get(route('surat.verifikasi', $letter->letter_code));
         $verifRes->assertStatus(200);
         $verifRes->assertSee('Susunan_Acara.pdf');
         $verifRes->assertSee('RAB_Kegiatan.pdf');
+        $verifRes->assertSee('attachmentPreviewModal');
+        $verifRes->assertSee('openAttachmentPreviewModal');
+
+        // Pratinjau lampiran PDF secara inline di browser
+        $adminPrevRes = $this->actingAs($user)->get(route('admin.letters.attachments.preview', $attachment1->id));
+        $adminPrevRes->assertStatus(200);
+        $this->assertStringContainsString('application/pdf', (string) $adminPrevRes->headers->get('content-type'));
+
+        $publicPrevRes = $this->get(route('surat.preview-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment2->id]));
+        $publicPrevRes->assertStatus(200);
+        $this->assertStringContainsString('application/pdf', (string) $publicPrevRes->headers->get('content-type'));
 
         // Unduh lampiran dari rute admin dan rute verifikasi publik
         $this->actingAs($user)->get(route('admin.letters.attachments.download', $attachment1->id))->assertStatus(200);

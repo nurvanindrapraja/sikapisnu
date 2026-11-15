@@ -81,11 +81,11 @@
                                                                 <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
                                                                 <span class="fw-semibold">{{ $attachment->file_name }}</span>
                                                                 <span class="text-muted small">({{ $attachment->formatted_file_size }})</span>
-                                                                <a href="{{ route('surat.download-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment->id]) }}" 
-                                                                   class="btn btn-sm btn-outline-primary rounded-pill ms-2 py-0 px-2"
-                                                                   target="_blank">
+                                                                <button type="button" 
+                                                                        onclick="openAttachmentPreviewModal('{{ route('surat.preview-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment->id]) }}', '{{ route('surat.download-attachment', ['code' => $letter->letter_code, 'attachment_id' => $attachment->id]) }}', '{{ addslashes($attachment->file_name) }}', '{{ $attachment->formatted_file_size }}')" 
+                                                                        class="btn btn-sm btn-outline-primary rounded-pill ms-2 py-0 px-2 d-inline-flex align-items-center gap-1">
                                                                     <i class="bi bi-download me-1"></i>Unduh
-                                                                </a>
+                                                                </button>
                                                             </div>
                                                         @endforeach
                                                     </div>
@@ -224,4 +224,6 @@
         </div>
     </div>
 </div>
+
+@include('partials.attachment_preview_modal')
 @endsection

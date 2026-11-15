@@ -527,11 +527,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <a href="{{ route('admin.letters.attachments.download', $attachment->id) }}" 
-                                       target="_blank" 
-                                       class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0">
+                                    <button type="button" 
+                                            onclick="openAttachmentPreviewModal('{{ route('admin.letters.attachments.preview', $attachment->id) }}', '{{ route('admin.letters.attachments.download', $attachment->id) }}', '{{ addslashes($attachment->file_name) }}', '{{ $attachment->formatted_file_size }}')" 
+                                            class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0 d-inline-flex align-items-center gap-1 shadow-sm">
                                         <i class="bi bi-download me-1"></i>Unduh
-                                    </a>
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -845,6 +845,8 @@
         </div>
     </div>
     @endif
+
+    @include('partials.attachment_preview_modal')
 
 </div>
 @endsection

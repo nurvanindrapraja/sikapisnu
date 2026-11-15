@@ -508,6 +508,23 @@ class LetterController extends Controller
         return back()->with('success', 'Lampiran PDF berhasil dihapus.');
     }
 
+    public function previewAttachment(int $attachmentId): BinaryFileResponse
+    {
+        $this->checkAccess();
+
+        $attachment = LetterAttachment::findOrFail($attachmentId);
+        $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+        if (! file_exists($fullPath)) {
+            abort(404, 'File lampiran tidak ditemukan di penyimpanan server.');
+        }
+
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$attachment->file_name.'"',
+        ]);
+    }
+
     public function downloadAttachment(int $attachmentId): BinaryFileResponse
     {
         $this->checkAccess();
