@@ -284,6 +284,8 @@
                                            placeholder="Contoh: Balai Diklat Keagamaan Surabaya, Jl. Ketintang No. 1">
                                 </div>
                             </div>
+                        </div>
+
                         <!-- Upload Berkas Lampiran Surat (PDF) -->
                         <div class="mt-4 mb-4">
                             <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
@@ -546,10 +548,13 @@
             </div>
         </div>
 
+        <!-- Sidebar Informasi Status Surat di Samping Kanan (Desktop) -->
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0 shadow-sm rounded-4 sticky-lg-top" style="top: 1.5rem; z-index: 10;">
                 <div class="card-body p-4">
-                    <h6 class="fw-bold text-dark mb-3">Informasi Status Surat</h6>
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-info-circle text-primary me-2"></i>Informasi Status Surat
+                    </h6>
                     <div class="mb-3">
                         <span class="{{ $letter->status_badge_class }} px-3 py-1 rounded-pill">
                             {{ $letter->status_label }}
@@ -557,8 +562,9 @@
                     </div>
                     <ul class="list-unstyled small mb-0 text-muted">
                         <li class="mb-2"><strong>Dibuat oleh:</strong> {{ $letter->user?->name ?? 'User Sistem' }}</li>
-                        <li class="mb-2"><strong>Waktu dibuat:</strong> {{ $letter->created_at->format('d/m/Y H:i') }}</li>
-                        <li><strong>Kode Unik:</strong> <span class="font-monospace">{{ $letter->letter_code }}</span></li>
+                        <li class="mb-2"><strong>Waktu dibuat:</strong> {{ $letter->created_at->format('d/m/Y H:i') }} WIB</li>
+                        <li class="mb-2"><strong>Terakhir diubah:</strong> {{ $letter->updated_at->format('d/m/Y H:i') }} WIB</li>
+                        <li><strong>Kode Unik:</strong> <span class="font-monospace text-dark">{{ $letter->letter_code }}</span></li>
                     </ul>
                 </div>
             </div>

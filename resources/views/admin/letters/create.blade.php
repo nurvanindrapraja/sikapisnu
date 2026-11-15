@@ -317,6 +317,8 @@
                                     <div class="form-text small">Kota pihak penerima surat (tertera di "di - ...").</div>
                                 </div>
                             </div>
+                        </div>
+
                         <!-- Upload Berkas Lampiran Surat (PDF) -->
                         <div class="mt-4 mb-4">
                             <h5 class="fw-bold text-success border-bottom pb-2 mb-3">

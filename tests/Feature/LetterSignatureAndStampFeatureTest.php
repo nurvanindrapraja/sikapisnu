@@ -467,4 +467,40 @@ class LetterSignatureAndStampFeatureTest extends TestCase
 
         $response->assertSessionHasErrors(['attachments.0']);
     }
+
+    public function test_edit_letter_renders_editor_and_desktop_sidebar_correctly(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0890'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-'.date('Ymd').'-TESTEDITVIEW',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '013/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => now()->toDateString(),
+            'lampiran' => '1 Berkas',
+            'perihal' => 'Uji Editor dan Sidebar Desktop',
+            'kota_asal' => 'Surabaya',
+            'tujuan_surat' => 'Penerima Surat',
+            'kota_tujuan' => 'Surabaya',
+            'isi_surat' => '<p>Paragraf isi surat yang harus tampil di editor.</p>',
+            'status' => 'draft',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.letters.edit', $letter->id));
+        $response->assertStatus(200);
+        $response->assertSee('id="quill-editor"', false);
+        $response->assertSee('Teks Isi Surat (Editor HTML)');
+        $response->assertSee('Berkas Lampiran Surat (PDF)');
+        $response->assertSee('Informasi Status Surat');
+        $response->assertSee('col-lg-8');
+        $response->assertSee('col-lg-4');
+        $response->assertSee('sticky-lg-top');
+    }
 }
