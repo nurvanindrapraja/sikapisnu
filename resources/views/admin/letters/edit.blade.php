@@ -1371,6 +1371,4 @@
         }
     }
 </script>
-
-@include('partials.attachment_preview_modal')
 @endsection

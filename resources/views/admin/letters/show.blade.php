@@ -845,8 +845,5 @@
         </div>
     </div>
     @endif
-
-    @include('partials.attachment_preview_modal')
-
 </div>
 @endsection

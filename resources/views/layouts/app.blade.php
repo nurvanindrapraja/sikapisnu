@@ -341,6 +341,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @include('partials.attachment_preview_modal')
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
         async function downloadPdfWithSpinner(url, defaultFilename, setDownloading) {
@@ -384,5 +385,6 @@
         }
     </script>
     @yield('scripts')
+    @stack('scripts')
 </body>
 </html>

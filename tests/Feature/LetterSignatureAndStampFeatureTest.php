@@ -515,6 +515,8 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         $response->assertSee('col-lg-8');
         $response->assertSee('col-lg-4');
         $response->assertSee('sticky-lg-top');
+        $response->assertSee('attachmentPreviewModal');
+        $response->assertSee('openAttachmentPreviewModal');
     }
 
     public function test_user_can_preview_draft_letter_modal_with_put_method_and_empty_body(): void

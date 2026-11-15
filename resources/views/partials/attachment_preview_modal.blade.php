@@ -1,10 +1,10 @@
 <!-- Modal Pratinjau Berkas Lampiran (PDF) -->
-<div class="modal fade" id="attachmentPreviewModal" tabindex="-1" aria-labelledby="attachmentPreviewModalLabel" aria-hidden="true" style="z-index: 1065;">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 950px;">
+<div class="modal fade" id="attachmentPreviewModal" tabindex="-1" aria-labelledby="attachmentPreviewModalLabel" aria-hidden="true" style="z-index: 1070;">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 960px;">
         <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
             <div class="modal-header border-bottom px-4 py-3 bg-light d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
-                    <div class="rounded-circle bg-danger-subtle text-danger p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+                    <div class="rounded-circle bg-danger-subtle text-danger p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
                         <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
                     </div>
                     <div class="overflow-hidden">
@@ -28,7 +28,7 @@
                     <div class="spinner-border text-primary mb-2" role="status" style="width: 2.5rem; height: 2.5rem;">
                         <span class="visually-hidden">Memuat...</span>
                     </div>
-                    <div class="small text-muted fw-semibold">Memuat pratinjau berkas...</div>
+                    <div class="small text-muted fw-semibold">Memuat pratinjau berkas lampiran...</div>
                 </div>
 
                 <!-- PDF Preview Iframe -->
@@ -66,11 +66,19 @@
     </div>
 </div>
 
-@pushOnce('scripts')
 <script>
-    function openAttachmentPreviewModal(previewUrl, downloadUrl, fileName, fileSize) {
-        const modalEl = document.getElementById('attachmentPreviewModal');
-        if (!modalEl) return;
+    window.openAttachmentPreviewModal = function(previewUrl, downloadUrl, fileName, fileSize) {
+        let modalEl = document.getElementById('attachmentPreviewModal');
+        if (!modalEl) {
+            console.error('attachmentPreviewModal tidak ditemukan di halaman');
+            window.location.href = downloadUrl;
+            return;
+        }
+
+        // Pastikan modal berada langsung di bawah body agar tidak terhalang backdrop atau overflow parent
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
 
         const nameEl = document.getElementById('attachmentPreviewFileName');
         if (nameEl) nameEl.textContent = fileName || 'Berkas Lampiran (PDF)';
@@ -100,14 +108,22 @@
         }
 
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.show();
+        } else if (window.jQuery && typeof window.jQuery(modalEl).modal === 'function') {
+            window.jQuery(modalEl).modal('show');
+        } else {
+            console.warn('Bootstrap Modal tidak tersedia, mengarahkan ke tautan berkas');
+            window.open(downloadUrl || previewUrl, '_blank');
         }
-    }
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         const modalEl = document.getElementById('attachmentPreviewModal');
         if (modalEl) {
+            if (modalEl.parentElement !== document.body) {
+                document.body.appendChild(modalEl);
+            }
             modalEl.addEventListener('hidden.bs.modal', function () {
                 const iframeEl = document.getElementById('attachmentPreviewIframe');
                 if (iframeEl) iframeEl.src = 'about:blank';
@@ -117,4 +133,3 @@
         }
     });
 </script>
-@endPushOnce

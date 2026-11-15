@@ -616,6 +616,9 @@
         </div>
     </div>
 
+    <!-- Modal Popup Pratinjau Berkas Lampiran -->
+    @include('partials.attachment_preview_modal')
+
     <script>
         function openCardDownloadModal(baseUrl, name, number) {
             document.getElementById('cardMemberName').innerText = name || 'Kartu Anggota Digital';
@@ -671,5 +674,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     @yield('scripts')
+    @stack('scripts')
 </body>
 </html>
