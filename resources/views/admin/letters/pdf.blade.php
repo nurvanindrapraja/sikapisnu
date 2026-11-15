@@ -144,28 +144,29 @@
             margin-bottom: 8px;
         }
         .sig-box {
-            height: 85px;
+            height: 70px;
             margin: 0 auto;
             position: relative;
             text-align: center;
         }
         .sig-box img.sig-img {
-            max-height: 75px;
-            max-width: 160px;
+            max-height: 88px;
+            max-width: 220px;
             display: inline-block;
+            vertical-align: bottom;
         }
         .sig-box img.stamp-img {
             position: absolute;
-            top: -10px;
-            left: 20px;
-            width: 95px;
-            height: 95px;
+            top: -15px;
+            left: 15px;
+            width: 96px;
+            height: 96px;
             opacity: 0.85;
         }
         .signer-name {
             font-weight: bold;
             text-decoration: underline;
-            margin-top: 6px;
+            margin-top: 3px;
         }
         .signer-position {
             font-size: 10pt;

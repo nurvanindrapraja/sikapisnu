@@ -295,39 +295,39 @@
                     <div class="row text-center g-4">
                         <!-- Kolom Ketua (Kiri) -->
                         <div class="col-6">
-                            <div class="d-flex align-items-center justify-content-center my-2" style="height: 110px;">
+                            <div class="d-flex align-items-center justify-content-center mt-2 mb-1" style="height: 85px;">
                                 @if($letter->chairman_signed_at)
                                     @php $chairSig = $letter->chairman_signature_url; @endphp
                                     @if($chairSig)
-                                        <img src="{{ $chairSig }}" alt="TTD Ketua" style="max-height: 95px; max-width: 170px; object-fit: contain;">
+                                        <img src="{{ $chairSig }}" alt="TTD Ketua" style="max-height: 105px; max-width: 220px; object-fit: contain;">
                                     @else
-                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 140px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                             <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                                             <span>Sah & Ditandatangani</span>
                                         </div>
                                     @endif
                                 @else
-                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 140px; height: 85px; display: flex; align-items: center; justify-content: center;">
                                         Belum TTD Ketua
                                     </div>
                                 @endif
                             </div>
-                            <div class="fw-bold text-decoration-underline">{{ $letter->chairman_name ?? '....................................' }}</div>
+                            <div class="fw-bold text-decoration-underline mt-1">{{ $letter->chairman_name ?? '....................................' }}</div>
                             <div class="small text-dark fw-semibold">{{ $letter->chairman_position ?? 'Ketua' }}</div>
                         </div>
 
                         <!-- Kolom Sekretaris (Kanan) -->
                         <div class="col-6">
-                            <div class="d-flex align-items-center justify-content-center my-2 position-relative" style="height: 110px;">
+                            <div class="d-flex align-items-center justify-content-center mt-2 mb-1 position-relative" style="height: 85px;">
                                 @if($letter->secretary_signed_at)
                                     @php 
                                         $secSig = $letter->secretary_signature_url;
                                         $stampUrl = $letter->stamp_url;
                                     @endphp
                                     @if($secSig)
-                                        <img src="{{ $secSig }}" alt="TTD Sekretaris" style="max-height: 95px; max-width: 170px; object-fit: contain; position: relative; z-index: 1;">
+                                        <img src="{{ $secSig }}" alt="TTD Sekretaris" style="max-height: 105px; max-width: 220px; object-fit: contain; position: relative; z-index: 1;">
                                     @else
-                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 130px; height: 95px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1;">
+                                        <div class="p-2 border rounded-3 bg-success-subtle text-success small fw-semibold text-center" style="width: 140px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 1;">
                                             <i class="bi bi-patch-check-fill fs-3 mb-1"></i>
                                             <span>Sah & Ditandatangani</span>
                                         </div>
@@ -336,15 +336,15 @@
                                     <!-- Gambar Stempel diletakkan di atas TTD Sekretaris -->
                                     @if($stampUrl)
                                         <img src="{{ $stampUrl }}" alt="Stempel Resmi" 
-                                             style="position: absolute; width: 110px; height: 110px; object-fit: contain; pointer-events: none; z-index: 2; opacity: 0.88; transform: translate(-25%, -5%) rotate(-8deg);">
+                                             style="position: absolute; width: 115px; height: 115px; object-fit: contain; pointer-events: none; z-index: 2; opacity: 0.88; transform: translate(-25%, -8%) rotate(-8deg);">
                                     @endif
                                 @else
-                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 130px; height: 95px; display: flex; align-items: center; justify-content: center;">
+                                    <div class="p-3 border rounded-3 bg-light text-muted small fst-italic" style="width: 140px; height: 85px; display: flex; align-items: center; justify-content: center;">
                                         Belum TTD Sekretaris
                                     </div>
                                 @endif
                             </div>
-                            <div class="fw-bold text-decoration-underline">{{ $letter->secretary_name ?? '....................................' }}</div>
+                            <div class="fw-bold text-decoration-underline mt-1">{{ $letter->secretary_name ?? '....................................' }}</div>
                             <div class="small text-dark fw-semibold">{{ $letter->secretary_position ?? 'Sekretaris' }}</div>
                         </div>
                     </div>
