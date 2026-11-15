@@ -1339,18 +1339,25 @@
 
         const form = document.getElementById('letterForm');
         const formData = new FormData(form);
+        formData.delete('_method');
+        if (typeof quillInstance !== 'undefined' && quillInstance) {
+            formData.set('isi_surat', quillInstance.root.innerHTML);
+        }
 
         fetch("{{ route('admin.letters.preview-draft') }}", {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
             },
             body: formData
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Gagal merender pratinjau surat');
+                return response.text().then(text => {
+                    throw new Error('HTTP ' + response.status + ': ' + text);
+                });
             }
             return response.text();
         })
@@ -1358,6 +1365,7 @@
             contentEl.innerHTML = html;
         })
         .catch(err => {
+            console.error('Preview error:', err);
             contentEl.innerHTML = `
                 <div class="modal-header border-bottom px-4 py-3 bg-light">
                     <h6 class="modal-title fw-bold text-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Gagal Memuat Pratinjau</h6>

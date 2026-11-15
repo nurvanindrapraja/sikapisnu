@@ -220,7 +220,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/users/{id}', [AdminUser::class, 'destroy'])->name('users.destroy');
 
     // Persuratan & E-TTD (Konsep Surat Template Word & E-TTD Bertahap)
-    Route::post('/letters/preview-draft', [AdminLetter::class, 'previewDraft'])->name('letters.preview-draft');
+    Route::match(['get', 'post', 'put'], '/letters/preview-draft', [AdminLetter::class, 'previewDraft'])->name('letters.preview-draft');
     Route::get('/letters/{id}/preview', [AdminLetter::class, 'preview'])->name('letters.preview');
     Route::delete('/letters/attachments/{attachment_id}', [AdminLetter::class, 'destroyAttachment'])->name('letters.attachments.destroy');
     Route::get('/letters/attachments/{attachment_id}/download', [AdminLetter::class, 'downloadAttachment'])->name('letters.attachments.download');

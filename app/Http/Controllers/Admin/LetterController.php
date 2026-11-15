@@ -218,20 +218,46 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
+        $data = $request->except(['_token', '_method']);
+
         if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac', 'attachments'])->find($request->id)) {
             $letter = $existing;
-            $letter->fill($request->all());
+            $letter->fill($data);
         } else {
             $letter = new Letter;
-            $letter->fill($request->all());
+            $letter->fill($data);
             $letter->user_id = auth()->id();
             $letter->letter_code = $letter->letter_code ?: ('DRAFT-'.strtoupper(Str::random(6)));
             $letter->status = Letter::STATUS_DRAFT;
             $letter->setRelation('attachments', collect());
         }
 
+        if ($letter->isi_surat === null) {
+            $letter->isi_surat = '';
+        }
+
         if (empty($letter->letter_type)) {
             $letter->letter_type = Letter::TYPE_SURAT_BIASA;
+        }
+
+        if (empty($letter->perihal)) {
+            if ($letter->letter_type === Letter::TYPE_SURAT_MANDAT) {
+                $letter->perihal = 'Surat Mandat'.(! empty($letter->kegiatan) ? ': '.$letter->kegiatan : '');
+            } elseif ($letter->letter_type === Letter::TYPE_SURAT_REKOMENDASI) {
+                $letter->perihal = 'Surat Rekomendasi';
+            } else {
+                $letter->perihal = 'Surat Resmi';
+            }
+        }
+
+        if (empty($letter->tujuan_surat)) {
+            if ($letter->letter_type === Letter::TYPE_SURAT_MANDAT) {
+                $letter->tujuan_surat = 'Penerima Mandat';
+            } elseif ($letter->letter_type === Letter::TYPE_SURAT_REKOMENDASI) {
+                $letter->tujuan_surat = 'Penerima Rekomendasi';
+            } else {
+                $letter->tujuan_surat = '-';
+            }
         }
 
         if (empty($letter->letter_number)) {

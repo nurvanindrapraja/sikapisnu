@@ -90,10 +90,10 @@
     </p>
 
     <div class="p-3 bg-light rounded-3 mb-3 letter-preview-body text-justify" style="line-height: 1.7;">
-        @if(str_contains($letter->isi_surat, '<') && str_contains($letter->isi_surat, '>'))
+        @if(str_contains((string) $letter->isi_surat, '<') && str_contains((string) $letter->isi_surat, '>'))
             {!! $letter->isi_surat !!}
         @else
-            {!! nl2br(e($letter->isi_surat)) !!}
+            {!! nl2br(e((string) $letter->isi_surat)) !!}
         @endif
     </div>
 
@@ -120,10 +120,10 @@
     </p>
 
     <div class="p-3 bg-light rounded-3 mb-3 letter-preview-body text-justify" style="line-height: 1.7;">
-        @if(str_contains($letter->isi_surat, '<') && str_contains($letter->isi_surat, '>'))
+        @if(str_contains((string) $letter->isi_surat, '<') && str_contains((string) $letter->isi_surat, '>'))
             {!! $letter->isi_surat !!}
         @else
-            {!! nl2br(e($letter->isi_surat)) !!}
+            {!! nl2br(e((string) $letter->isi_surat)) !!}
         @endif
     </div>
 
@@ -185,10 +185,10 @@
     </div>
 
     <div class="p-3 bg-light rounded-3 mb-4 text-justify letter-preview-body" style="line-height: 1.7;">
-        @if(str_contains($letter->isi_surat, '<') && str_contains($letter->isi_surat, '>'))
+        @if(str_contains((string) $letter->isi_surat, '<') && str_contains((string) $letter->isi_surat, '>'))
             {!! $letter->isi_surat !!}
         @else
-            {!! nl2br(e($letter->isi_surat)) !!}
+            {!! nl2br(e((string) $letter->isi_surat)) !!}
         @endif
     </div>
 

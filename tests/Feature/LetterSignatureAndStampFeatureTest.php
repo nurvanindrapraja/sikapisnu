@@ -503,4 +503,56 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         $response->assertSee('col-lg-4');
         $response->assertSee('sticky-lg-top');
     }
+
+    public function test_user_can_preview_draft_letter_modal_with_put_method_and_empty_body(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0889'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-'.date('Ymd').'-TESTPREVPUT',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => '014/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => '2026',
+            'date_letter' => now()->toDateString(),
+            'perihal' => 'Pengujian Pratinjau Edit Draft',
+            'isi_surat' => '<p>Draf awal</p>',
+            'status' => 'draft',
+        ]);
+
+        $postDataWithPut = [
+            '_method' => 'PUT',
+            'letter_id' => $letter->id,
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'letter_number' => $letter->letter_number,
+            'roman_month' => $letter->roman_month,
+            'year' => $letter->year,
+            'date_letter' => '2026-11-15',
+            'perihal' => '',
+            'tujuan_surat' => '',
+            'isi_surat' => null,
+        ];
+
+        // Test with POST containing _method = PUT (method spoofing)
+        $response = $this->actingAs($user)->post(route('admin.letters.preview-draft'), $postDataWithPut, [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertSee('Pratinjau Dokumen Utuh');
+        $response->assertSee('014/PC-VI/ISNU-SBY/XI/2026');
+
+        // Test directly with PUT method
+        $putResponse = $this->actingAs($user)->put(route('admin.letters.preview-draft'), $postDataWithPut, [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+        $putResponse->assertStatus(200);
+        $putResponse->assertSee('Pratinjau Dokumen Utuh');
+    }
 }
