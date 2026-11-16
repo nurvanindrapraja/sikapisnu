@@ -68,6 +68,7 @@
                                 <input class="form-check-input" type="checkbox" name="remember" id="remember">
                                 <label class="form-check-label text-muted" for="remember">Ingat Saya</label>
                             </div>
+                            <a href="{{ route('password.request') }}" class="text-success text-decoration-none fw-semibold">Lupa Password?</a>
                         </div>
 
                         <button type="submit" class="btn btn-isnu-primary w-100 py-2.5 fw-bold rounded-pill mb-3" :disabled="loading">

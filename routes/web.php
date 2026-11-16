@@ -60,6 +60,12 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/check-email', [AuthController::class, 'checkEmail'])->name('check.email');
 Route::get('/activate/{token}', [AuthController::class, 'activateAccount'])->name('activate.account');
 
+// Password Reset Routes
+Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
 // 3. Member Area Routes
 Route::middleware(['auth'])->prefix('member')->name('member.')->group(function () {
     Route::get('/dashboard', [MemberDashboard::class, 'index'])->name('dashboard');

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Mail\ResetPasswordMail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
@@ -78,6 +80,16 @@ class User extends Authenticatable
     {
         return (! empty($this->stamp_path) && Storage::disk('public')->exists($this->stamp_path))
             || Storage::disk('public')->exists('stamps/official_stamp.png');
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $url = route('password.reset', [
+            'token' => $token,
+            'email' => $this->getEmailForPasswordReset(),
+        ]);
+
+        Mail::to($this->getEmailForPasswordReset())->send(new ResetPasswordMail($this, $token, $url));
     }
 
     public function presences()
