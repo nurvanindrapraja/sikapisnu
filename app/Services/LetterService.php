@@ -523,9 +523,9 @@ class LetterService
     }
 
     /**
-     * Generate versi PDF resmi surat ISNU menggunakan dompdf.
+     * Render string konten biner PDF resmi menggunakan dompdf.
      */
-    public function generatePdf(Letter $letter): string
+    public function renderPdfContent(Letter $letter): string
     {
         $secSigBase64 = null;
         if ($letter->secretary_signed_at) {
@@ -605,13 +605,23 @@ class LetterService
             'kopLogoBase64' => $kopLogoBase64,
         ])->setPaper('a4', 'portrait');
 
+        return $pdf->output();
+    }
+
+    /**
+     * Generate versi PDF resmi surat ISNU menggunakan dompdf.
+     */
+    public function generatePdf(Letter $letter): string
+    {
+        $output = $this->renderPdfContent($letter);
+
         $pdfDir = 'letters/pdf';
         Storage::disk('public')->makeDirectory($pdfDir);
 
         $targetFileName = "Surat_{$letter->letter_code}.pdf";
         $relativePath = "{$pdfDir}/{$targetFileName}";
 
-        Storage::disk('public')->put($relativePath, $pdf->output());
+        Storage::disk('public')->put($relativePath, $output);
 
         $letter->pdf_path = $relativePath;
         $letter->saveQuietly();

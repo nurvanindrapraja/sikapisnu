@@ -129,10 +129,15 @@
         .closing {
             margin-top: 15px;
             margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .signature-section {
+            page-break-inside: avoid;
         }
         .signature-table {
             width: 100%;
             margin-top: 15px;
+            page-break-inside: avoid;
         }
         .signature-table td {
             width: 50%;
@@ -185,6 +190,7 @@
             margin-top: 18px;
             border-top: 1px dashed #aaa;
             padding-top: 6px;
+            page-break-inside: avoid;
         }
     </style>
 </head>
@@ -368,6 +374,7 @@
     @endif
 
     <!-- PENANDATANGANAN DIGITAL 2 KOLOM -->
+    <div class="signature-section">
     <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">
         @if($letter->isLevelPac())
             PIMPINAN ANAK CABANG<br>
@@ -429,6 +436,7 @@
             </td>
         </tr>
     </table>
+    </div>
 
 </body>
 </html>

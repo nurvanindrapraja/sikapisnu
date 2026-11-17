@@ -570,4 +570,76 @@ class LetterSignatureAndStampFeatureTest extends TestCase
         $putResponse->assertStatus(200);
         $putResponse->assertSee('Pratinjau Dokumen Utuh');
     }
+
+    public function test_preview_draft_returns_pdf_stream_when_format_is_pdf(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0895'.rand(10000000, 99999999),
+        ]);
+
+        $letter = Letter::create([
+            'user_id' => $user->id,
+            'letter_code' => 'SRT-20261117-TEST01',
+            'letter_number' => '015/PC-VI/ISNU-SBY/XI/2026',
+            'roman_month' => 'XI',
+            'year' => 2026,
+            'date_letter' => '2026-11-17',
+            'letter_type' => 'surat_biasa',
+            'level' => 'PC ISNU',
+            'perihal' => 'Pengujian Pratinjau PDF',
+            'tujuan_surat' => 'Penerima Uji Coba',
+            'isi_surat' => '<p>Paragraf uji coba PDF preview.</p>',
+            'status' => 'draft',
+        ]);
+
+        $postData = [
+            'id' => $letter->id,
+            'letter_type' => 'surat_biasa',
+            'letter_number' => $letter->letter_number,
+            'perihal' => 'Pengujian Pratinjau PDF',
+            'isi_surat' => '<p>Paragraf uji coba PDF preview.</p>',
+            'format' => 'pdf',
+        ];
+
+        $response = $this->actingAs($user)->post(route('admin.letters.preview-draft'), $postData, [
+            'X-Requested-With' => 'XMLHttpRequest',
+            'Accept' => 'application/pdf',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+    }
+
+    public function test_preview_draft_generates_multi_page_pdf_for_long_content(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin_kota',
+            'phone' => '0896'.rand(10000000, 99999999),
+        ]);
+
+        $longContent = str_repeat('<p>Ini adalah teks panjang isi surat resmi Ikatan Sarjana Nahdlatul Ulama Kota Surabaya untuk memastikan surat dapat ter-render rapi lebih dari satu halaman.</p>', 25);
+
+        $postData = [
+            'letter_type' => 'surat_biasa',
+            'letter_number' => '016/PC-VI/ISNU-SBY/XI/2026',
+            'perihal' => 'Surat Resmi Multi Halaman',
+            'isi_surat' => $longContent,
+            'format' => 'pdf',
+        ];
+
+        $response = $this->actingAs($user)->post(route('admin.letters.preview-draft').'?format=pdf', $postData, [
+            'X-Requested-With' => 'XMLHttpRequest',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $content = $response->getContent();
+        $this->assertStringStartsWith('%PDF-', $content);
+
+        // Verify PDF has multiple pages
+        preg_match_all('/\/Page\b/', $content, $matches);
+        $this->assertGreaterThan(1, count($matches[0]));
+    }
 }

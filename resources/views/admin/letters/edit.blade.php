@@ -704,16 +704,81 @@
     </div>
 </div>
 
-<!-- Modal Pratinjau Dokumen Surat Utuh -->
-<div class="modal fade" id="draftPreviewModal" tabindex="-1" aria-labelledby="draftPreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden" id="draftPreviewModalContent">
-            <div class="p-5 text-center">
-                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Memuat...</span>
+<!-- Modal Pratinjau Dokumen Surat PDF (Multi-Halaman) -->
+<div class="modal fade" id="draftPreviewModal" tabindex="-1" aria-labelledby="draftPreviewModalLabel" aria-hidden="true" style="z-index: 1070;">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 980px;">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <!-- Modal Header -->
+            <div class="modal-header border-bottom px-4 py-3 bg-light d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                    <div class="rounded-circle bg-danger-subtle text-danger p-2 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
+                        <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h6 class="modal-title fw-bold text-dark mb-0 text-truncate" id="draftPreviewModalLabel">
+                            Pratinjau Dokumen Surat Resmi (PDF)
+                        </h6>
+                        <div class="small text-muted d-flex align-items-center gap-2 flex-wrap">
+                            <span id="draftPreviewLetterNumber" class="text-truncate fw-medium text-dark">Simulasi Berkas PDF Hasil Generate</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill">
+                                <i class="bi bi-file-text me-1"></i>Multi-halaman
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <h6 class="fw-bold text-dark mt-3 mb-1">Menyiapkan Pratinjau Dokumen Surat...</h6>
-                <p class="text-muted small mb-0">Merender format dokumen resmi beserta kop, isi, dan format tanda tangan.</p>
+                <div class="d-flex align-items-center gap-2">
+                    <a id="draftPreviewNewTabBtn" href="#" target="_blank" class="btn btn-outline-secondary rounded-pill px-3 btn-sm fw-semibold d-none d-sm-inline-flex align-items-center gap-1.5" title="Buka PDF di Tab Baru">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <span>Buka Tab Baru</span>
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Iframe PDF Viewer) -->
+            <div class="modal-body p-0 position-relative bg-dark-subtle" style="min-height: 540px; height: 75vh;">
+                <!-- Loading State Indicator -->
+                <div id="draftPreviewLoading" class="position-absolute top-50 start-50 translate-middle text-center p-4 bg-white bg-opacity-95 rounded-4 shadow-sm" style="z-index: 10;">
+                    <div class="spinner-border text-primary mb-2" role="status" style="width: 2.75rem; height: 2.75rem;">
+                        <span class="visually-hidden">Memuat PDF...</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Menyiapkan Pratinjau Dokumen Surat PDF...</h6>
+                    <p class="text-muted small mb-0">Sedang meng-generate berkas PDF resmi lengkap dengan kop, isi, dan format tanda tangan.</p>
+                </div>
+
+                <!-- Error State Indicator -->
+                <div id="draftPreviewError" class="position-absolute top-50 start-50 translate-middle text-center p-4 bg-white rounded-4 shadow-sm d-none" style="z-index: 10; max-width: 480px; width: 90%;">
+                    <div class="rounded-circle bg-danger-subtle text-danger p-3 d-inline-flex align-items-center justify-content-center mb-3">
+                        <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+                    </div>
+                    <h6 class="fw-bold text-danger mb-2">Gagal Menyiapkan Pratinjau PDF</h6>
+                    <p class="text-muted small mb-3">Terjadi kendala saat merender berkas PDF. Pastikan data formulir telah diisi dengan baik.</p>
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">Tutup</button>
+                </div>
+
+                <!-- PDF Iframe -->
+                <iframe id="draftPreviewIframe"
+                        src="about:blank"
+                        class="w-100 h-100 border-0"
+                        style="position: relative; z-index: 3;"
+                        title="Pratinjau Surat PDF">
+                </iframe>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-top px-4 py-3 bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="small text-muted d-flex align-items-center gap-1.5">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span>Tampilan ini merupakan simulasi berkas PDF utuh yang akan digenerate secara otomatis (dapat lebih dari satu halaman).</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-light border rounded-pill px-3 btn-sm fw-semibold" onclick="const iframe = document.getElementById('draftPreviewIframe'); if(iframe && iframe.contentWindow) { iframe.contentWindow.focus(); iframe.contentWindow.print(); }">
+                        <i class="bi bi-printer me-1"></i> Cetak
+                    </button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold shadow-sm" data-bs-dismiss="modal">
+                        <i class="bi bi-pencil-square me-1"></i> Tutup & Lanjutkan Menyunting
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1286,24 +1351,32 @@
         return true;
     }
 
+    let currentDraftPdfUrl = null;
+
     function openDraftPreviewModal(formId = 'letterEditForm') {
         if (typeof quillInstance !== 'undefined' && quillInstance) {
             syncEditorContent();
         }
 
         const modalEl = document.getElementById('draftPreviewModal');
-        const contentEl = document.getElementById('draftPreviewModalContent');
-        if (!modalEl || !contentEl) return;
+        const iframe = document.getElementById('draftPreviewIframe');
+        const loadingEl = document.getElementById('draftPreviewLoading');
+        const errorEl = document.getElementById('draftPreviewError');
+        const letterNumEl = document.getElementById('draftPreviewLetterNumber');
+        const newTabBtn = document.getElementById('draftPreviewNewTabBtn');
 
-        contentEl.innerHTML = `
-            <div class="p-5 text-center">
-                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Memuat...</span>
-                </div>
-                <h6 class="fw-bold text-dark mt-3 mb-1">Menyiapkan Pratinjau Dokumen Surat...</h6>
-                <p class="text-muted small mb-0">Merender format dokumen resmi beserta kop, isi, dan format tanda tangan.</p>
-            </div>
-        `;
+        if (!modalEl || !iframe) return;
+
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        if (errorEl) errorEl.classList.add('d-none');
+        iframe.src = 'about:blank';
+
+        const letterNumInput = document.querySelector('input[name="letter_number"]');
+        if (letterNumEl) {
+            letterNumEl.textContent = (letterNumInput && letterNumInput.value.trim()) 
+                ? letterNumInput.value.trim() 
+                : 'Simulasi Dokumen PDF';
+        }
 
         const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
         modalInstance.show();
@@ -1311,42 +1384,59 @@
         const form = document.getElementById(formId) || document.querySelector('form');
         const formData = new FormData(form);
         formData.delete('_method');
+        formData.set('format', 'pdf');
         if (typeof quillInstance !== 'undefined' && quillInstance) {
             formData.set('isi_surat', quillInstance.root.innerHTML);
         }
 
-        fetch("{{ route('admin.letters.preview-draft') }}", {
+        fetch("{{ route('admin.letters.preview-draft') }}?format=pdf", {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'text/html'
+                'Accept': 'application/pdf'
             },
             body: formData
         })
         .then(response => {
             if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error('HTTP ' + response.status + ': ' + text);
-                });
+                throw new Error('HTTP ' + response.status);
             }
-            return response.text();
+            return response.blob();
         })
-        .then(html => {
-            contentEl.innerHTML = html;
+        .then(blob => {
+            if (currentDraftPdfUrl) {
+                URL.revokeObjectURL(currentDraftPdfUrl);
+            }
+            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+            currentDraftPdfUrl = URL.createObjectURL(pdfBlob);
+
+            iframe.src = currentDraftPdfUrl;
+            if (newTabBtn) {
+                newTabBtn.href = currentDraftPdfUrl;
+            }
+
+            iframe.onload = function() {
+                if (loadingEl) loadingEl.classList.add('d-none');
+            };
+
+            setTimeout(() => {
+                if (loadingEl) loadingEl.classList.add('d-none');
+            }, 600);
         })
         .catch(err => {
-            console.error('Preview error:', err);
-            contentEl.innerHTML = `
-                <div class="modal-header border-bottom px-4 py-3 bg-light">
-                    <h6 class="modal-title fw-bold text-danger mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Gagal Memuat Pratinjau</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <p class="text-muted mb-3">Terjadi kendala saat merender pratinjau surat. Pastikan data form telah terisi dengan baik.</p>
-                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            `;
+            console.error('PDF Preview error:', err);
+            if (loadingEl) loadingEl.classList.add('d-none');
+            if (errorEl) errorEl.classList.remove('d-none');
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
+            if (iframe) iframe.src = 'about:blank';
+            if (currentDraftPdfUrl) {
+                URL.revokeObjectURL(currentDraftPdfUrl);
+                currentDraftPdfUrl = null;
+            }
+            modalEl.removeEventListener('hidden.bs.modal', onModalHidden);
         });
     }
 

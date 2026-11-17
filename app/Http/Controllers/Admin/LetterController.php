@@ -11,6 +11,7 @@ use App\Services\LetterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -214,7 +215,7 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('success', $message);
     }
 
-    public function previewDraft(Request $request): View
+    public function previewDraft(Request $request, LetterService $letterService): View|Response
     {
         $this->checkAccess();
 
@@ -274,6 +275,16 @@ class LetterController extends Controller
 
         if ($letter->pac_id && ! $letter->relationLoaded('pac')) {
             $letter->setRelation('pac', Pac::find($letter->pac_id));
+        }
+
+        if ($request->query('format') === 'pdf' || $request->input('format') === 'pdf' || $request->header('Accept') === 'application/pdf') {
+            $pdfContent = $letterService->renderPdfContent($letter);
+
+            return response($pdfContent, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="Pratinjau_Surat_'.$letter->letter_code.'.pdf"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            ]);
         }
 
         return view('admin.letters.partials.letter_preview_modal_content', [
