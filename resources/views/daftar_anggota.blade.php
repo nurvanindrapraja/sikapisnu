@@ -1,6 +1,11 @@
-@extends('layouts.app')
+@php
+    $isMemberLayout = request()->routeIs('member.*') || (auth()->check() && !auth()->user()->isAdmin() && !request()->has('public'));
+    $katalogRoute = $isMemberLayout ? 'member.katalog.index' : 'daftar.anggota';
+@endphp
+@extends($isMemberLayout ? 'layouts.member' : 'layouts.app')
 
 @section('title', 'Katalog Anggota & Potensi')
+@section('header_title', 'Katalog Anggota & Potensi')
 
 @section('styles')
 <style>
@@ -63,7 +68,7 @@
         search: '{{ request('search') }}',
         fetchData(url = null) {
             this.loading = true;
-            const targetUrl = url || ('{{ route('daftar.anggota') }}?search=' + encodeURIComponent(this.search));
+            const targetUrl = url || ('{{ route($katalogRoute) }}?search=' + encodeURIComponent(this.search));
             fetch(targetUrl, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
@@ -88,14 +93,33 @@
             <div class="progress-bar progress-bar-striped progress-bar-animated bg-success w-100"></div>
         </div>
 
-        <div class="bg-success text-white py-4">
-            <div class="container">
-                <h2 class="fw-bold m-0"><i class="bi bi-people-fill me-2"></i> Katalog Anggota ISNU Surabaya</h2>
-                <p class="mb-0 text-white-50">Daftar sarjana dan kader ISNU Kota Surabaya yang telah terverifikasi</p>
+        @if($isMemberLayout)
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 p-4 text-white" style="background: linear-gradient(135deg, #004d28 0%, #006837 100%);">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative z-1">
+                    <div>
+                        <span class="badge bg-warning text-dark fw-bold px-3 py-1.5 rounded-pill mb-2 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.8px;">
+                            <i class="bi bi-people-fill me-1"></i> Direktori Resmi ISNU
+                        </span>
+                        <h3 class="fw-bold m-0 text-white">Katalog Anggota & Potensi Kader</h3>
+                        <p class="mb-0 text-white-50 small mt-1">Daftar sarjana, cendekiawan, dan kader ISNU Kota Surabaya yang telah terverifikasi sah.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('member.dashboard') }}" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold text-success shadow-sm">
+                            <i class="bi bi-person-badge-fill me-1"></i> Dashboard Profil
+                        </a>
+                    </div>
+                </div>
             </div>
-        </div>
+        @else
+            <div class="bg-success text-white py-4">
+                <div class="container">
+                    <h2 class="fw-bold m-0"><i class="bi bi-people-fill me-2"></i> Katalog Anggota ISNU Surabaya</h2>
+                    <p class="mb-0 text-white-50">Daftar sarjana dan kader ISNU Kota Surabaya yang telah terverifikasi</p>
+                </div>
+            </div>
+        @endif
 
-        <div class="container py-4">
+        <div class="{{ $isMemberLayout ? 'mb-4' : 'container py-4' }}">
             <!-- Filter Bar -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">

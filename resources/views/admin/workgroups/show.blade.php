@@ -143,7 +143,7 @@
                     <tr>
                         <td>{{ $index + 1 }}</td>
                         <td>
-                            <div class="d-flex align-items-center gap-2.5">
+                            <div class="d-flex align-items-center gap-3">
                                 <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover border border-2 border-warning" style="width: 40px; height: 40px;">
                                 <div>
                                     <strong class="d-block text-dark">{{ $m->full_name }}</strong>

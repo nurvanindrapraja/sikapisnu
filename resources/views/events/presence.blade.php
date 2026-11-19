@@ -103,7 +103,7 @@
                                     @guest
                                         <div class="alert alert-info border-info-subtle bg-info-subtle text-dark rounded-4 p-3 mb-4 shadow-sm">
                                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                                <div class="d-flex align-items-center gap-2.5">
+                                                <div class="d-flex align-items-center gap-3">
                                                     <div class="bg-info text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
                                                         <i class="bi bi-person-lock fs-5"></i>
                                                     </div>

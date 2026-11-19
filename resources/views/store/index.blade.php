@@ -1,6 +1,12 @@
-@extends('layouts.app')
+@php
+    $isMemberLayout = request()->routeIs('member.*') || (auth()->check() && !auth()->user()->isAdmin() && !request()->has('public'));
+    $storeIndexRoute = $isMemberLayout ? 'member.store.index' : 'store.index';
+    $storeShowRoute = $isMemberLayout ? 'member.store.show' : 'store.show';
+@endphp
+@extends($isMemberLayout ? 'layouts.member' : 'layouts.app')
 
 @section('title', 'Toko Merchandise Resmi ISNU')
+@section('header_title', 'Toko Merchandise ISNU')
 
 @section('styles')
 <style>
@@ -98,52 +104,85 @@
 
 @section('content')
 <!-- Hero Section Toko -->
-<section class="store-hero">
-    <div class="container px-3 px-sm-4 position-relative z-1">
-        <div class="row align-items-center g-4">
+@if($isMemberLayout)
+    <!-- Dashboard Card Hero Banner -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 store-hero p-4 p-md-5">
+        <div class="row align-items-center g-4 position-relative z-1">
             <div class="col-lg-8">
-                <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.8px;">
-                    <i class="bi bi-shop me-1"></i> Toko Resmi Merchandise & Atribut
+                <span class="badge bg-warning text-dark fw-bold px-3 py-1.5 rounded-pill mb-3 text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.8px;">
+                    <i class="bi bi-shop me-1"></i> Toko Resmi Merchandise & Atribut ISNU
                 </span>
-                <h1 class="display-5 fw-extrabold text-white mb-3" style="letter-spacing: -0.5px;">
+                <h2 class="display-6 fw-extrabold text-white mb-2" style="letter-spacing: -0.5px;">
                     Merchandise Resmi <span style="color: var(--isnu-gold-light);">PC ISNU Kota Surabaya</span>
-                </h1>
-                <p class="lead text-white-80 mb-4" style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">
+                </h2>
+                <p class="lead text-white-80 mb-3" style="color: rgba(255,255,255,0.9); font-size: 0.95rem;">
                     Dapatkan atribut seragam jas resmi, batik nusantara khas ISNU, polo shirt, pin lencana logam berlogo, serta buku karya ilmiah para sarjana & cendekiawan Nahdlatul Ulama.
                 </p>
-                <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
-                    <i class="bi bi-shield-lock-fill text-warning fs-5"></i>
-                    <span class="small text-white">
-                        <strong>Syarat Pembelian:</strong> Wajib mendaftar / terverifikasi sebagai <strong>Anggota Resmi ISNU</strong>.
-                    </span>
+                <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill bg-success text-white shadow-sm border border-white-50">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <span class="small fw-semibold">Anda terverifikasi sebagai Anggota Aktif ISNU</span>
                 </div>
             </div>
-            <div class="col-lg-4 text-lg-end text-center">
+            <div class="col-lg-4 text-lg-end text-center d-none d-lg-block">
                 <div class="p-3 rounded-4" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
-                    <i class="bi bi-credit-card-2-front text-warning display-4 mb-2 d-block"></i>
-                    <h5 class="text-white fw-bold mb-1">Pembayaran Non-Tunai</h5>
-                    <p class="small text-white-50 mb-0">Transaksi aman melalui transfer bank / QRIS rekening resmi PC ISNU Surabaya & dikelola langsung oleh Bendahara.</p>
+                    <i class="bi bi-bag-check-fill text-warning display-5 mb-2 d-block"></i>
+                    <h6 class="text-white fw-bold mb-1">Pesanan Saya</h6>
+                    <p class="small text-white-50 mb-3">Cek riwayat & status pesanan atribut Anda.</p>
+                    <a href="{{ route('member.orders.index') }}" class="btn btn-warning btn-sm rounded-pill fw-bold text-dark px-3 shadow-sm">
+                        <i class="bi bi-receipt me-1"></i> Riwayat Pesanan
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-</section>
+@else
+    <section class="store-hero">
+        <div class="container px-3 px-sm-4 position-relative z-1">
+            <div class="row align-items-center g-4">
+                <div class="col-lg-8">
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.8px;">
+                        <i class="bi bi-shop me-1"></i> Toko Resmi Merchandise & Atribut
+                    </span>
+                    <h1 class="display-5 fw-extrabold text-white mb-3" style="letter-spacing: -0.5px;">
+                        Merchandise Resmi <span style="color: var(--isnu-gold-light);">PC ISNU Kota Surabaya</span>
+                    </h1>
+                    <p class="lead text-white-80 mb-4" style="color: rgba(255,255,255,0.9); font-size: 1.05rem;">
+                        Dapatkan atribut seragam jas resmi, batik nusantara khas ISNU, polo shirt, pin lencana logam berlogo, serta buku karya ilmiah para sarjana & cendekiawan Nahdlatul Ulama.
+                    </p>
+                    <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="bi bi-shield-lock-fill text-warning fs-5"></i>
+                        <span class="small text-white">
+                            <strong>Syarat Pembelian:</strong> Wajib mendaftar / terverifikasi sebagai <strong>Anggota Resmi ISNU</strong>.
+                        </span>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end text-center">
+                    <div class="p-3 rounded-4" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="bi bi-credit-card-2-front text-warning display-4 mb-2 d-block"></i>
+                        <h5 class="text-white fw-bold mb-1">Pembayaran Non-Tunai</h5>
+                        <p class="small text-white-50 mb-0">Transaksi aman melalui transfer bank / QRIS rekening resmi PC ISNU Surabaya & dikelola langsung oleh Bendahara.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+@endif
 
 <!-- Filter & Search Section -->
-<section class="py-4 bg-light border-bottom">
-    <div class="container px-3 px-sm-4">
+<div class="{{ $isMemberLayout ? 'card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white' : 'py-4 bg-light border-bottom' }}">
+    <div class="{{ $isMemberLayout ? '' : 'container px-3 px-sm-4' }}">
         <!-- Search & Sort Controls -->
-        <form method="GET" action="{{ route('store.index') }}" class="row g-3 align-items-center mb-3">
+        <form method="GET" action="{{ route($storeIndexRoute) }}" class="row g-3 align-items-center mb-3">
             <input type="hidden" name="category" value="{{ request('category', 'all') }}">
 
             <div class="col-md-7 col-lg-8">
-                <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
+                <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
                     <span class="input-group-text bg-white border-0 ps-3 text-muted">
                         <i class="bi bi-search"></i>
                     </span>
                     <input type="text" name="q" value="{{ request('q') }}" class="form-control border-0 py-2" placeholder="Cari jas, batik, kaos, pin, buku karya sarjana ISNU..." aria-label="Cari barang">
                     @if(request('q'))
-                        <a href="{{ route('store.index', ['category' => request('category', 'all')]) }}" class="btn btn-link text-muted text-decoration-none">
+                        <a href="{{ route($storeIndexRoute, ['category' => request('category', 'all')]) }}" class="btn btn-link text-muted text-decoration-none">
                             <i class="bi bi-x-circle-fill"></i>
                         </a>
                     @endif
@@ -168,7 +207,7 @@
         <!-- Category Pills -->
         <div class="d-flex gap-2 overflow-x-auto py-2" style="scrollbar-width: thin;">
             @foreach($categories as $key => $label)
-                <a href="{{ route('store.index', array_merge(request()->except(['category', 'page']), ['category' => $key])) }}" 
+                <a href="{{ route($storeIndexRoute, array_merge(request()->except(['category', 'page']), ['category' => $key])) }}" 
                    class="category-pill {{ (request('category', 'all') == $key) ? 'active' : '' }}">
                     @if($key === 'all')
                         <i class="bi bi-grid-fill"></i>
@@ -190,11 +229,11 @@
             @endforeach
         </div>
     </div>
-</section>
+</div>
 
 <!-- Product Grid Section -->
-<section class="py-5">
-    <div class="container px-3 px-sm-4">
+<div class="{{ $isMemberLayout ? 'mb-4' : 'py-5' }}">
+    <div class="{{ $isMemberLayout ? '' : 'container px-3 px-sm-4' }}">
         @if($products->isEmpty())
             <div class="text-center py-5 bg-white rounded-4 shadow-sm border p-5">
                 <i class="bi bi-box2 text-muted display-1 mb-3 d-block opacity-50"></i>
@@ -202,7 +241,7 @@
                 <p class="text-secondary max-w-md mx-auto mb-4">
                     Belum ada produk merchandise yang sesuai dengan kata kunci pencarian atau kategori yang Anda pilih.
                 </p>
-                <a href="{{ route('store.index') }}" class="btn btn-isnu-primary rounded-pill px-4">
+                <a href="{{ route($storeIndexRoute) }}" class="btn btn-isnu-primary rounded-pill px-4">
                     <i class="bi bi-arrow-repeat me-1"></i> Lihat Semua Produk
                 </a>
             </div>
@@ -267,7 +306,7 @@
 
                                 <!-- Title -->
                                 <h6 class="fw-bold text-dark mb-1 lh-sm" title="{{ $product->name }}" style="min-height: 2.4rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                    <a href="{{ route('store.show', $product->slug) }}" class="text-dark text-decoration-none hover-success">
+                                    <a href="{{ route($storeShowRoute, $product->slug) }}" class="text-dark text-decoration-none hover-success">
                                         {{ $product->name }}
                                     </a>
                                 </h6>
@@ -283,7 +322,7 @@
                                         </div>
                                     </div>
 
-                                    <a href="{{ route('store.show', $product->slug) }}" class="btn btn-isnu-primary w-100 rounded-pill py-2 btn-sm fw-semibold">
+                                    <a href="{{ route($storeShowRoute, $product->slug) }}" class="btn btn-isnu-primary w-100 rounded-pill py-2 btn-sm fw-semibold">
                                         <i class="bi bi-bag-plus me-1"></i> Pesan Barang
                                     </a>
                                 </div>
@@ -299,50 +338,70 @@
             </div>
         @endif
     </div>
-</section>
+</div>
 
-<!-- Callout Banner: Khusus Anggota ISNU -->
-<section class="py-5 bg-white border-top">
-    <div class="container px-3 px-sm-4">
-        <div class="p-4 p-md-5 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #bbf7d0;">
-            <div class="row align-items-center g-4">
-                <div class="col-lg-8">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <span class="badge bg-success px-3 py-1 rounded-pill fw-bold text-white">
-                            <i class="bi bi-info-circle-fill me-1"></i> Informasi Pembelian
-                        </span>
-                        <span class="text-muted small">Aturan Pengurus PC ISNU Surabaya</span>
-                    </div>
-                    <h3 class="fw-bold text-dark mb-2">Ingin Membeli Merchandise Resmi ISNU?</h3>
-                    <p class="text-secondary mb-0">
-                        Untuk menjaga keaslian identitas organisasi dan integritas atribut sarjana NU, seluruh transaksi pembelian seragam, batik, dan pin ISNU hanya dilayani untuk <strong>Anggota ISNU Kota Surabaya yang telah memiliki akun terverifikasi</strong>.
-                    </p>
+<!-- Callout Banner -->
+@if($isMemberLayout)
+    <div class="card border-0 shadow-sm rounded-4 p-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #bbf7d0 !important;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-success px-2.5 py-1 rounded-pill fw-bold text-white" style="font-size: 0.72rem;">
+                        <i class="bi bi-shield-check me-1"></i> Transaksi Resmi PC ISNU
+                    </span>
+                    <span class="text-muted small">Dikelola Bendahara PC ISNU Surabaya</span>
                 </div>
-                <div class="col-lg-4 text-lg-end text-center">
-                    @guest
-                        <div class="d-flex flex-column flex-sm-row flex-lg-column gap-2">
-                            <a href="{{ route('register') }}" class="btn btn-isnu-primary rounded-pill px-4 py-2 fw-semibold">
-                                <i class="bi bi-person-plus-fill me-1"></i> Daftar Anggota ISNU
-                            </a>
-                            <a href="{{ route('login') }}" class="btn btn-outline-success rounded-pill px-4 py-2 fw-semibold">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Masuk ke Akun
-                            </a>
+                <h5 class="fw-bold text-dark mb-1">Pemesanan Merchandise Resmi</h5>
+                <p class="text-secondary small mb-0">Seluruh transaksi pembelian dilakukan via transfer bank / QRIS resmi PC ISNU Surabaya dan akan diverifikasi langsung sebelum barang dikirim.</p>
+            </div>
+            <a href="{{ route('member.orders.index') }}" class="btn btn-outline-success rounded-pill px-4 btn-sm fw-semibold text-nowrap">
+                <i class="bi bi-bag-check-fill me-1"></i> Cek Pesanan Saya
+            </a>
+        </div>
+    </div>
+@else
+    <section class="py-5 bg-white border-top">
+        <div class="container px-3 px-sm-4">
+            <div class="p-4 p-md-5 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1px solid #bbf7d0;">
+                <div class="row align-items-center g-4">
+                    <div class="col-lg-8">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-success px-3 py-1 rounded-pill fw-bold text-white">
+                                <i class="bi bi-info-circle-fill me-1"></i> Informasi Pembelian
+                            </span>
+                            <span class="text-muted small">Aturan Pengurus PC ISNU Surabaya</span>
                         </div>
-                    @else
-                        @if(auth()->user()->member && auth()->user()->member->isVerified())
-                            <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill bg-success text-white shadow-sm">
-                                <i class="bi bi-check-circle-fill fs-5"></i>
-                                <span class="small fw-semibold">Anda terverifikasi sebagai Anggota Aktif ISNU</span>
+                        <h3 class="fw-bold text-dark mb-2">Ingin Membeli Merchandise Resmi ISNU?</h3>
+                        <p class="text-secondary mb-0">
+                            Untuk menjaga keaslian identitas organisasi dan integritas atribut sarjana NU, seluruh transaksi pembelian seragam, batik, dan pin ISNU hanya dilayani untuk <strong>Anggota ISNU Kota Surabaya yang telah memiliki akun terverifikasi</strong>.
+                        </p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end text-center">
+                        @guest
+                            <div class="d-flex flex-column flex-sm-row flex-lg-column gap-2">
+                                <a href="{{ route('register') }}" class="btn btn-isnu-primary rounded-pill px-4 py-2 fw-semibold">
+                                    <i class="bi bi-person-plus-fill me-1"></i> Daftar Anggota ISNU
+                                </a>
+                                <a href="{{ route('login') }}" class="btn btn-outline-success rounded-pill px-4 py-2 fw-semibold">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Masuk ke Akun
+                                </a>
                             </div>
                         @else
-                            <a href="{{ route('member.dashboard') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark">
-                                <i class="bi bi-speedometer2 me-1"></i> Cek Status Akun Saya
-                            </a>
-                        @endif
-                    @endguest
+                            @if(auth()->user()->member && auth()->user()->member->isVerified())
+                                <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill bg-success text-white shadow-sm">
+                                    <i class="bi bi-check-circle-fill fs-5"></i>
+                                    <span class="small fw-semibold">Anda terverifikasi sebagai Anggota Aktif ISNU</span>
+                                </div>
+                            @else
+                                <a href="{{ route('member.dashboard') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark">
+                                    <i class="bi bi-speedometer2 me-1"></i> Cek Status Akun Saya
+                                </a>
+                            @endif
+                        @endguest
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+@endif
 @endsection

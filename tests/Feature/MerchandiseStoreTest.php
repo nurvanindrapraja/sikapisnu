@@ -413,4 +413,65 @@ class MerchandiseStoreTest extends TestCase
         $forbiddenResponse = $this->actingAs($regularUser)->get(route('admin.products.index'));
         $forbiddenResponse->assertStatus(403);
     }
+
+    public function test_member_store_and_catalog_render_with_member_sidebar_layout(): void
+    {
+        $user = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $this->createMember($user, ['membership_status' => 'terverifikasi']);
+
+        // Member accessing Toko Merchandise retains member sidebar
+        $storeResponse = $this->actingAs($user)->get(route('member.store.index'));
+        $storeResponse->assertStatus(200);
+        $storeResponse->assertSee('PORTAL ANGGOTA');
+        $storeResponse->assertSee('Profil Saya');
+        $storeResponse->assertSee('Toko Merchandise');
+        $storeResponse->assertSee('Pesanan Saya');
+
+        // Member accessing /toko directly also retains member sidebar
+        $publicStoreResponse = $this->actingAs($user)->get(route('store.index'));
+        $publicStoreResponse->assertStatus(200);
+        $publicStoreResponse->assertSee('PORTAL ANGGOTA');
+        $publicStoreResponse->assertSee('Profil Saya');
+
+        // Member accessing product detail retains member sidebar
+        $product = Product::first();
+        $detailResponse = $this->actingAs($user)->get(route('member.store.show', $product->slug));
+        $detailResponse->assertStatus(200);
+        $detailResponse->assertSee('PORTAL ANGGOTA');
+        $detailResponse->assertSee('Profil Saya');
+
+        // Member accessing Katalog Anggota retains member sidebar
+        $catalogResponse = $this->actingAs($user)->get(route('member.katalog.index'));
+        $catalogResponse->assertStatus(200);
+        $catalogResponse->assertSee('PORTAL ANGGOTA');
+        $catalogResponse->assertSee('Profil Saya');
+        $catalogResponse->assertSee('Katalog Anggota');
+
+        // Member accessing /daftar-anggota directly also retains member sidebar
+        $publicCatalogResponse = $this->actingAs($user)->get(route('daftar.anggota'));
+        $publicCatalogResponse->assertStatus(200);
+        $publicCatalogResponse->assertSee('PORTAL ANGGOTA');
+        $publicCatalogResponse->assertSee('Profil Saya');
+
+        // Guest accessing /toko and /daftar-anggota does not see member sidebar
+        auth()->logout();
+        $guestStoreResponse = $this->get(route('store.index'));
+        $guestStoreResponse->assertStatus(200);
+        $guestStoreResponse->assertDontSee('PORTAL ANGGOTA');
+
+        $guestCatalogResponse = $this->get(route('daftar.anggota'));
+        $guestCatalogResponse->assertStatus(200);
+        $guestCatalogResponse->assertDontSee('PORTAL ANGGOTA');
+    }
+
+    public function test_member_sidebar_user_card_has_proper_gap_between_photo_and_text(): void
+    {
+        $user = User::factory()->create(['name' => 'Nurvan Indra Praja', 'role' => 'member', 'is_active' => true]);
+        $this->createMember($user, ['membership_status' => 'terverifikasi']);
+
+        $response = $this->actingAs($user)->get(route('member.dashboard'));
+        $response->assertStatus(200);
+        $response->assertSee('gap-3');
+        $response->assertDontSee('gap-2.5');
+    }
 }

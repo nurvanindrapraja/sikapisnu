@@ -294,7 +294,7 @@
             };
         @endphp
         <div class="sidebar-user-card">
-            <div class="d-flex align-items-center gap-2.5">
+            <div class="d-flex align-items-center gap-3">
                 <img src="{{ $photoUrl }}" alt="{{ auth()->user()->name }}" class="rounded-circle border border-2 border-success-subtle shadow-sm object-fit-cover flex-shrink-0" style="width: 44px; height: 44px;">
                 <div class="overflow-hidden">
                     <strong class="d-block text-white text-truncate" style="font-size: 0.88rem;" title="{{ auth()->user()->name }}">
@@ -335,7 +335,7 @@
 
             <li class="sidebar-header">Toko & Merchandise</li>
             <li>
-                <a href="{{ route('store.index') }}" class="sidebar-link {{ request()->routeIs('store.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                <a href="{{ route('member.store.index') }}" class="sidebar-link {{ request()->routeIs('member.store.*') || request()->routeIs('store.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-shop text-warning"></i> Toko Merchandise
                     <span class="badge bg-success-subtle text-success border border-success-subtle ms-auto rounded-pill" style="font-size: 0.65rem;">Katalog</span>
                 </a>
@@ -354,7 +354,7 @@
 
             <li class="sidebar-header">Jaringan & Direktori</li>
             <li>
-                <a href="{{ route('daftar.anggota') }}" class="sidebar-link {{ request()->routeIs('daftar.anggota') ? 'active' : '' }}" @click="sidebarOpen = false">
+                <a href="{{ route('member.katalog.index') }}" class="sidebar-link {{ request()->routeIs('member.katalog.*') || request()->routeIs('daftar.anggota') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-people-fill"></i> Katalog Anggota
                 </a>
             </li>
@@ -414,26 +414,53 @@
                 </h5>
             </div>
 
-            <div class="d-none d-lg-flex align-items-center gap-2.5">
-                <a href="{{ route('store.index') }}" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-shop me-1"></i> Toko ISNU
-                </a>
-                <a href="{{ route('member.orders.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-bag-check-fill me-1"></i> Pesanan Saya
-                </a>
-                <div class="vr mx-1" style="height: 24px;"></div>
-                <a href="{{ route('member.profile.edit') }}" class="text-decoration-none text-end" title="Profil Anggota">
-                    <span class="fw-semibold d-block text-dark small">{{ auth()->user()->name }}</span>
-                    <span class="badge {{ $statusBadgeClass }} px-2 py-0.5" style="font-size: 0.65rem;">
-                        {{ $statusLabel }}
-                    </span>
-                </a>
-                <a href="{{ route('member.profile.edit') }}" class="btn btn-light border btn-sm rounded-circle shadow-sm" title="Ubah Profil">
-                    <i class="bi bi-person-gear text-success"></i>
-                </a>
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" title="Keluar">
-                    <i class="bi bi-box-arrow-right"></i>
-                </button>
+            <div class="d-none d-lg-flex align-items-center gap-3">
+                <!-- Group Tombol Toko & Pesanan -->
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('member.store.index') }}" 
+                       class="btn {{ request()->routeIs('member.store.*') || request()->routeIs('store.*') ? 'btn-success text-white' : 'btn-outline-success' }} btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm"
+                       title="Katalog Toko Merchandise ISNU">
+                        <i class="bi bi-shop"></i>
+                        <span>Toko ISNU</span>
+                    </a>
+                    <a href="{{ route('member.orders.index') }}" 
+                       class="btn {{ request()->routeIs('member.orders.*') ? 'btn-secondary text-white' : 'btn-outline-secondary' }} btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm"
+                       title="Riwayat Pesanan Merchandise">
+                        <i class="bi bi-bag-check-fill"></i>
+                        <span>Pesanan Saya</span>
+                    </a>
+                </div>
+
+                <!-- Divider Pembatas -->
+                <div class="vr text-secondary opacity-25 mx-2" style="height: 28px; width: 1px;"></div>
+
+                <!-- Info User & Tombol Profil/Logout -->
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ route('member.profile.edit') }}" class="text-decoration-none text-end d-block px-1" title="Profil Anggota">
+                        <span class="fw-bold d-block text-dark small lh-sm mb-1 text-truncate" style="max-width: 180px;">{{ auth()->user()->name }}</span>
+                        <span class="badge {{ $statusBadgeClass }} px-2 py-0.5 rounded-pill fw-semibold" style="font-size: 0.65rem;">
+                            {{ $statusLabel }}
+                        </span>
+                    </a>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('member.profile.edit') }}" 
+                           class="btn btn-light border btn-sm rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center" 
+                           style="width: 38px; height: 38px; color: var(--isnu-green);" 
+                           title="Ubah Profil">
+                            <i class="bi bi-person-gear fs-6"></i>
+                        </a>
+
+                        <button type="button" 
+                                class="btn btn-outline-danger btn-sm rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center" 
+                                style="width: 38px; height: 38px;" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modalConfirmLogout" 
+                                title="Keluar">
+                            <i class="bi bi-box-arrow-right fs-6"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

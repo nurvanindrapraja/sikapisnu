@@ -116,6 +116,11 @@ Route::middleware(['auth'])->prefix('member')->name('member.')->group(function (
     Route::post('/orders/{id}/upload-payment', [MemberProductOrder::class, 'uploadPayment'])->name('orders.upload_payment');
     Route::post('/orders/{id}/confirm-received', [MemberProductOrder::class, 'confirmReceived'])->name('orders.confirm_received');
     Route::post('/orders/{id}/review', [MemberProductOrder::class, 'submitReview'])->name('orders.submit_review');
+
+    // Toko Merchandise & Katalog Anggota di Area Member
+    Route::get('/toko', [StoreController::class, 'index'])->name('store.index');
+    Route::get('/toko/{slug}', [StoreController::class, 'show'])->name('store.show');
+    Route::get('/katalog-anggota', [HomeController::class, 'daftarAnggota'])->name('katalog.index');
 });
 
 // 4. Admin Area Routes

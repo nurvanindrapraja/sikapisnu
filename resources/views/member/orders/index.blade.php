@@ -14,7 +14,7 @@
         </p>
     </div>
     <div class="col-md-5 text-md-end mt-3 mt-md-0">
-        <a href="{{ route('store.index') }}" class="btn btn-isnu-primary rounded-pill px-4 py-2 fw-semibold">
+        <a href="{{ route('member.store.index') }}" class="btn btn-isnu-primary rounded-pill px-4 py-2 fw-semibold">
             <i class="bi bi-shop me-1"></i> Beli Merchandise Lainnya
         </a>
     </div>
@@ -55,7 +55,7 @@
             <p class="text-secondary small max-w-md mx-auto mb-4">
                 Anda belum memiliki riwayat pemesanan atribut merchandise resmi ISNU.
             </p>
-            <a href="{{ route('store.index') }}" class="btn btn-isnu-primary rounded-pill px-4">
+            <a href="{{ route('member.store.index') }}" class="btn btn-isnu-primary rounded-pill px-4">
                 <i class="bi bi-shop me-1"></i> Jelajahi Toko Merchandise ISNU
             </a>
         </div>

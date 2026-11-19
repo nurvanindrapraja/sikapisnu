@@ -1,6 +1,12 @@
-@extends('layouts.app')
+@php
+    $isMemberLayout = request()->routeIs('member.*') || (auth()->check() && !auth()->user()->isAdmin() && !request()->has('public'));
+    $storeIndexRoute = $isMemberLayout ? 'member.store.index' : 'store.index';
+    $storeShowRoute = $isMemberLayout ? 'member.store.show' : 'store.show';
+@endphp
+@extends($isMemberLayout ? 'layouts.member' : 'layouts.app')
 
 @section('title', $product->name . ' - Toko Merchandise ISNU')
+@section('header_title', $product->name)
 
 @section('styles')
 <style>
@@ -50,21 +56,27 @@
 
 @section('content')
 <!-- Breadcrumbs -->
-<div class="bg-light border-bottom py-3">
-    <div class="container px-3 px-sm-4">
+<div class="{{ $isMemberLayout ? 'card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white' : 'bg-light border-bottom py-3 mb-4' }}">
+    <div class="{{ $isMemberLayout ? '' : 'container px-3 px-sm-4' }}">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0 small">
-                <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Beranda</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('store.index') }}" class="text-decoration-none text-muted">Toko Merchandise</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('store.index', ['category' => $product->category]) }}" class="text-decoration-none text-muted">{{ $product->category_label }}</a></li>
+                @if($isMemberLayout)
+                    <li class="breadcrumb-item"><a href="{{ route('member.dashboard') }}" class="text-decoration-none text-muted">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('member.store.index') }}" class="text-decoration-none text-muted">Toko Merchandise</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('member.store.index', ['category' => $product->category]) }}" class="text-decoration-none text-muted">{{ $product->category_label }}</a></li>
+                @else
+                    <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none text-muted">Beranda</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('store.index') }}" class="text-decoration-none text-muted">Toko Merchandise</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('store.index', ['category' => $product->category]) }}" class="text-decoration-none text-muted">{{ $product->category_label }}</a></li>
+                @endif
                 <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ Str::limit($product->name, 35) }}</li>
             </ol>
         </nav>
     </div>
 </div>
 
-<div class="py-5">
-    <div class="container px-3 px-sm-4">
+<div class="{{ $isMemberLayout ? 'mb-4' : 'py-5' }}">
+    <div class="{{ $isMemberLayout ? '' : 'container px-3 px-sm-4' }}">
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
@@ -394,12 +406,12 @@
                                         {{ $rel->category_label }}
                                     </span>
                                     <h6 class="fw-bold text-dark text-truncate mb-1" title="{{ $rel->name }}">
-                                        <a href="{{ route('store.show', $rel->slug) }}" class="text-dark text-decoration-none">
+                                        <a href="{{ route($storeShowRoute, $rel->slug) }}" class="text-dark text-decoration-none">
                                             {{ $rel->name }}
                                         </a>
                                     </h6>
                                     <span class="fw-bold text-success mt-auto">{{ $rel->formatted_price }}</span>
-                                    <a href="{{ route('store.show', $rel->slug) }}" class="btn btn-outline-success btn-sm rounded-pill mt-2">
+                                    <a href="{{ route($storeShowRoute, $rel->slug) }}" class="btn btn-outline-success btn-sm rounded-pill mt-2">
                                         Lihat
                                     </a>
                                 </div>
