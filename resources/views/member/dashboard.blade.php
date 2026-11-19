@@ -1,6 +1,7 @@
 @extends('layouts.member')
 
 @section('title', 'Dashboard Member')
+@section('header_title', 'Dashboard Profil Saya')
 
 @section('content')
     <div class="row g-2 g-lg-4">

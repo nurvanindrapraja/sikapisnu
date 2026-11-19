@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard Member') - SIKAP ISNU Surabaya</title>
+    <title>@yield('title', 'Dashboard Anggota') - SIKAP ISNU Kota Surabaya</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
 
-    
+    <!-- Google Fonts & Bootstrap 5 & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,29 +20,156 @@
     
     <style>
         :root {
+            --sidebar-width: 260px;
             --isnu-green: #006837;
             --isnu-green-dark: #004d28;
             --isnu-gold: #d4af37;
         }
 
+        [x-cloak] {
+            display: none !important;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: #334155;
+            min-height: 100vh;
         }
 
-        .member-header {
-            background: linear-gradient(135deg, #004d28 0%, #006837 100%);
+        /* Sidebar Styling (Matching Pengurus / Admin) */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #06402b;
+            color: #e2e8f0;
+            z-index: 1050;
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-brand {
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-user-card {
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0 2rem;
+            list-style: none;
+            margin: 0;
+        }
+
+        .sidebar-header {
+            padding: 0.75rem 1.25rem 0.25rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link i {
+            font-size: 1.1rem;
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-link:hover, .sidebar-link.active {
             color: white;
-            padding: 2.5rem 0 4rem;
-            position: relative;
+            background: rgba(255, 255, 255, 0.08);
+            border-left-color: var(--isnu-gold);
         }
 
-        .member-container {
-            margin-top: -2.5rem;
-            margin-bottom: 4rem;
+        /* Main Content Layout */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
         }
 
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 1rem 2rem;
+            margin: -2rem -2rem 2rem -2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* Desktop Layout */
+        @media (min-width: 992px) {
+            .sidebar {
+                transform: none !important;
+            }
+            .sidebar-backdrop {
+                display: none !important;
+            }
+        }
+
+        /* Mobile Responsive Layout */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.3);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem;
+            }
+
+            .top-navbar {
+                margin: -1rem -1rem 1rem -1rem !important;
+                padding: 0.75rem 1rem !important;
+            }
+        }
+
+        .sidebar-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 1040;
+        }
+
+        /* Common Custom Cards & Buttons */
         .card-custom {
             border: none;
             border-radius: 1rem;
@@ -60,156 +187,281 @@
             background: var(--isnu-green-dark);
             color: white;
         }
+
+        .btn-isnu-primary {
+            background: linear-gradient(135deg, var(--isnu-green), var(--isnu-green-dark));
+            color: #ffffff !important;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 4px 14px rgba(0, 104, 55, 0.25);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-isnu-primary:hover, .btn-isnu-primary:focus {
+            background: linear-gradient(135deg, var(--isnu-green-dark), #00361c);
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 104, 55, 0.35);
+        }
+
+        .btn-isnu-outline {
+            border: 2px solid var(--isnu-green);
+            color: var(--isnu-green);
+            font-weight: 600;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .btn-isnu-outline:hover {
+            background-color: var(--isnu-green);
+            color: #ffffff !important;
+        }
+
+        /* Custom Green Pagination */
+        .pagination .page-item.active .page-link {
+            background-color: var(--isnu-green) !important;
+            border-color: var(--isnu-green) !important;
+            color: #ffffff !important;
+        }
+
+        .pagination .page-link {
+            color: var(--isnu-green);
+            border-radius: 0.375rem;
+            margin: 0 2px;
+            font-weight: 600;
+        }
+
+        .pagination .page-link:hover {
+            color: var(--isnu-green-dark);
+            background-color: #eaf3ed;
+            border-color: #c2decb;
+        }
     </style>
     @yield('styles')
 </head>
-<body>
-    <!-- Top Header -->
-    <header class="member-header">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ route('member.dashboard') }}" class="d-flex align-items-center gap-2 text-white text-decoration-none" title="Dashboard Profil Saya">
-                    <div class="bg-white p-1 rounded-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-                        <img src="{{ asset('images/logo_isnu.png') }}" alt="Logo ISNU" style="max-height: 38px; max-width: 38px; object-fit: contain;">
-                    </div>
-                    <div class="lh-sm">
-                        <span class="fw-bold d-block text-white mb-0" style="font-size: 1.1rem; letter-spacing: -0.5px; line-height: 1;">SIKAP ISNU</span>
-                        <span class="text-white-50 fw-semibold d-block" style="font-size: 0.68rem; margin-top: 1px;">PC ISNU KOTA SURABAYA</span>
-                    </div>
-                </a>
+<body x-data="{ sidebarOpen: false }">
 
-            <!-- Desktop Header Right Items -->
-            <div class="d-none d-md-flex align-items-center gap-2 gap-lg-3">
-                <a href="{{ route('member.dashboard') }}" class="btn {{ request()->routeIs('member.dashboard') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-person-badge me-1"></i> Profil Saya
-                </a>
-                <a href="{{ route('member.profile.edit') }}" class="btn {{ request()->routeIs('member.profile.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-pencil-square me-1"></i> Ubah / Tambah Profil
-                </a>
-                <a href="{{ route('daftar.anggota') }}" class="btn {{ request()->routeIs('daftar.anggota') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-people-fill me-1"></i> Katalog Anggota
-                </a>
-                <a href="{{ route('store.index') }}" class="btn {{ request()->routeIs('store.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-shop me-1"></i> Toko ISNU
-                </a>
-                <a href="{{ route('member.orders.index') }}" class="btn {{ request()->routeIs('member.orders.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-bag-check-fill me-1"></i> Pesanan Saya
-                </a>
-                @if(auth()->user()->canAccessLetterSubmission())
-                <a href="{{ route('admin.letters.index') }}" class="btn {{ request()->routeIs('admin.letters.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-file-earmark-text-fill me-1"></i> Konsep Surat
-                </a>
-                @endif
-                @if(auth()->user()->canManageFinances())
-                <a href="{{ route('admin.finances.index') }}" class="btn {{ request()->routeIs('admin.finances.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-cash-coin me-1"></i> Keuangan Kas
-                </a>
-                @endif
-                @if(auth()->user()->isAdmin())
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
-                    <i class="bi bi-speedometer2 me-1"></i> Panel Pengurus
-                </a>
-                @endif
-                @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
-                <a href="{{ route('member.cv.download') }}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold">
-                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download CV (PDF)
-                </a>
-                @endif
-                <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout">
-                    <i class="bi bi-box-arrow-right me-1"></i> Keluar
-                </button>
-            </div>
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-backdrop d-lg-none" 
+         x-show="sidebarOpen" 
+         x-transition.opacity 
+         @click="sidebarOpen = false" 
+         style="display: none;"></div>
 
-            <!-- Mobile Hamburger Button & Submenu Dropdown -->
-            <div class="d-md-none position-relative" x-data="{ open: false }">
-                <button type="button" class="btn btn-outline-light btn-sm rounded-3 p-2 d-flex align-items-center justify-content-center" @click="open = !open" style="width: 40px; height: 40px;" aria-label="Toggle Navigation">
-                    <i class="bi" :class="open ? 'bi-x-lg fs-5' : 'bi-list fs-4'"></i>
-                </button>
+    <!-- Left Sidebar Menu (Sesuai Tampilan Akun Pengurus) -->
+    <aside class="sidebar" :class="{ 'show': sidebarOpen }">
+        <!-- Sidebar Brand Header -->
+        <div class="sidebar-brand d-flex align-items-center justify-content-between">
+            <a href="{{ route('member.dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+                <div class="bg-white p-1 rounded-2 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <img src="{{ asset('images/logo_isnu.png') }}" alt="Logo ISNU" style="max-height: 34px; max-width: 34px; object-fit: contain;">
+                </div>
+                <div class="lh-sm">
+                    <span class="fw-bold d-block text-white" style="font-size: 1.05rem; letter-spacing: -0.4px;">SIKAP ISNU</span>
+                    <span class="text-white-50 fw-semibold d-block" style="font-size: 0.65rem; letter-spacing: 0.5px;">PORTAL ANGGOTA</span>
+                </div>
+            </a>
+            <button type="button" class="btn btn-sm btn-link text-white-50 d-lg-none p-0" @click="sidebarOpen = false">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
+        </div>
 
-                <!-- Mobile Submenu Dropdown Panel -->
-                <div x-show="open" 
-                     @click.outside="open = false" 
-                     x-transition:enter="transition ease-out duration-200"
-                     x-transition:enter-start="opacity-0 transform scale-95"
-                     x-transition:enter-end="opacity-100 transform scale-100"
-                     x-transition:leave="transition ease-in duration-150"
-                     x-transition:leave-start="opacity-100 transform scale-100"
-                     x-transition:leave-end="opacity-0 transform scale-95"
-                     class="position-absolute end-0 mt-2 bg-white rounded-4 shadow-lg p-2 border" 
-                     style="width: 250px; z-index: 1050; display: none;">
-                    <div class="px-3 py-2 border-bottom mb-1">
-                        <small class="text-muted d-block" style="font-size: 0.75rem;">Masuk sebagai</small>
-                        <strong class="text-dark d-block text-truncate" style="font-size: 0.88rem;">{{ auth()->user()->name }}</strong>
-                    </div>
-                    <a href="{{ route('member.dashboard') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.dashboard') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-person-badge text-success fs-5"></i> Profil Saya
-                    </a>
-                    <a href="{{ route('member.profile.edit') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.profile.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-pencil-square text-success fs-5"></i> Ubah / Tambah Profil
-                    </a>
-                    <a href="{{ route('daftar.anggota') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-people-fill text-success fs-5"></i> Katalog Anggota
-                    </a>
-                    <a href="{{ route('store.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-shop text-success fs-5"></i> Toko Merchandise
-                    </a>
-                    <a href="{{ route('member.orders.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.orders.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-bag-check-fill text-success fs-5"></i> Pesanan Saya
-                    </a>
-                    @if(auth()->user()->canAccessLetterSubmission())
-                    <a href="{{ route('admin.letters.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.letters.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-file-earmark-text-fill text-success fs-5"></i> Konsep Surat & E-TTD
-                    </a>
+        <!-- Sidebar User Profile Info Widget -->
+        @php
+            $member = auth()->user()->member;
+            $photoUrl = $member?->photo_url ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=006837&color=ffffff&size=128';
+            $statusLabel = match($member?->membership_status) {
+                'terverifikasi' => 'Terverifikasi Sah',
+                'pengurus' => 'Pengurus ISNU',
+                'calon' => 'Calon Anggota',
+                'menunggu_verifikasi' => 'Menunggu Verifikasi',
+                'perbaikan' => 'Perlu Perbaikan',
+                'ditolak' => 'Ditolak',
+                default => 'Anggota ISNU',
+            };
+            $statusBadgeClass = match($member?->membership_status) {
+                'terverifikasi' => 'bg-success',
+                'pengurus' => 'bg-warning text-dark',
+                'calon' => 'bg-info text-dark',
+                'menunggu_verifikasi' => 'bg-secondary',
+                'perbaikan' => 'bg-danger',
+                'ditolak' => 'bg-danger',
+                default => 'bg-light text-dark',
+            };
+        @endphp
+        <div class="sidebar-user-card">
+            <div class="d-flex align-items-center gap-2.5">
+                <img src="{{ $photoUrl }}" alt="{{ auth()->user()->name }}" class="rounded-circle border border-2 border-success-subtle shadow-sm object-fit-cover flex-shrink-0" style="width: 44px; height: 44px;">
+                <div class="overflow-hidden">
+                    <strong class="d-block text-white text-truncate" style="font-size: 0.88rem;" title="{{ auth()->user()->name }}">
+                        {{ auth()->user()->name }}
+                    </strong>
+                    <span class="badge {{ $statusBadgeClass }} rounded-pill px-2 py-0 fw-semibold" style="font-size: 0.68rem;">
+                        {{ $statusLabel }}
+                    </span>
+                    @if($member?->member_number)
+                        <small class="text-white-50 d-block font-monospace mt-0.5" style="font-size: 0.65rem;">
+                            {{ $member->member_number }}
+                        </small>
                     @endif
-                    @if(auth()->user()->canManageFinances())
-                    <a href="{{ route('admin.finances.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.finances.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-cash-coin text-success fs-5"></i> Keuangan Kas
-                    </a>
-                    @endif
-                    @if(in_array(auth()->user()->member?->membership_status, ['terverifikasi', 'pengurus']))
-                    <a href="{{ route('member.cv.download') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i> Download CV (PDF)
-                    </a>
-                    @endif
-                    @if(auth()->user()->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" class="dropdown-item rounded-3 py-2 px-3 fw-bold text-dark bg-warning-subtle d-flex align-items-center gap-2 mb-1">
-                        <i class="bi bi-speedometer2 text-dark fs-5"></i> Panel Pengurus
-                    </a>
-                    @endif
-                    <div class="border-top my-1"></div>
-                    <button type="button" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-danger d-flex align-items-center gap-2 w-100 text-start" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" @click="open = false">
-                        <i class="bi bi-box-arrow-right fs-5"></i> Keluar
-                    </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Sidebar Menu Items -->
+        <ul class="sidebar-menu">
+            <li class="sidebar-header">Menu Utama</li>
+            <li>
+                <a href="{{ route('member.dashboard') }}" class="sidebar-link {{ request()->routeIs('member.dashboard') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-person-badge-fill"></i> Profil Saya
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('member.profile.edit') }}" class="sidebar-link {{ request()->routeIs('member.profile.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-pencil-square"></i> Ubah & Tambah Profil
+                </a>
+            </li>
+            @if(in_array($member?->membership_status, ['terverifikasi', 'pengurus']))
+            <li>
+                <a href="{{ route('member.cv.download') }}" class="sidebar-link" @click="sidebarOpen = false">
+                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Unduh CV (PDF)
+                </a>
+            </li>
+            @endif
+
+            <li class="sidebar-header">Toko & Merchandise</li>
+            <li>
+                <a href="{{ route('store.index') }}" class="sidebar-link {{ request()->routeIs('store.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-shop text-warning"></i> Toko Merchandise
+                    <span class="badge bg-success-subtle text-success border border-success-subtle ms-auto rounded-pill" style="font-size: 0.65rem;">Katalog</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('member.orders.index') }}" class="sidebar-link {{ request()->routeIs('member.orders.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-bag-check-fill"></i> Pesanan Saya
+                    @php
+                        $myOrdersCount = \App\Models\ProductOrder::where('user_id', auth()->id())->count();
+                    @endphp
+                    @if($myOrdersCount > 0)
+                        <span class="badge bg-secondary ms-auto rounded-pill">{{ $myOrdersCount }}</span>
+                    @endif
+                </a>
+            </li>
+
+            <li class="sidebar-header">Jaringan & Direktori</li>
+            <li>
+                <a href="{{ route('daftar.anggota') }}" class="sidebar-link {{ request()->routeIs('daftar.anggota') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-people-fill"></i> Katalog Anggota
+                </a>
+            </li>
+
+            <!-- Akses Tambahan untuk Pengurus NU -->
+            @if(auth()->user()->canAccessLetterSubmission() || auth()->user()->canManageFinances() || auth()->user()->isAdmin())
+            <li class="sidebar-header">Akses Pengurus</li>
+            @if(auth()->user()->canAccessLetterSubmission())
+            <li>
+                <a href="{{ route('admin.letters.index') }}" class="sidebar-link {{ request()->routeIs('admin.letters.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-file-earmark-text-fill"></i> Konsep Surat & E-TTD
+                </a>
+            </li>
+            @endif
+            @if(auth()->user()->canManageFinances())
+            <li>
+                <a href="{{ route('admin.finances.index') }}" class="sidebar-link {{ request()->routeIs('admin.finances.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-cash-coin"></i> Keuangan Kas
+                </a>
+            </li>
+            @endif
+            @if(auth()->user()->isAdmin())
+            <li>
+                <a href="{{ route('admin.dashboard') }}" class="sidebar-link text-warning fw-bold" @click="sidebarOpen = false">
+                    <i class="bi bi-speedometer2"></i> Panel Pengurus (Admin)
+                </a>
+            </li>
+            @endif
+            @endif
+
+            <li class="sidebar-header">Situs & Akun</li>
+            <li>
+                <a href="{{ route('home') }}" target="_blank" class="sidebar-link text-warning" @click="sidebarOpen = false">
+                    <i class="bi bi-box-arrow-up-right"></i> Lihat Situs Publik
+                </a>
+            </li>
+            <li>
+                <a href="#" class="sidebar-link text-danger" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" @click="sidebarOpen = false">
+                    <i class="bi bi-box-arrow-right"></i> Keluar
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Hamburger Toggle Button Mobile -->
+                <button type="button" class="btn btn-light btn-sm rounded-3 d-lg-none p-2 shadow-sm border" @click="sidebarOpen = !sidebarOpen" title="Buka Menu">
+                    <i class="bi bi-list fs-5 text-dark lh-1 d-block"></i>
+                </button>
+
+                <h5 class="fw-bold m-0 text-success">
+                    <i class="bi bi-person-circle me-2 d-none d-md-inline"></i> @yield('header_title', 'Area Keanggotaan ISNU')
+                </h5>
+            </div>
+
+            <div class="d-none d-lg-flex align-items-center gap-2.5">
+                <a href="{{ route('store.index') }}" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-shop me-1"></i> Toko ISNU
+                </a>
+                <a href="{{ route('member.orders.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-bag-check-fill me-1"></i> Pesanan Saya
+                </a>
+                <div class="vr mx-1" style="height: 24px;"></div>
+                <a href="{{ route('member.profile.edit') }}" class="text-decoration-none text-end" title="Profil Anggota">
+                    <span class="fw-semibold d-block text-dark small">{{ auth()->user()->name }}</span>
+                    <span class="badge {{ $statusBadgeClass }} px-2 py-0.5" style="font-size: 0.65rem;">
+                        {{ $statusLabel }}
+                    </span>
+                </a>
+                <a href="{{ route('member.profile.edit') }}" class="btn btn-light border btn-sm rounded-circle shadow-sm" title="Ubah Profil">
+                    <i class="bi bi-person-gear text-success"></i>
+                </a>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" data-bs-toggle="modal" data-bs-target="#modalConfirmLogout" title="Keluar">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
             </div>
         </div>
-    </header>
 
-    <div class="container member-container">
+        <!-- Alert Notifications -->
         @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
                 <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
         @if(session('info'))
-            <div class="alert alert-info alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
+            <div class="alert alert-info alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
                 <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif
 
+        <!-- Page Yield Content -->
         @yield('content')
-    </div>
+    </main>
 
     <!-- Modal Konfirmasi Logout Member -->
     <div class="modal fade" id="modalConfirmLogout" tabindex="-1" aria-hidden="true">
@@ -245,8 +497,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <!-- Modal Popup Download Kartu Anggota -->
     <div class="modal fade" id="cardDownloadModal" tabindex="-1" aria-labelledby="cardDownloadModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -270,7 +520,6 @@
                     </p>
 
                     <div class="d-grid gap-2 col-11 mx-auto">
-                        <!-- Tombol PDF -->
                         <a id="btnDownloadPdf" href="#" target="_blank" class="btn btn-success btn-lg rounded-pill fw-bold py-2.5 d-flex align-items-center justify-content-center gap-2 shadow-sm" onclick="const mEl = document.getElementById('cardDownloadModal'); if (mEl) { const m = bootstrap.Modal.getInstance(mEl); if (m) m.hide(); }">
                             <i class="bi bi-file-earmark-pdf-fill fs-5 text-warning"></i>
                             <span>Download Dokumen Kartu (.PDF)</span>
@@ -283,6 +532,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    @include('partials.attachment_preview_modal')
 
     <script>
         function openCardDownloadModal(baseUrl, name, number) {
@@ -297,7 +551,6 @@
         }
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     @yield('scripts')
     @stack('scripts')
 </body>

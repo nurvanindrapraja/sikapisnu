@@ -73,6 +73,37 @@ class MerchandiseStoreTest extends TestCase
         $response->assertSee('Khusus Anggota ISNU');
     }
 
+    public function test_logged_in_member_can_access_store_catalog_and_detail_without_error(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->createMember($user, ['membership_status' => 'terverifikasi']);
+
+        // Catalog
+        $catalogResponse = $this->actingAs($user)->get(route('store.index'));
+        $catalogResponse->assertStatus(200);
+        $catalogResponse->assertSee('Anda terverifikasi sebagai Anggota Aktif ISNU');
+
+        // Product Detail
+        $product = Product::where('slug', 'jas-resmi-isnu-nasional')->first();
+        $detailResponse = $this->actingAs($user)->get(route('store.show', $product->slug));
+        $detailResponse->assertStatus(200);
+        $detailResponse->assertSee('Buat Pesanan (Non-Tunai)');
+    }
+
+    public function test_member_dashboard_has_left_sidebar_navigation(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->createMember($user, ['membership_status' => 'terverifikasi']);
+
+        $response = $this->actingAs($user)->get(route('member.dashboard'));
+        $response->assertStatus(200);
+        $response->assertSee('PORTAL ANGGOTA');
+        $response->assertSee('sidebar');
+        $response->assertSee('Toko Merchandise');
+        $response->assertSee('Pesanan Saya');
+        $response->assertSee('Katalog Anggota');
+    }
+
     public function test_guest_is_prompted_to_register_or_login(): void
     {
         $product = Product::first();

@@ -1,6 +1,7 @@
 @extends('layouts.member')
 
 @section('title', 'Pesanan Merchandise Saya - SIKAP ISNU')
+@section('header_title', 'Pesanan Merchandise Saya')
 
 @section('content')
 <div class="row mb-4 align-items-center">

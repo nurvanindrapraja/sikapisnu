@@ -149,6 +149,21 @@ class Member extends Model
         return $this->membership_status === 'pengurus' || $this->positions()->where('is_active', true)->exists();
     }
 
+    public function isVerified(): bool
+    {
+        return in_array($this->membership_status, ['terverifikasi', 'pengurus']);
+    }
+
+    public function getPhoneNumberAttribute(): ?string
+    {
+        return $this->phone;
+    }
+
+    public function getStreetAddressAttribute(): ?string
+    {
+        return $this->address;
+    }
+
     public function workgroups()
     {
         return $this->belongsToMany(Workgroup::class, 'workgroup_members')

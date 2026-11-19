@@ -1,6 +1,7 @@
 @extends('layouts.member')
 
 @section('title', 'Rincian Pesanan ' . $order->order_number . ' - SIKAP ISNU')
+@section('header_title', 'Rincian Pesanan ' . $order->order_number)
 
 @section('styles')
 <style>
