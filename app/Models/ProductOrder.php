@@ -160,6 +160,36 @@ class ProductOrder extends Model
         };
     }
 
+    public function isPendingPayment(): bool
+    {
+        return $this->status === self::STATUS_PENDING_PAYMENT;
+    }
+
+    public function isPaymentUploaded(): bool
+    {
+        return $this->status === self::STATUS_PAYMENT_UPLOADED;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === self::STATUS_PAID;
+    }
+
+    public function isShipped(): bool
+    {
+        return $this->status === self::STATUS_SHIPPED;
+    }
+
+    public function isReceived(): bool
+    {
+        return $this->status === self::STATUS_RECEIVED;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
+
     public function canUploadPaymentProof(): bool
     {
         return in_array($this->status, [self::STATUS_PENDING_PAYMENT, self::STATUS_PAYMENT_UPLOADED], true);

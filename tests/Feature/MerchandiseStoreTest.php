@@ -474,4 +474,40 @@ class MerchandiseStoreTest extends TestCase
         $response->assertSee('gap-3');
         $response->assertDontSee('gap-2.5');
     }
+
+    public function test_admin_or_bendahara_can_view_product_order_details(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+        $buyer = User::factory()->create(['name' => 'Nurvan Indra Praja', 'is_active' => true]);
+        $this->createMember($buyer, ['membership_status' => 'terverifikasi', 'phone' => '081330278721']);
+
+        $product = Product::first();
+        $order = ProductOrder::create([
+            'order_number' => 'ORD-20261119-6MTJM',
+            'user_id' => $buyer->id,
+            'total_amount' => 85000,
+            'grand_total' => 85000,
+            'recipient_name' => 'Nurvan Indra Praja',
+            'recipient_phone' => '081330278721',
+            'shipping_address' => 'Surabaya, Jawa Timur',
+            'status' => ProductOrder::STATUS_PAYMENT_UPLOADED,
+        ]);
+
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => 'Peci Songkok Beludru Hitam',
+            'price' => 85000,
+            'quantity' => 1,
+            'subtotal' => 85000,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.product_orders.show', $order->id));
+
+        $response->assertStatus(200);
+        $response->assertSee('ORD-20261119-6MTJM');
+        $response->assertSee('Nurvan Indra Praja');
+        $response->assertSee('Peci Songkok Beludru Hitam');
+        $response->assertSee('Rp 85.000');
+        $response->assertSee('Menunggu Konfirmasi Bendahara');
+    }
 }
