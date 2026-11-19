@@ -1,0 +1,385 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Member;
+use App\Models\Position;
+use App\Models\Product;
+use App\Models\ProductOrder;
+use App\Models\ProductReview;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class MerchandiseStoreTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
+
+    protected function createMember(User $user, array $overrides = []): Member
+    {
+        return Member::create(array_merge([
+            'user_id' => $user->id,
+            'full_name' => $user->name ?? 'Anggota ISNU',
+            'nik' => '3578'.str_pad((string) $user->id, 12, '0', STR_PAD_LEFT),
+            'email' => $user->email,
+            'phone' => '0812345'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT),
+            'occupation' => 'Akademisi',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Bubutan No. 2, Surabaya',
+            'kelurahan' => 'Bubutan',
+            'kecamatan' => 'Bubutan',
+            'membership_status' => 'terverifikasi',
+        ], $overrides));
+    }
+
+    public function test_public_store_catalog_is_accessible(): void
+    {
+        $response = $this->get(route('store.index'));
+
+        $response->assertStatus(200);
+        $response->assertSee('Merchandise Resmi');
+        $response->assertSee('Jas Resmi ISNU Nasional');
+        $response->assertSee('Batik Premium Khas ISNU Surabaya');
+    }
+
+    public function test_public_store_filter_by_category(): void
+    {
+        $response = $this->get(route('store.index', ['category' => 'seragam']));
+
+        $response->assertStatus(200);
+        $response->assertSee('Jas Resmi ISNU Nasional');
+    }
+
+    public function test_public_product_detail_is_accessible(): void
+    {
+        $product = Product::where('slug', 'jas-resmi-isnu-nasional')->first();
+        $this->assertNotNull($product);
+
+        $response = $this->get(route('store.show', $product->slug));
+
+        $response->assertStatus(200);
+        $response->assertSee($product->name);
+        $response->assertSee($product->formatted_price);
+        $response->assertSee('Khusus Anggota ISNU');
+    }
+
+    public function test_guest_is_prompted_to_register_or_login(): void
+    {
+        $product = Product::first();
+
+        $response = $this->get(route('store.show', $product->slug));
+        $response->assertStatus(200);
+        $response->assertSee(route('register'));
+        $response->assertSee(route('login'));
+
+        // Checkout without login redirects to login
+        $checkoutResponse = $this->post(route('member.orders.checkout'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'recipient_name' => 'Tamu',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Jl. Surabaya',
+        ]);
+
+        $checkoutResponse->assertRedirect(route('login'));
+    }
+
+    public function test_unverified_member_cannot_checkout(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $this->createMember($user, [
+            'full_name' => 'Calon Anggota',
+            'membership_status' => 'menunggu_verifikasi',
+        ]);
+
+        $product = Product::first();
+
+        $response = $this->actingAs($user)->post(route('member.orders.checkout'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'recipient_name' => 'Calon Anggota',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Surabaya',
+        ]);
+
+        $response->assertSessionHas('error');
+    }
+
+    public function test_verified_active_member_can_checkout_product(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $member = $this->createMember($user, [
+            'full_name' => 'Achmad Sholeh, M.Pd.',
+            'phone' => '081298765432',
+            'address' => 'Jl. Darmo No. 45, Wonokromo, Surabaya',
+        ]);
+
+        $product = Product::first();
+        $initialStock = $product->stock;
+
+        $response = $this->actingAs($user)->post(route('member.orders.checkout'), [
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'variant_note' => 'Ukuran XL',
+            'recipient_name' => 'Achmad Sholeh',
+            'recipient_phone' => '081298765432',
+            'shipping_address' => 'Jl. Darmo No. 45, Wonokromo, Surabaya',
+            'notes' => 'Tolong dibungkus rapi.',
+        ]);
+
+        $order = ProductOrder::where('user_id', $user->id)->latest()->first();
+        $this->assertNotNull($order);
+        $this->assertEquals(ProductOrder::STATUS_PENDING_PAYMENT, $order->status);
+        $this->assertEquals($product->price * 2, $order->grand_total);
+
+        // Check stock decremented
+        $this->assertEquals($initialStock - 2, $product->fresh()->stock);
+
+        $response->assertRedirect(route('member.orders.show', $order->id));
+        $response->assertSessionHas('success');
+    }
+
+    public function test_member_can_upload_payment_proof(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['is_active' => true]);
+        $member = $this->createMember($user, [
+            'full_name' => 'Siti Nurhaliza, S.E.',
+        ]);
+
+        $product = Product::first();
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $user->id,
+            'member_id' => $member->id,
+            'total_amount' => $product->price,
+            'grand_total' => $product->price,
+            'recipient_name' => 'Siti Nurhaliza',
+            'recipient_phone' => '081211112222',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PENDING_PAYMENT,
+        ]);
+
+        $file = UploadedFile::fake()->image('bukti_transfer.jpg');
+
+        $response = $this->actingAs($user)->post(route('member.orders.upload_payment', $order->id), [
+            'payment_proof' => $file,
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertEquals(ProductOrder::STATUS_PAYMENT_UPLOADED, $order->status);
+        $this->assertNotNull($order->payment_proof_path);
+        Storage::disk('public')->assertExists($order->payment_proof_path);
+    }
+
+    public function test_bendahara_can_verify_and_approve_payment(): void
+    {
+        // Setup Bendahara User
+        $bendaharaUser = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        $bendaharaMember = $this->createMember($bendaharaUser, [
+            'full_name' => 'Bendahara PC ISNU',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaMember->id,
+            'position_title' => 'Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $this->assertTrue($bendaharaUser->isBendahara());
+        $this->assertTrue($bendaharaUser->canManageProductOrders());
+
+        // Create pending payment uploaded order
+        $buyer = User::factory()->create(['is_active' => true]);
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $buyer->id,
+            'total_amount' => 150000,
+            'grand_total' => 150000,
+            'recipient_name' => 'Pembeli',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PAYMENT_UPLOADED,
+            'payment_proof_path' => 'dummy.jpg',
+            'payment_uploaded_at' => now(),
+        ]);
+
+        // Bendahara views orders
+        $indexResponse = $this->actingAs($bendaharaUser)->get(route('admin.product_orders.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee($order->order_number);
+
+        // Bendahara approves payment
+        $approveResponse = $this->actingAs($bendaharaUser)->post(route('admin.product_orders.verify_payment', $order->id), [
+            'action' => 'approve',
+        ]);
+
+        $approveResponse->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertEquals(ProductOrder::STATUS_PAID, $order->status);
+        $this->assertEquals($bendaharaUser->id, $order->payment_verified_by);
+    }
+
+    public function test_bendahara_can_update_shipping(): void
+    {
+        $bendaharaUser = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        $bendaharaMember = $this->createMember($bendaharaUser, [
+            'full_name' => 'Wakil Bendahara PC ISNU',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaMember->id,
+            'position_title' => 'Wakil Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $buyer = User::factory()->create(['is_active' => true]);
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $buyer->id,
+            'total_amount' => 150000,
+            'grand_total' => 150000,
+            'recipient_name' => 'Pembeli',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PAID,
+        ]);
+
+        $response = $this->actingAs($bendaharaUser)->post(route('admin.product_orders.update_shipping', $order->id), [
+            'courier_name' => 'JNE REG',
+            'tracking_number' => 'JNE1234567890SBY',
+            'shipping_notes' => 'Estimasi tiba 1-2 hari kerja.',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertEquals(ProductOrder::STATUS_SHIPPED, $order->status);
+        $this->assertEquals('JNE REG', $order->courier_name);
+        $this->assertEquals('JNE1234567890SBY', $order->tracking_number);
+    }
+
+    public function test_member_can_confirm_receipt_with_optional_photo(): void
+    {
+        Storage::fake('public');
+
+        $user = User::factory()->create(['is_active' => true]);
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $user->id,
+            'total_amount' => 150000,
+            'grand_total' => 150000,
+            'recipient_name' => 'Penerima',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_SHIPPED,
+            'courier_name' => 'Kurir PC ISNU',
+            'shipped_at' => now(),
+        ]);
+
+        $receiptPhoto = UploadedFile::fake()->image('unboxing.jpg');
+
+        $response = $this->actingAs($user)->post(route('member.orders.confirm_received', $order->id), [
+            'receipt_proof' => $receiptPhoto,
+            'receipt_notes' => 'Barang diterima dalam kondisi baik & lengkap.',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertEquals(ProductOrder::STATUS_RECEIVED, $order->status);
+        $this->assertNotNull($order->received_at);
+        $this->assertNotNull($order->receipt_proof_path);
+        Storage::disk('public')->assertExists($order->receipt_proof_path);
+    }
+
+    public function test_buyer_can_submit_5_star_review_and_comment(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $product = Product::first();
+
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $user->id,
+            'total_amount' => $product->price,
+            'grand_total' => $product->price,
+            'recipient_name' => 'Penerima',
+            'recipient_phone' => '08123456789',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_RECEIVED,
+            'received_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->post(route('member.orders.submit_review', $order->id), [
+            'product_id' => $product->id,
+            'rating' => 5,
+            'comment' => 'Bahan jas sangat premium, bordir logo ISNU rapi dan elegan!',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $review = ProductReview::where('order_id', $order->id)
+            ->where('product_id', $product->id)
+            ->first();
+
+        $this->assertNotNull($review);
+        $this->assertEquals(5, $review->rating);
+        $this->assertEquals('Bahan jas sangat premium, bordir logo ISNU rapi dan elegan!', $review->comment);
+
+        // Check review appears on public product page
+        $publicResponse = $this->get(route('store.show', $product->slug));
+        $publicResponse->assertStatus(200);
+        $publicResponse->assertSee('Bahan jas sangat premium, bordir logo ISNU rapi dan elegan!');
+    }
+
+    public function test_admin_pcnu_can_manage_products(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+        $this->assertTrue($admin->canManageProducts());
+
+        // Admin creates product
+        $createResponse = $this->actingAs($admin)->post(route('admin.products.store'), [
+            'name' => 'Songkok Hitam Logo Emas ISNU',
+            'category' => 'aksesoris',
+            'price' => 75000,
+            'stock' => 50,
+            'weight_grams' => 200,
+            'description' => 'Songkok beludru halus dengan bordir logo emas ISNU.',
+            'is_active' => 1,
+        ]);
+
+        $createResponse->assertRedirect(route('admin.products.index'));
+
+        $newProduct = Product::where('name', 'Songkok Hitam Logo Emas ISNU')->first();
+        $this->assertNotNull($newProduct);
+        $this->assertEquals(75000, $newProduct->price);
+
+        // Toggle status
+        $toggleResponse = $this->actingAs($admin)->patch(route('admin.products.toggle_status', $newProduct->id));
+        $toggleResponse->assertSessionHas('success');
+        $this->assertFalse($newProduct->fresh()->is_active);
+
+        // Regular member cannot manage products
+        $regularUser = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $forbiddenResponse = $this->actingAs($regularUser)->get(route('admin.products.index'));
+        $forbiddenResponse->assertStatus(403);
+    }
+}

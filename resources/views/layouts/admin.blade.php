@@ -390,6 +390,30 @@
             </li>
             @endif
 
+            @if(auth()->user()->canManageProducts() || auth()->user()->canManageProductOrders())
+            <li class="sidebar-header">Toko & Merchandise ISNU</li>
+            @if(auth()->user()->canManageProducts())
+            <li>
+                <a href="{{ route('admin.products.index') }}" class="sidebar-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-box-seam-fill"></i> Kelola Produk Toko
+                </a>
+            </li>
+            @endif
+            @if(auth()->user()->canManageProductOrders())
+            <li>
+                <a href="{{ route('admin.product_orders.index') }}" class="sidebar-link {{ request()->routeIs('admin.product_orders.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-bag-check-fill"></i> Pesanan Merchandise
+                    @php
+                        $pendingMerchPayments = \App\Models\ProductOrder::where('status', \App\Models\ProductOrder::STATUS_PAYMENT_UPLOADED)->count();
+                    @endphp
+                    @if($pendingMerchPayments > 0)
+                        <span class="badge bg-warning text-dark ms-auto rounded-pill">{{ $pendingMerchPayments }}</span>
+                    @endif
+                </a>
+            </li>
+            @endif
+            @endif
+
             @if(auth()->user()->canAccessLetterSubmission())
             <li class="sidebar-header">Persuratan & E-TTD</li>
             <li>

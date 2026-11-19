@@ -438,6 +438,28 @@ class User extends Authenticatable
         return $this->isBendahara();
     }
 
+    /**
+     * Memeriksa apakah user dapat mengelola master produk toko merchandise ISNU.
+     * Hak akses: Admin PC ISNU (Superadmin, Admin Kota, role admin).
+     */
+    public function canManageProducts(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin';
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola pemesanan & pengiriman barang merchandise.
+     * Hak akses: Bendahara dan Wakil Bendahara PCNU, serta Superadmin & Admin Kota.
+     */
+    public function canManageProductOrders(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        return $this->isBendahara();
+    }
+
     public function canManageMember(?Member $member): bool
     {
         if (! $member) {

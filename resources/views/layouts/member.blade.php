@@ -89,6 +89,12 @@
                 <a href="{{ route('daftar.anggota') }}" class="btn {{ request()->routeIs('daftar.anggota') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-people-fill me-1"></i> Katalog Anggota
                 </a>
+                <a href="{{ route('store.index') }}" class="btn {{ request()->routeIs('store.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-shop me-1"></i> Toko ISNU
+                </a>
+                <a href="{{ route('member.orders.index') }}" class="btn {{ request()->routeIs('member.orders.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-bag-check-fill me-1"></i> Pesanan Saya
+                </a>
                 @if(auth()->user()->canAccessLetterSubmission())
                 <a href="{{ route('admin.letters.index') }}" class="btn {{ request()->routeIs('admin.letters.*') ? 'btn-light text-success fw-bold shadow-sm' : 'btn-outline-light' }} btn-sm rounded-pill px-3 fw-semibold">
                     <i class="bi bi-file-earmark-text-fill me-1"></i> Konsep Surat
@@ -143,6 +149,12 @@
                     </a>
                     <a href="{{ route('daftar.anggota') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-people-fill text-success fs-5"></i> Katalog Anggota
+                    </a>
+                    <a href="{{ route('store.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold text-dark d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-shop text-success fs-5"></i> Toko Merchandise
+                    </a>
+                    <a href="{{ route('member.orders.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('member.orders.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-bag-check-fill text-success fs-5"></i> Pesanan Saya
                     </a>
                     @if(auth()->user()->canAccessLetterSubmission())
                     <a href="{{ route('admin.letters.index') }}" class="dropdown-item rounded-3 py-2 px-3 fw-semibold {{ request()->routeIs('admin.letters.*') ? 'bg-success-subtle text-success' : 'text-dark' }} d-flex align-items-center gap-2 mb-1">

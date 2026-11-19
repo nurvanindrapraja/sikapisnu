@@ -402,5 +402,7 @@ class DatabaseSeeder extends Seeder
             'start_year' => 2015,
             'employment_status' => 'Tetap',
         ]);
+
+        $this->call(ProductSeeder::class);
     }
 }

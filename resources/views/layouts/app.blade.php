@@ -250,6 +250,11 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('daftar.anggota') ? 'active' : '' }}" href="{{ route('daftar.anggota') }}">Katalog Anggota</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('store.*') ? 'active' : '' }}" href="{{ route('store.index') }}">
+                            <i class="bi bi-shop me-1 text-warning"></i> Toko Merchandise
+                        </a>
+                    </li>
                 </ul>
 
                 <div class="d-flex flex-column flex-lg-row align-items-center gap-2 pt-3 pt-lg-0">
@@ -306,6 +311,7 @@
                         <li><a href="{{ route('home') }}"><i class="bi bi-chevron-right text-success me-1"></i> Beranda</a></li>
                         <li><a href="{{ route('tentang') }}"><i class="bi bi-chevron-right text-success me-1"></i> Profil ISNU Surabaya</a></li>
                         <li><a href="{{ route('daftar.anggota') }}"><i class="bi bi-chevron-right text-success me-1"></i> Direktori Kader</a></li>
+                        <li><a href="{{ route('store.index') }}"><i class="bi bi-chevron-right text-success me-1"></i> Toko Merchandise ISNU</a></li>
                         <li><a href="{{ route('register') }}"><i class="bi bi-chevron-right text-success me-1"></i> Pendaftaran Anggota</a></li>
                     </ul>
                 </div>

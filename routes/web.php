@@ -10,6 +10,8 @@ use App\Http\Controllers\Admin\LocationController as AdminLocation;
 use App\Http\Controllers\Admin\MemberController as AdminMember;
 use App\Http\Controllers\Admin\MwcController as AdminMwc;
 use App\Http\Controllers\Admin\OfficerController as AdminOfficer;
+use App\Http\Controllers\Admin\ProductController as AdminProduct;
+use App\Http\Controllers\Admin\ProductOrderController as AdminProductOrder;
 use App\Http\Controllers\Admin\ProfileController as AdminProfile;
 use App\Http\Controllers\Admin\ProgramController as AdminProgram;
 use App\Http\Controllers\Admin\ReportController as AdminReport;
@@ -24,7 +26,9 @@ use App\Http\Controllers\LetterVerificationController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\Member\CardOrderController as MemberCardOrder;
 use App\Http\Controllers\Member\DashboardController as MemberDashboard;
+use App\Http\Controllers\Member\ProductOrderController as MemberProductOrder;
 use App\Http\Controllers\Member\ProfileController as MemberProfile;
+use App\Http\Controllers\StoreController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +45,10 @@ Route::get('/surat/verifikasi/{code}/lampiran/{attachment_id}/preview', [LetterV
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/tentang', [HomeController::class, 'tentang'])->name('tentang');
 Route::get('/daftar-anggota', [HomeController::class, 'daftarAnggota'])->name('daftar.anggota');
+
+// Toko Merchandise ISNU (Publik)
+Route::get('/toko', [StoreController::class, 'index'])->name('store.index');
+Route::get('/toko/{slug}', [StoreController::class, 'show'])->name('store.show');
 
 // QR Verification Routes
 Route::get('/verify/{qr_token}', [VerificationController::class, 'verify'])->name('verify.card');
@@ -100,6 +108,14 @@ Route::middleware(['auth'])->prefix('member')->name('member.')->group(function (
     Route::post('/profile/certification', [MemberProfile::class, 'addCertification'])->name('profile.certification.add');
     Route::put('/profile/certification/{id}', [MemberProfile::class, 'updateCertification'])->name('profile.certification.update');
     Route::delete('/profile/certification/{id}', [MemberProfile::class, 'deleteCertification'])->name('profile.certification.delete');
+
+    // Pesanan Merchandise ISNU
+    Route::post('/orders/checkout', [MemberProductOrder::class, 'checkout'])->name('orders.checkout');
+    Route::get('/orders', [MemberProductOrder::class, 'index'])->name('orders.index');
+    Route::get('/orders/{id}', [MemberProductOrder::class, 'show'])->name('orders.show');
+    Route::post('/orders/{id}/upload-payment', [MemberProductOrder::class, 'uploadPayment'])->name('orders.upload_payment');
+    Route::post('/orders/{id}/confirm-received', [MemberProductOrder::class, 'confirmReceived'])->name('orders.confirm_received');
+    Route::post('/orders/{id}/review', [MemberProductOrder::class, 'submitReview'])->name('orders.submit_review');
 });
 
 // 4. Admin Area Routes
@@ -243,4 +259,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/finances/export', [AdminFinance::class, 'export'])->name('finances.export');
     Route::get('/finances/{id}/preview', [AdminFinance::class, 'preview'])->name('finances.preview');
     Route::resource('finances', AdminFinance::class)->parameters(['finances' => 'id']);
+
+    // Manajemen Produk Toko Merchandise (Admin PC ISNU)
+    Route::patch('/products/{id}/toggle-status', [AdminProduct::class, 'toggleStatus'])->name('products.toggle_status');
+    Route::resource('products', AdminProduct::class)->parameters(['products' => 'id']);
+
+    // Manajemen Pemesanan & Pengiriman Barang (Bendahara / Wakil Bendahara)
+    Route::get('/product-orders', [AdminProductOrder::class, 'index'])->name('product_orders.index');
+    Route::get('/product-orders/{id}', [AdminProductOrder::class, 'show'])->name('product_orders.show');
+    Route::post('/product-orders/{id}/verify-payment', [AdminProductOrder::class, 'verifyPayment'])->name('product_orders.verify_payment');
+    Route::post('/product-orders/{id}/update-shipping', [AdminProductOrder::class, 'updateShipping'])->name('product_orders.update_shipping');
+    Route::post('/product-orders/{id}/mark-received', [AdminProductOrder::class, 'markReceived'])->name('product_orders.mark_received');
 });
