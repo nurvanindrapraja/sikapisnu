@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\ProductOrder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -25,7 +26,7 @@ class ProductOrderController extends Controller
     /**
      * Menampilkan daftar pesanan merchandise ISNU.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $this->checkAccess();
 
@@ -61,8 +62,17 @@ class ProductOrderController extends Controller
             'paid' => ProductOrder::where('status', ProductOrder::STATUS_PAID)->count(),
             'shipped' => ProductOrder::where('status', ProductOrder::STATUS_SHIPPED)->count(),
             'received' => ProductOrder::where('status', ProductOrder::STATUS_RECEIVED)->count(),
-            'total_income' => ProductOrder::whereIn('status', [ProductOrder::STATUS_PAID, ProductOrder::STATUS_SHIPPED, ProductOrder::STATUS_RECEIVED])->sum('grand_total'),
+            'total_income' => (float) ProductOrder::whereIn('status', [ProductOrder::STATUS_PAID, ProductOrder::STATUS_SHIPPED, ProductOrder::STATUS_RECEIVED])->sum('grand_total'),
         ];
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'html' => view('admin.product_orders.partials.order_table', compact('orders'))->render(),
+                'stats' => $stats,
+                'total' => $orders->total(),
+            ]);
+        }
 
         return view('admin.product_orders.index', compact('orders', 'stats'));
     }
@@ -88,7 +98,7 @@ class ProductOrderController extends Controller
     /**
      * Verifikasi bukti pembayaran non-tunai oleh Bendahara / Wakil Bendahara.
      */
-    public function verifyPayment(Request $request, int $id): RedirectResponse
+    public function verifyPayment(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -113,7 +123,24 @@ class ProductOrderController extends Controller
                 "Bendahara menyetujui bukti pembayaran untuk pesanan {$order->order_number} sebesar {$order->formatted_grand_total}."
             );
 
-            return back()->with('success', "Pembayaran untuk pesanan {$order->order_number} berhasil diverifikasi dan disetujui! Barang siap disiapkan dan dikirim.");
+            $msg = "Pembayaran untuk pesanan {$order->order_number} berhasil diverifikasi dan disetujui! Barang siap disiapkan dan dikirim.";
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'action' => 'approve',
+                    'message' => $msg,
+                    'order' => [
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                        'status_badge_class' => $order->status_badge_class,
+                        'payment_verified_at' => $order->payment_verified_at?->translatedFormat('d M Y, H:i').' WIB',
+                        'verifier_name' => auth()->user()->name,
+                    ],
+                ]);
+            }
+
+            return back()->with('success', $msg);
         } else {
             $order->update([
                 'status' => ProductOrder::STATUS_PENDING_PAYMENT,
@@ -126,7 +153,23 @@ class ProductOrderController extends Controller
                 "Bendahara menolak bukti pembayaran pesanan {$order->order_number}. Alasan: {$order->rejection_reason}"
             );
 
-            return back()->with('warning', "Bukti pembayaran pesanan {$order->order_number} telah ditolak. Status pesanan dikembalikan ke Menunggu Pembayaran.");
+            $msg = "Bukti pembayaran pesanan {$order->order_number} telah ditolak. Status pesanan dikembalikan ke Menunggu Pembayaran.";
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'action' => 'reject',
+                    'message' => $msg,
+                    'order' => [
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                        'status_badge_class' => $order->status_badge_class,
+                        'rejection_reason' => $order->rejection_reason,
+                    ],
+                ]);
+            }
+
+            return back()->with('warning', $msg);
         }
     }
 
@@ -134,7 +177,7 @@ class ProductOrderController extends Controller
      * Pengelolaan pengiriman barang oleh Bendahara / Wakil Bendahara.
      * Mengisi nama kurir/ekspedisi, nomor resi pengiriman, dan catatan pengiriman.
      */
-    public function updateShipping(Request $request, int $id): RedirectResponse
+    public function updateShipping(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -163,13 +206,32 @@ class ProductOrderController extends Controller
             "Memperbarui pengiriman pesanan {$order->order_number} via {$order->courier_name} (Resi: ".($order->tracking_number ?: '-').').'
         );
 
-        return back()->with('success', "Informasi pengiriman untuk pesanan {$order->order_number} berhasil disimpan. Status pesanan kini berubah menjadi Sedang Dikirim.");
+        $msg = "Informasi pengiriman untuk pesanan {$order->order_number} berhasil disimpan. Status pesanan kini berubah menjadi Sedang Dikirim.";
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'order' => [
+                    'status' => $order->status,
+                    'status_label' => $order->status_label,
+                    'status_badge_class' => $order->status_badge_class,
+                    'courier_name' => $order->courier_name,
+                    'tracking_number' => $order->tracking_number,
+                    'shipping_notes' => $order->shipping_notes,
+                    'shipped_at' => $order->shipped_at?->translatedFormat('d F Y, H:i').' WIB',
+                    'shipped_by_name' => auth()->user()->name,
+                ],
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**
      * Mengonfirmasi barang diterima langsung oleh Bendahara / Admin jika diserahterimakan langsung di kantor PCNU.
      */
-    public function markReceived(Request $request, int $id): RedirectResponse
+    public function markReceived(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -187,6 +249,22 @@ class ProductOrderController extends Controller
             "Menyelesaikan serah terima pesanan merchandise {$order->order_number}."
         );
 
-        return back()->with('success', "Pesanan {$order->order_number} telah diselesaikan.");
+        $msg = "Pesanan {$order->order_number} telah diselesaikan.";
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'order' => [
+                    'status' => $order->status,
+                    'status_label' => $order->status_label,
+                    'status_badge_class' => $order->status_badge_class,
+                    'received_at' => $order->received_at?->translatedFormat('d F Y, H:i').' WIB',
+                    'receipt_notes' => $order->receipt_notes,
+                ],
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 }

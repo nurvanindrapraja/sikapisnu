@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductOrder;
 use App\Models\ProductOrderItem;
 use App\Models\ProductReview;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -142,11 +143,18 @@ class ProductOrderController extends Controller
     /**
      * Mengunggah bukti pembayaran non-tunai oleh pembeli.
      */
-    public function uploadPayment(Request $request, int $id): RedirectResponse
+    public function uploadPayment(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $order = ProductOrder::where('user_id', auth()->id())->findOrFail($id);
 
         if (! $order->canUploadPaymentProof()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan ini sudah tidak dalam tahap upload pembayaran.',
+                ], 422);
+            }
+
             return back()->with('error', 'Pesanan ini sudah tidak dalam tahap upload pembayaran.');
         }
 
@@ -179,10 +187,27 @@ class ProductOrderController extends Controller
                 "Mengunggah bukti pembayaran untuk pesanan {$order->order_number}."
             );
 
-            return back()->with(
-                'success',
-                'Bukti transfer pembayaran berhasil diunggah! Pengurus (Bendahara/Wakil Bendahara) akan memverifikasi pembayaran Anda.'
-            );
+            $msg = 'Bukti transfer pembayaran berhasil diunggah! Pengurus (Bendahara/Wakil Bendahara) akan memverifikasi pembayaran Anda.';
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $msg,
+                    'proof_url' => $order->fresh()->payment_proof_url,
+                    'uploaded_at' => $order->fresh()->payment_uploaded_at?->translatedFormat('d M Y, H:i').' WIB',
+                    'order' => [
+                        'status' => $order->status,
+                        'status_label' => $order->status_label,
+                        'status_badge_class' => $order->status_badge_class,
+                    ],
+                ]);
+            }
+
+            return back()->with('success', $msg);
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => false, 'message' => 'Gagal memproses file bukti pembayaran.'], 422);
         }
 
         return back()->with('error', 'Gagal memproses file bukti pembayaran.');
@@ -192,11 +217,15 @@ class ProductOrderController extends Controller
      * Konfirmasi bahwa barang sudah berhasil diterima oleh pembeli / penerima.
      * Status barang berhasil diterima (selesai), dapat dibuktikan dengan foto penerimaan (opsional).
      */
-    public function confirmReceived(Request $request, int $id): RedirectResponse
+    public function confirmReceived(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $order = ProductOrder::where('user_id', auth()->id())->findOrFail($id);
 
         if (! $order->canConfirmReceipt()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Konfirmasi penerimaan hanya dapat dilakukan jika barang dalam status dikirim.'], 422);
+            }
+
             return back()->with('error', 'Konfirmasi penerimaan hanya dapat dilakukan jika barang dalam status dikirim.');
         }
 
@@ -226,20 +255,38 @@ class ProductOrderController extends Controller
             "Menyatakan telah menerima barang untuk pesanan {$order->order_number}."
         );
 
-        return back()->with(
-            'success',
-            'Alhamdulillah! Anda telah mengonfirmasi bahwa barang telah diterima dengan baik. Pesanan telah selesai. Silakan berikan review dan bintang 5 untuk produk yang Anda terima!'
-        );
+        $msg = 'Alhamdulillah! Anda telah mengonfirmasi bahwa barang telah diterima dengan baik. Pesanan telah selesai. Silakan berikan review dan bintang 5 untuk produk yang Anda terima!';
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'receipt_proof_url' => $order->fresh()->receipt_proof_url,
+                'received_at' => $order->fresh()->received_at?->translatedFormat('d F Y, H:i').' WIB',
+                'receipt_notes' => $order->receipt_notes,
+                'order' => [
+                    'status' => $order->status,
+                    'status_label' => $order->status_label,
+                    'status_badge_class' => $order->status_badge_class,
+                ],
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**
      * Memberikan rating bintang (1-5) dan komentar ulasan untuk produk yang dibeli.
      */
-    public function submitReview(Request $request, int $id): RedirectResponse
+    public function submitReview(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $order = ProductOrder::where('user_id', auth()->id())->findOrFail($id);
 
         if (! $order->canReview()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Ulasan hanya dapat diberikan setelah barang selesai diterima.'], 422);
+            }
+
             return back()->with('error', 'Ulasan hanya dapat diberikan setelah barang selesai diterima.');
         }
 
@@ -272,6 +319,18 @@ class ProductOrderController extends Controller
             "Memberikan review {$request->rating} bintang pada produk id {$request->product_id} dari pesanan {$order->order_number}."
         );
 
-        return back()->with('success', 'Terima kasih atas ulasan dan penilaian bintang yang Anda berikan!');
+        $msg = 'Terima kasih atas ulasan dan penilaian bintang yang Anda berikan!';
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'product_id' => (int) $request->product_id,
+                'rating' => (int) $request->rating,
+                'comment' => $request->comment,
+            ]);
+        }
+
+        return back()->with('success', $msg);
     }
 }

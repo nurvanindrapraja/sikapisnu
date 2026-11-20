@@ -510,4 +510,175 @@ class MerchandiseStoreTest extends TestCase
         $response->assertSee('Rp 85.000');
         $response->assertSee('Menunggu Konfirmasi Bendahara');
     }
+
+    public function test_ajax_product_management_operations(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+
+        // 1. AJAX Filter Products
+        $filterResponse = $this->actingAs($admin)->getJson(route('admin.products.index', ['category' => 'seragam']));
+        $filterResponse->assertStatus(200);
+        $filterResponse->assertJsonStructure(['success', 'html', 'total']);
+
+        // 2. AJAX Create Product
+        $createResponse = $this->actingAs($admin)->postJson(route('admin.products.store'), [
+            'name' => 'Pin Kuningan Logo ISNU Premium',
+            'category' => 'pin',
+            'price' => 25000,
+            'stock' => 100,
+            'weight_grams' => 50,
+            'description' => 'Pin peniti kuningan elegan.',
+            'is_active' => 1,
+        ]);
+        $createResponse->assertStatus(200);
+        $createResponse->assertJson(['success' => true]);
+
+        $product = Product::where('name', 'Pin Kuningan Logo ISNU Premium')->first();
+        $this->assertNotNull($product);
+
+        // 3. AJAX Fetch for Edit Modal
+        $editResponse = $this->actingAs($admin)->getJson(route('admin.products.edit', $product->id));
+        $editResponse->assertStatus(200);
+        $editResponse->assertJson([
+            'success' => true,
+            'product' => [
+                'id' => $product->id,
+                'name' => 'Pin Kuningan Logo ISNU Premium',
+                'price' => 25000,
+            ],
+        ]);
+
+        // 4. AJAX Update Product
+        $updateResponse = $this->actingAs($admin)->putJson(route('admin.products.update', $product->id), [
+            'name' => 'Pin Kuningan Logo ISNU Premium V2',
+            'category' => 'pin',
+            'price' => 30000,
+            'stock' => 80,
+            'weight_grams' => 50,
+            'description' => 'Pin peniti kuningan diperbarui.',
+            'is_active' => 1,
+        ]);
+        $updateResponse->assertStatus(200);
+        $updateResponse->assertJson(['success' => true]);
+        $this->assertEquals(30000, $product->fresh()->price);
+
+        // 5. AJAX Toggle Status
+        $toggleResponse = $this->actingAs($admin)->patchJson(route('admin.products.toggle_status', $product->id));
+        $toggleResponse->assertStatus(200);
+        $toggleResponse->assertJson(['success' => true, 'is_active' => false]);
+        $this->assertFalse($product->fresh()->is_active);
+
+        // 6. AJAX Delete Product
+        $deleteResponse = $this->actingAs($admin)->deleteJson(route('admin.products.destroy', $product->id));
+        $deleteResponse->assertStatus(200);
+        $deleteResponse->assertJson(['success' => true]);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
+    }
+
+    public function test_ajax_order_management_operations(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+        $buyer = User::factory()->create(['name' => 'Ahmad Fauzi', 'is_active' => true]);
+        $this->createMember($buyer, ['membership_status' => 'terverifikasi']);
+
+        $product = Product::first();
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $buyer->id,
+            'total_amount' => 100000,
+            'grand_total' => 100000,
+            'recipient_name' => 'Ahmad Fauzi',
+            'recipient_phone' => '081234567890',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PAYMENT_UPLOADED,
+        ]);
+
+        // 1. AJAX Filter Orders
+        $filterResponse = $this->actingAs($admin)->getJson(route('admin.product_orders.index'));
+        $filterResponse->assertStatus(200);
+        $filterResponse->assertJsonStructure(['success', 'html', 'stats', 'total']);
+
+        // 2. AJAX Approve Payment
+        $approveResponse = $this->actingAs($admin)->postJson(route('admin.product_orders.verify_payment', $order->id), [
+            'action' => 'approve',
+        ]);
+        $approveResponse->assertStatus(200);
+        $approveResponse->assertJson(['success' => true, 'action' => 'approve']);
+        $this->assertEquals(ProductOrder::STATUS_PAID, $order->fresh()->status);
+
+        // 3. AJAX Update Shipping
+        $shippingResponse = $this->actingAs($admin)->postJson(route('admin.product_orders.update_shipping', $order->id), [
+            'courier_name' => 'J&T Express',
+            'tracking_number' => 'JT9988776655',
+            'shipping_notes' => 'Dikirim hari ini.',
+        ]);
+        $shippingResponse->assertStatus(200);
+        $shippingResponse->assertJson(['success' => true]);
+        $this->assertEquals(ProductOrder::STATUS_SHIPPED, $order->fresh()->status);
+        $this->assertEquals('JT9988776655', $order->fresh()->tracking_number);
+
+        // 4. AJAX Mark Received
+        $receivedResponse = $this->actingAs($admin)->postJson(route('admin.product_orders.mark_received', $order->id), [
+            'receipt_notes' => 'Diserahterimakan langsung.',
+        ]);
+        $receivedResponse->assertStatus(200);
+        $receivedResponse->assertJson(['success' => true]);
+        $this->assertEquals(ProductOrder::STATUS_RECEIVED, $order->fresh()->status);
+    }
+
+    public function test_ajax_member_order_operations(): void
+    {
+        Storage::fake('public');
+        $buyer = User::factory()->create(['name' => 'Dewi Sartika', 'is_active' => true]);
+        $this->createMember($buyer, ['membership_status' => 'terverifikasi']);
+
+        $product = Product::first();
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $buyer->id,
+            'total_amount' => 120000,
+            'grand_total' => 120000,
+            'recipient_name' => 'Dewi Sartika',
+            'recipient_phone' => '081233445566',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PENDING_PAYMENT,
+        ]);
+
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => $product->price,
+            'quantity' => 1,
+            'subtotal' => $product->price,
+        ]);
+
+        // 1. AJAX Upload Payment Proof
+        $file = UploadedFile::fake()->image('struk_transfer.png');
+        $uploadResponse = $this->actingAs($buyer)->postJson(route('member.orders.upload_payment', $order->id), [
+            'payment_proof' => $file,
+        ]);
+        $uploadResponse->assertStatus(200);
+        $uploadResponse->assertJson(['success' => true]);
+        $this->assertEquals(ProductOrder::STATUS_PAYMENT_UPLOADED, $order->fresh()->status);
+
+        // Simulate admin ship
+        $order->update(['status' => ProductOrder::STATUS_SHIPPED]);
+
+        // 2. AJAX Confirm Received
+        $confirmResponse = $this->actingAs($buyer)->postJson(route('member.orders.confirm_received', $order->id), [
+            'receipt_notes' => 'Barang sudah sampai dengan selamat.',
+        ]);
+        $confirmResponse->assertStatus(200);
+        $confirmResponse->assertJson(['success' => true]);
+        $this->assertEquals(ProductOrder::STATUS_RECEIVED, $order->fresh()->status);
+
+        // 3. AJAX Submit Review
+        $reviewResponse = $this->actingAs($buyer)->postJson(route('member.orders.submit_review', $order->id), [
+            'product_id' => $product->id,
+            'rating' => 5,
+            'comment' => 'Kualitas produk sangat memuaskan!',
+        ]);
+        $reviewResponse->assertStatus(200);
+        $reviewResponse->assertJson(['success' => true, 'rating' => 5]);
+    }
 }

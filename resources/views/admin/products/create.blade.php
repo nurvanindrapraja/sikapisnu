@@ -74,7 +74,15 @@
                     <div class="col-12">
                         <label for="image" class="form-label fw-bold small text-dark">Foto Produk Merchandise</label>
                         <input type="file" id="image" name="image" class="form-control rounded-3" accept="image/*">
-                        <small class="text-muted" style="font-size: 0.75rem;">Format: JPG, PNG, WEBP. Maksimal 5MB. Gunakan gambar dengan rasio 4:3 atau persegi untuk hasil optimal.</small>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Format: JPG, PNG, WEBP. Maksimal 5MB. Gunakan gambar dengan rasio 4:3 atau persegi untuk hasil optimal.</small>
+
+                        <!-- Preview Foto Live -->
+                        <div id="imagePreviewContainer" class="mt-2 d-none">
+                            <small class="text-muted d-block mb-1">Preview Foto Produk:</small>
+                            <div class="position-relative d-inline-block border rounded-3 p-1 bg-light">
+                                <img id="imagePreview" src="" alt="Preview" class="rounded-2" style="max-height: 140px; object-fit: contain;">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-12">
@@ -92,7 +100,8 @@
 
                 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary rounded-pill px-4">Batal</a>
-                    <button type="submit" class="btn btn-isnu-primary rounded-pill px-4 fw-bold">
+                    <button type="submit" id="btnSubmitProduct" class="btn btn-isnu-primary rounded-pill px-4 fw-bold">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
                         <i class="bi bi-save me-1"></i> Simpan Produk
                     </button>
                 </div>
@@ -100,4 +109,39 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputImage = document.getElementById('image');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    const previewImg = document.getElementById('imagePreview');
+    const btnSubmit = document.getElementById('btnSubmitProduct');
+
+    if (inputImage) {
+        inputImage.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewContainer.classList.remove('d-none');
+                };
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                previewContainer.classList.add('d-none');
+            }
+        });
+    }
+
+    const form = inputImage ? inputImage.closest('form') : null;
+    if (form) {
+        form.addEventListener('submit', function() {
+            btnSubmit.disabled = true;
+            const spinner = btnSubmit.querySelector('.spinner-border');
+            if (spinner) spinner.classList.remove('d-none');
+        });
+    }
+});
+</script>
 @endsection

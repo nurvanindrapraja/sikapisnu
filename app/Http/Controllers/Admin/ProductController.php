@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -26,7 +27,7 @@ class ProductController extends Controller
     /**
      * Menampilkan daftar produk merchandise ISNU.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|JsonResponse
     {
         $this->checkAccess();
 
@@ -65,6 +66,14 @@ class ProductController extends Controller
             'lainnya' => 'Lainnya',
         ];
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'html' => view('admin.products.partials.table', compact('products'))->render(),
+                'total' => $products->total(),
+            ]);
+        }
+
         return view('admin.products.index', compact('products', 'categories'));
     }
 
@@ -91,7 +100,7 @@ class ProductController extends Controller
     /**
      * Menyimpan produk baru.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -132,17 +141,42 @@ class ProductController extends Controller
             "Menambahkan produk baru '{$product->name}' dengan harga Rp ".number_format($product->price, 0, ',', '.')
         );
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Produk merchandise berhasil ditambahkan ke katalog.',
+                'product' => $product,
+            ]);
+        }
+
         return redirect()->route('admin.products.index')->with('success', 'Produk merchandise berhasil ditambahkan ke katalog.');
     }
 
     /**
-     * Menampilkan form edit produk.
+     * Menampilkan form edit produk (atau return JSON untuk modal AJAX).
      */
-    public function edit(int $id): View
+    public function edit(int $id): View|JsonResponse
     {
         $this->checkAccess();
 
         $product = Product::findOrFail($id);
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category,
+                    'price' => (float) $product->price,
+                    'stock' => $product->stock,
+                    'weight_grams' => $product->weight_grams,
+                    'image_url' => $product->image_url,
+                    'description' => $product->description,
+                    'is_active' => (bool) $product->is_active,
+                ],
+            ]);
+        }
 
         $categories = [
             'seragam' => 'Seragam Resmi',
@@ -160,7 +194,7 @@ class ProductController extends Controller
     /**
      * Memperbarui data produk.
      */
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -202,13 +236,21 @@ class ProductController extends Controller
             "Memperbarui data produk '{$product->name}'."
         );
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data produk berhasil diperbarui.',
+                'product' => $product,
+            ]);
+        }
+
         return redirect()->route('admin.products.index')->with('success', 'Data produk berhasil diperbarui.');
     }
 
     /**
      * Menghapus produk (soft delete).
      */
-    public function destroy(int $id): RedirectResponse
+    public function destroy(int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -222,13 +264,20 @@ class ProductController extends Controller
             "Menghapus produk '{$name}' dari katalog aktif."
         );
 
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Produk '{$name}' berhasil dihapus dari katalog.",
+            ]);
+        }
+
         return redirect()->route('admin.products.index')->with('success', "Produk '{$name}' berhasil dihapus.");
     }
 
     /**
      * Toggle status aktif produk.
      */
-    public function toggleStatus(int $id): RedirectResponse
+    public function toggleStatus(int $id): RedirectResponse|JsonResponse
     {
         $this->checkAccess();
 
@@ -237,6 +286,16 @@ class ProductController extends Controller
         $product->save();
 
         $statusStr = $product->is_active ? 'diaktifkan' : 'dinonaktifkan';
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Status produk '{$product->name}' berhasil {$statusStr}.",
+                'is_active' => (bool) $product->is_active,
+                'badge_class' => $product->is_active ? 'btn-success' : 'btn-secondary',
+                'label' => $product->is_active ? 'Aktif' : 'Nonaktif',
+            ]);
+        }
 
         return back()->with('success', "Status produk '{$product->name}' berhasil {$statusStr}.");
     }

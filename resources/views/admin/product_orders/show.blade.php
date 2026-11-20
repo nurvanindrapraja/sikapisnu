@@ -14,13 +14,15 @@
                 <small class="text-muted">Dibuat pada: {{ $order->created_at->translatedFormat('d F Y, H:i') }} WIB</small>
             </div>
             <div>
-                <span class="badge {{ $order->status_badge_class }} rounded-pill px-3 py-2 fw-bold fs-6">
+                <span id="orderStatusBadge" class="badge {{ $order->status_badge_class }} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm">
                     {{ $order->status_label }}
                 </span>
             </div>
         </div>
     </div>
 
+    <!-- Alert Messages (Toast Container & Regular Alert) -->
+    <div id="ajaxAlertContainer"></div>
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
@@ -34,6 +36,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+
+    <!-- Top Loading Bar -->
+    <div id="actionLoadingBar" class="progress rounded-pill mb-3" style="height: 4px; display: none;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 100%"></div>
+    </div>
 
     <div class="row g-4">
         <!-- Left Column: Items & Shipping Management -->
@@ -136,19 +143,21 @@
             </div>
 
             <!-- Shipping Dispatch Card (Handled by Bendahara) -->
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-4" id="shippingDispatchCard">
                 <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold text-dark mb-0"><i class="bi bi-truck me-2 text-primary"></i> Pengelolaan Pengiriman (Bendahara)</h5>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1">Tugas Bendahara NU</span>
                 </div>
                 <div class="card-body p-4">
-                    @if($order->isPendingPayment() || $order->isPaymentUploaded())
+                    <div id="shippingPendingNotice" class="{{ ($order->isPendingPayment() || $order->isPaymentUploaded()) ? '' : 'd-none' }}">
                         <div class="alert alert-light border rounded-3 p-3 text-center text-muted mb-0">
                             <i class="bi bi-info-circle me-1"></i> Form pengiriman dapat diisi setelah pembayaran diverifikasi (Lunas).
                         </div>
-                    @else
-                        <!-- Form Update Pengiriman -->
-                        <form action="{{ route('admin.product_orders.update_shipping', $order->id) }}" method="POST">
+                    </div>
+
+                    <div id="shippingFormContainer" class="{{ ($order->isPendingPayment() || $order->isPaymentUploaded()) ? 'd-none' : '' }}">
+                        <!-- Form Update Pengiriman via AJAX -->
+                        <form id="formUpdateShipping" action="{{ route('admin.product_orders.update_shipping', $order->id) }}" method="POST">
                             @csrf
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
@@ -166,28 +175,27 @@
                             </div>
 
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2 border-top">
-                                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                <button type="submit" id="btnSubmitShipping" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
                                     <i class="bi bi-send-check me-1"></i> Simpan Info Pengiriman & Update Status (Dikirim)
                                 </button>
 
-                                @if($order->status === \App\Models\ProductOrder::STATUS_SHIPPED)
-                                    <button type="button" class="btn btn-outline-success rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalDirectReceipt">
-                                        <i class="bi bi-check-all me-1"></i> Serah Terima Langsung di Kantor
-                                    </button>
-                                @endif
+                                <button type="button" id="btnOpenDirectReceiptModal" class="btn btn-outline-success rounded-pill px-3 fw-semibold {{ $order->status === \App\Models\ProductOrder::STATUS_SHIPPED ? '' : 'd-none' }}" data-bs-toggle="modal" data-bs-target="#modalDirectReceipt">
+                                    <i class="bi bi-check-all me-1"></i> Serah Terima Langsung di Kantor
+                                </button>
                             </div>
                         </form>
-                    @endif
+                    </div>
 
-                    @if($order->shipped_at)
-                        <div class="mt-3 p-3 bg-light rounded-3 small">
-                            <i class="bi bi-check-circle-fill text-success me-1"></i>
-                            Barang dikirim pada: <strong>{{ $order->shipped_at->translatedFormat('d F Y, H:i') }} WIB</strong>
-                            @if($order->shippedByUser)
-                                oleh Pengurus <strong>{{ $order->shippedByUser->name }}</strong>
-                            @endif
-                        </div>
-                    @endif
+                    <div id="shippingSuccessInfo" class="mt-3 p-3 bg-light rounded-3 small {{ $order->shipped_at ? '' : 'd-none' }}">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                        Barang dikirim pada: <strong id="shippingDateText">{{ $order->shipped_at?->translatedFormat('d F Y, H:i') }} WIB</strong>
+                        @if($order->shippedByUser)
+                            oleh Pengurus <strong id="shippingUserText">{{ $order->shippedByUser->name }}</strong>
+                        @else
+                            <span id="shippingUserSpan"></span>
+                        @endif
+                    </div>
                 </div>
             </div>
 
@@ -234,46 +242,46 @@
                     @if($order->payment_proof_url)
                         <div class="mb-3 text-center">
                             <small class="text-muted d-block mb-2">Foto Bukti Transfer Diunggah Pembeli:</small>
-                            <a href="{{ $order->payment_proof_url }}" target="_blank" class="d-block border rounded-3 p-2 bg-light">
-                                <img src="{{ $order->payment_proof_url }}" alt="Bukti Transfer" class="img-fluid rounded-2" style="max-height: 280px; object-fit: contain;">
-                                <small class="d-block mt-2 text-primary fw-semibold"><i class="bi bi-box-arrow-up-right me-1"></i> Buka Foto Ukuran Penuh</small>
-                            </a>
-                            <small class="text-muted d-block mt-1">Diunggah: {{ $order->payment_uploaded_at?->translatedFormat('d M Y, H:i') }} WIB</small>
+                            <!-- Click opens modal preview -->
+                            <button type="button" class="btn p-0 border-0 d-block w-100 text-center" data-bs-toggle="modal" data-bs-target="#modalViewProof">
+                                <div class="border rounded-3 p-2 bg-light shadow-sm">
+                                    <img src="{{ $order->payment_proof_url }}" alt="Bukti Transfer" class="img-fluid rounded-2" style="max-height: 280px; object-fit: contain;">
+                                    <small class="d-block mt-2 text-primary fw-semibold"><i class="bi bi-arrows-fullscreen me-1"></i> Klik untuk Perbesar Bukti Transfer (Modal)</small>
+                                </div>
+                            </button>
+                            <small class="text-muted d-block mt-2">Diunggah: {{ $order->payment_uploaded_at?->translatedFormat('d M Y, H:i') }} WIB</small>
                         </div>
 
                         <!-- Verification Actions for Bendahara -->
-                        @if($order->isPaymentUploaded() || $order->isPendingPayment())
+                        <div id="paymentActionSection" class="{{ ($order->isPaymentUploaded() || $order->isPendingPayment()) ? '' : 'd-none' }}">
                             <div class="p-3 rounded-4 bg-light border mt-3">
                                 <strong class="d-block text-dark mb-2">Aksi Verifikasi Kas Bendahara:</strong>
 
                                 <div class="d-grid gap-2">
-                                    <form action="{{ route('admin.product_orders.verify_payment', $order->id) }}" method="POST">
-                                        @csrf
-                                        <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="btn btn-success w-100 rounded-pill py-2 fw-bold" onclick="return confirm('Apakah Anda sudah memeriksa mutasi rekening dan menyetujui bukti pembayaran ini?')">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Setujui Pembayaran (Lunas)
-                                        </button>
-                                    </form>
+                                    <button type="button" class="btn btn-success w-100 rounded-pill py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#modalConfirmApprovePayment">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Setujui Pembayaran (Lunas)
+                                    </button>
 
                                     <button type="button" class="btn btn-outline-danger w-100 rounded-pill py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#modalRejectPayment">
                                         <i class="bi bi-x-circle me-1"></i> Tolak Bukti Transfer
                                     </button>
                                 </div>
                             </div>
-                        @elseif($order->isPaid() || $order->isShipped() || $order->isReceived())
-                            <div class="alert alert-success rounded-4 border-0 p-3 mb-0">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <i class="bi bi-check-circle-fill fs-5"></i>
-                                    <strong>Pembayaran Terverifikasi Lunas</strong>
-                                </div>
-                                <small class="d-block text-success-emphasis">
-                                    Diverifikasi pada: {{ $order->payment_verified_at?->translatedFormat('d M Y, H:i') }} WIB
-                                    @if($order->verifier)
-                                        oleh <strong>{{ $order->verifier->name }}</strong>
-                                    @endif
-                                </small>
+                        </div>
+
+                        <!-- Verified Status Display -->
+                        <div id="paymentVerifiedBadge" class="alert alert-success rounded-4 border-0 p-3 mb-0 {{ ($order->isPaid() || $order->isShipped() || $order->isReceived()) ? '' : 'd-none' }}">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-check-circle-fill fs-5"></i>
+                                <strong>Pembayaran Terverifikasi Lunas</strong>
                             </div>
-                        @endif
+                            <small class="d-block text-success-emphasis" id="verifiedDateText">
+                                Diverifikasi pada: {{ $order->payment_verified_at?->translatedFormat('d M Y, H:i') }} WIB
+                                @if($order->verifier)
+                                    oleh <strong>{{ $order->verifier->name }}</strong>
+                                @endif
+                            </small>
+                        </div>
                     @else
                         <div class="alert alert-warning rounded-4 border-0 p-3 text-center mb-0">
                             <i class="bi bi-hourglass-top display-6 text-warning mb-2 d-block"></i>
@@ -290,35 +298,128 @@
                     <h5 class="fw-bold text-dark mb-0"><i class="bi bi-box2-heart me-2 text-success"></i> Status Penerimaan Barang</h5>
                 </div>
                 <div class="card-body p-4">
-                    @if($order->status === \App\Models\ProductOrder::STATUS_RECEIVED)
+                    <div id="receivedStatusCard" class="{{ $order->status === \App\Models\ProductOrder::STATUS_RECEIVED ? '' : 'd-none' }}">
                         <div class="p-3 rounded-4 bg-success-subtle border border-success">
                             <div class="d-flex align-items-center gap-2 text-success mb-2">
                                 <i class="bi bi-check2-circle fs-4"></i>
                                 <strong class="fs-6">Barang Sudah Berhasil Diterima (Selesai)</strong>
                             </div>
                             <small class="text-muted d-block">Tanggal Diterima:</small>
-                            <span class="fw-bold text-dark d-block mb-2">{{ $order->received_at?->translatedFormat('d F Y, H:i') }} WIB</span>
+                            <span class="fw-bold text-dark d-block mb-2" id="receivedDateText">{{ $order->received_at?->translatedFormat('d F Y, H:i') }} WIB</span>
 
-                            @if($order->receipt_notes)
+                            <div id="receiptNotesSection" class="{{ $order->receipt_notes ? '' : 'd-none' }}">
                                 <small class="text-muted d-block">Catatan Penerima:</small>
-                                <p class="small text-dark fst-italic mb-2">"{{ $order->receipt_notes }}"</p>
-                            @endif
+                                <p class="small text-dark fst-italic mb-2" id="receiptNotesText">"{{ $order->receipt_notes }}"</p>
+                            </div>
 
                             @if($order->receipt_proof_url)
                                 <small class="text-muted d-block mb-1">Foto Bukti Penerimaan Barang:</small>
-                                <a href="{{ $order->receipt_proof_url }}" target="_blank" class="d-inline-block border rounded-3 p-1 bg-white">
-                                    <img src="{{ $order->receipt_proof_url }}" alt="Foto Diterima" class="rounded-2" style="max-height: 140px; object-fit: cover;">
-                                </a>
+                                <button type="button" class="btn p-0 border-0" data-bs-toggle="modal" data-bs-target="#modalViewReceiptProof">
+                                    <img src="{{ $order->receipt_proof_url }}" alt="Foto Diterima" class="rounded-2 border p-1 bg-white shadow-sm" style="max-height: 140px; object-fit: cover;">
+                                </button>
                             @endif
                         </div>
-                    @else
+                    </div>
+
+                    <div id="waitingReceiptNotice" class="{{ $order->status === \App\Models\ProductOrder::STATUS_RECEIVED ? 'd-none' : '' }}">
                         <div class="alert alert-light border rounded-3 p-3 text-center text-muted mb-0">
                             <i class="bi bi-clock-history me-1"></i>
                             Menunggu konfirmasi penerimaan barang dari pihak pembeli/penerima.
                         </div>
-                    @endif
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Popup Lihat Bukti Transfer -->
+@if($order->payment_proof_url)
+<div class="modal fade" id="modalViewProof" tabindex="-1" aria-labelledby="modalViewProofLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="modalViewProofLabel">
+                        <i class="bi bi-image text-success me-2"></i> Bukti Transfer Pembayaran
+                    </h5>
+                    <small class="text-muted">No. Pesanan: {{ $order->order_number }} • Total: {{ $order->formatted_grand_total }}</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="p-2 border rounded-4 bg-light mb-3">
+                    <img src="{{ $order->payment_proof_url }}" alt="Bukti Transfer" class="img-fluid rounded-3 shadow-sm" style="max-height: 500px; object-fit: contain;">
+                </div>
+                <div class="d-flex justify-content-between align-items-center small text-muted px-2">
+                    <span>Diunggah pada: <strong>{{ $order->payment_uploaded_at?->translatedFormat('d F Y, H:i') }} WIB</strong></span>
+                    <a href="{{ $order->payment_proof_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Buka Ukuran Penuh
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2 px-4">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Modal Popup Lihat Bukti Penerimaan Barang -->
+@if($order->receipt_proof_url)
+<div class="modal fade" id="modalViewReceiptProof" tabindex="-1" aria-labelledby="modalViewReceiptProofLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <h5 class="modal-title fw-bold text-dark" id="modalViewReceiptProofLabel">
+                    <i class="bi bi-box2-heart text-success me-2"></i> Foto Bukti Penerimaan Barang
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="p-2 border rounded-4 bg-light mb-3">
+                    <img src="{{ $order->receipt_proof_url }}" alt="Bukti Penerimaan" class="img-fluid rounded-3 shadow-sm" style="max-height: 500px; object-fit: contain;">
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2 px-4">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Modal Konfirmasi Setujui Pembayaran (Menggantikan confirm()) -->
+<div class="modal fade" id="modalConfirmApprovePayment" tabindex="-1" aria-labelledby="modalConfirmApproveLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4">
+                <h5 class="modal-title fw-bold text-success" id="modalConfirmApproveLabel">
+                    <i class="bi bi-check-circle-fill me-2"></i> Konfirmasi Persetujuan Pembayaran
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formApprovePayment" action="{{ route('admin.product_orders.verify_payment', $order->id) }}" method="POST">
+                @csrf
+                <input type="hidden" name="action" value="approve">
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded-3 border mb-3 text-center">
+                        <small class="text-muted d-block">Nominal Terverifikasi:</small>
+                        <h4 class="fw-bold text-success mb-0">{{ $order->formatted_grand_total }}</h4>
+                    </div>
+                    <p class="small text-secondary mb-0">
+                        Apakah Anda sudah memeriksa mutasi rekening kas PC ISNU dan memastikan dana pembayaran pesanan <strong>{{ $order->order_number }}</strong> telah masuk dengan benar? Status pesanan akan diubah menjadi <strong>Lunas (Siap Kirim)</strong>.
+                    </p>
+                </div>
+                <div class="modal-footer border-top py-3 px-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" id="btnSubmitApprove" class="btn btn-success rounded-pill px-4 fw-bold">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        <i class="bi bi-check-circle me-1"></i> Ya, Setujui Pembayaran
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -327,11 +428,11 @@
 <div class="modal fade" id="modalRejectPayment" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-bottom">
+            <div class="modal-header border-bottom py-3 px-4">
                 <h5 class="modal-title fw-bold text-danger"><i class="bi bi-x-circle me-1"></i> Tolak Bukti Pembayaran</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.product_orders.verify_payment', $order->id) }}" method="POST">
+            <form id="formRejectPayment" action="{{ route('admin.product_orders.verify_payment', $order->id) }}" method="POST">
                 @csrf
                 <input type="hidden" name="action" value="reject">
                 <div class="modal-body p-4">
@@ -343,9 +444,12 @@
                         <textarea id="rejection_reason" name="rejection_reason" class="form-control rounded-3" rows="3" placeholder="Contoh: Foto struk transfer blur / nominal tidak sesuai total tagihan..." required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer border-top">
+                <div class="modal-footer border-top py-3 px-4">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">Tolak Pembayaran</button>
+                    <button type="submit" id="btnSubmitReject" class="btn btn-danger rounded-pill px-4 fw-bold">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        Tolak Pembayaran
+                    </button>
                 </div>
             </form>
         </div>
@@ -356,11 +460,11 @@
 <div class="modal fade" id="modalDirectReceipt" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-bottom">
+            <div class="modal-header border-bottom py-3 px-4">
                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-check-all text-success me-1"></i> Selesaikan Serah Terima di Kantor</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.product_orders.mark_received', $order->id) }}" method="POST">
+            <form id="formDirectReceipt" action="{{ route('admin.product_orders.mark_received', $order->id) }}" method="POST">
                 @csrf
                 <div class="modal-body p-4">
                     <p class="small text-secondary mb-3">
@@ -371,12 +475,242 @@
                         <input type="text" id="receipt_notes_admin" name="receipt_notes" class="form-control rounded-3" value="Diserahterimakan langsung kepada pembeli di Sekretariat PC ISNU Surabaya.">
                     </div>
                 </div>
-                <div class="modal-footer border-top">
+                <div class="modal-footer border-top py-3 px-4">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">Konfirmasi Selesai</button>
+                    <button type="submit" id="btnSubmitDirectReceipt" class="btn btn-success rounded-pill px-4 fw-bold">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        Konfirmasi Selesai
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const alertContainer = document.getElementById('ajaxAlertContainer');
+    const loadingBar = document.getElementById('actionLoadingBar');
+    const orderStatusBadge = document.getElementById('orderStatusBadge');
+
+    function showNotification(message, type = 'success') {
+        const icon = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show rounded-4 border-0 shadow-sm mb-4 toast-slide-in" role="alert">
+                <i class="bi ${icon} me-2"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        alertContainer.innerHTML = alertHtml;
+        setTimeout(() => {
+            const el = alertContainer.querySelector('.alert');
+            if (el) bootstrap.Alert.getOrCreateInstance(el).close();
+        }, 5000);
+    }
+
+    function setProgressBar(show) {
+        loadingBar.style.display = show ? 'block' : 'none';
+    }
+
+    // 1. AJAX: Approve Payment Form
+    const formApprove = document.getElementById('formApprovePayment');
+    const btnSubmitApprove = document.getElementById('btnSubmitApprove');
+    if (formApprove) {
+        formApprove.addEventListener('submit', function(e) {
+            e.preventDefault();
+            btnSubmitApprove.disabled = true;
+            const spinner = btnSubmitApprove.querySelector('.spinner-border');
+            spinner.classList.remove('d-none');
+            setProgressBar(true);
+
+            fetch(formApprove.action, {
+                method: 'POST',
+                body: new FormData(formApprove),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('modalConfirmApprovePayment')).hide();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Update Badge
+                    orderStatusBadge.className = `badge ${data.order.status_badge_class} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm`;
+                    orderStatusBadge.textContent = data.order.status_label;
+
+                    // Switch Payment Card
+                    document.getElementById('paymentActionSection').classList.add('d-none');
+                    const verifiedBadge = document.getElementById('paymentVerifiedBadge');
+                    verifiedBadge.classList.remove('d-none');
+                    document.getElementById('verifiedDateText').innerHTML = `Diverifikasi pada: ${data.order.payment_verified_at} oleh <strong>${data.order.verifier_name}</strong>`;
+
+                    // Enable shipping dispatch form
+                    document.getElementById('shippingPendingNotice').classList.add('d-none');
+                    document.getElementById('shippingFormContainer').classList.remove('d-none');
+                } else {
+                    showNotification(data.message || 'Gagal memverifikasi pembayaran.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showNotification('Terjadi kesalahan koneksi saat memverifikasi pembayaran.', 'danger');
+            })
+            .finally(() => {
+                btnSubmitApprove.disabled = false;
+                spinner.classList.add('d-none');
+                setProgressBar(false);
+            });
+        });
+    }
+
+    // 2. AJAX: Reject Payment Form
+    const formReject = document.getElementById('formRejectPayment');
+    const btnSubmitReject = document.getElementById('btnSubmitReject');
+    if (formReject) {
+        formReject.addEventListener('submit', function(e) {
+            e.preventDefault();
+            btnSubmitReject.disabled = true;
+            const spinner = btnSubmitReject.querySelector('.spinner-border');
+            spinner.classList.remove('d-none');
+            setProgressBar(true);
+
+            fetch(formReject.action, {
+                method: 'POST',
+                body: new FormData(formReject),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('modalRejectPayment')).hide();
+                if (data.success) {
+                    showNotification(data.message, 'warning');
+                    orderStatusBadge.className = `badge ${data.order.status_badge_class} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm`;
+                    orderStatusBadge.textContent = data.order.status_label;
+                } else {
+                    showNotification(data.message || 'Gagal menolak bukti pembayaran.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showNotification('Terjadi kesalahan jaringan.', 'danger');
+            })
+            .finally(() => {
+                btnSubmitReject.disabled = false;
+                spinner.classList.add('d-none');
+                setProgressBar(false);
+            });
+        });
+    }
+
+    // 3. AJAX: Update Shipping Form
+    const formShipping = document.getElementById('formUpdateShipping');
+    const btnSubmitShipping = document.getElementById('btnSubmitShipping');
+    if (formShipping) {
+        formShipping.addEventListener('submit', function(e) {
+            e.preventDefault();
+            btnSubmitShipping.disabled = true;
+            const spinner = btnSubmitShipping.querySelector('.spinner-border');
+            spinner.classList.remove('d-none');
+            setProgressBar(true);
+
+            fetch(formShipping.action, {
+                method: 'POST',
+                body: new FormData(formShipping),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    orderStatusBadge.className = `badge ${data.order.status_badge_class} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm`;
+                    orderStatusBadge.textContent = data.order.status_label;
+
+                    // Reveal direct receipt button
+                    document.getElementById('btnOpenDirectReceiptModal').classList.remove('d-none');
+
+                    // Update info text
+                    const successInfo = document.getElementById('shippingSuccessInfo');
+                    successInfo.classList.remove('d-none');
+                    document.getElementById('shippingDateText').textContent = data.order.shipped_at;
+                    document.getElementById('shippingUserText')?.remove();
+                    document.getElementById('shippingUserSpan').innerHTML = ` oleh Pengurus <strong>${data.order.shipped_by_name}</strong>`;
+                } else {
+                    showNotification(data.message || 'Gagal memperbarui pengiriman.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showNotification('Terjadi kesalahan saat menyimpan pengiriman.', 'danger');
+            })
+            .finally(() => {
+                btnSubmitShipping.disabled = false;
+                spinner.classList.add('d-none');
+                setProgressBar(false);
+            });
+        });
+    }
+
+    // 4. AJAX: Direct Receipt Form
+    const formDirect = document.getElementById('formDirectReceipt');
+    const btnSubmitDirect = document.getElementById('btnSubmitDirectReceipt');
+    if (formDirect) {
+        formDirect.addEventListener('submit', function(e) {
+            e.preventDefault();
+            btnSubmitDirect.disabled = true;
+            const spinner = btnSubmitDirect.querySelector('.spinner-border');
+            spinner.classList.remove('d-none');
+            setProgressBar(true);
+
+            fetch(formDirect.action, {
+                method: 'POST',
+                body: new FormData(formDirect),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('modalDirectReceipt')).hide();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    orderStatusBadge.className = `badge ${data.order.status_badge_class} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm`;
+                    orderStatusBadge.textContent = data.order.status_label;
+
+                    // Update Received card
+                    document.getElementById('waitingReceiptNotice').classList.add('d-none');
+                    const receivedCard = document.getElementById('receivedStatusCard');
+                    receivedCard.classList.remove('d-none');
+                    document.getElementById('receivedDateText').textContent = data.order.received_at;
+                    if (data.order.receipt_notes) {
+                        document.getElementById('receiptNotesSection').classList.remove('d-none');
+                        document.getElementById('receiptNotesText').textContent = `"${data.order.receipt_notes}"`;
+                    }
+                } else {
+                    showNotification(data.message || 'Gagal menyelesaikan pesanan.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showNotification('Terjadi kesalahan saat menyelesaikan pesanan.', 'danger');
+            })
+            .finally(() => {
+                btnSubmitDirect.disabled = false;
+                spinner.classList.add('d-none');
+                setProgressBar(false);
+            });
+        });
+    }
+});
+</script>
 @endsection
