@@ -25,10 +25,21 @@
                 <i class="bi bi-arrow-left me-1"></i> Kembali
             </a>
             @if($letter->status === 'selesai')
+                @php
+                    $showAttachmentsCount = $letter->attachments ? $letter->attachments->count() : 0;
+                    $showPdfSlug = \Illuminate\Support\Str::slug($letter->letter_number, '_');
+                @endphp
                 <button type="button" 
                         class="btn btn-outline-success rounded-pill px-3 d-inline-flex align-items-center"
                         :disabled="isDownloadingPdf"
-                        @click="downloadPdfWithSpinner('{{ route('admin.letters.download-pdf', $letter->id) }}', 'Surat_{{ \Illuminate\Support\Str::slug($letter->letter_number, '_') }}.pdf', (val) => isDownloadingPdf = val)">
+                        @click="handleLetterPdfDownload({
+                            baseUrl: '{{ route('admin.letters.download-pdf', $letter->id) }}',
+                            mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $letter->id, 'include_attachments' => 1]) }}',
+                            letterNumber: '{{ addslashes($letter->formatted_letter_number) }}',
+                            baseFilename: 'Surat_{{ $showPdfSlug }}.pdf',
+                            mergedFilename: 'Surat_{{ $showPdfSlug }}_dan_Lampiran.pdf',
+                            attachmentsCount: {{ $showAttachmentsCount }}
+                        }, (val) => isDownloadingPdf = val)">
                     <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isDownloadingPdf" x-cloak></span>
                     <i class="bi bi-file-earmark-pdf me-1" x-show="!isDownloadingPdf"></i>
                     <span x-text="isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF'">Unduh PDF</span>
@@ -552,14 +563,21 @@
                             <button type="button" 
                                     class="btn btn-outline-success rounded-3 text-start d-flex align-items-center justify-content-between p-3 w-100"
                                     :disabled="isDownloadingPdf"
-                                    @click="downloadPdfWithSpinner('{{ route('admin.letters.download-pdf', $letter->id) }}', 'Surat_{{ \Illuminate\Support\Str::slug($letter->letter_number, '_') }}.pdf', (val) => isDownloadingPdf = val)">
+                                    @click="handleLetterPdfDownload({
+                                        baseUrl: '{{ route('admin.letters.download-pdf', $letter->id) }}',
+                                        mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $letter->id, 'include_attachments' => 1]) }}',
+                                        letterNumber: '{{ addslashes($letter->formatted_letter_number) }}',
+                                        baseFilename: 'Surat_{{ $showPdfSlug }}.pdf',
+                                        mergedFilename: 'Surat_{{ $showPdfSlug }}_dan_Lampiran.pdf',
+                                        attachmentsCount: {{ $showAttachmentsCount }}
+                                    }, (val) => isDownloadingPdf = val)">
                                 <div>
                                     <div class="fw-bold d-flex align-items-center gap-2">
                                         <span class="spinner-border spinner-border-sm text-success" role="status" aria-hidden="true" x-show="isDownloadingPdf" x-cloak></span>
                                         <i class="bi bi-file-earmark-pdf" x-show="!isDownloadingPdf"></i>
                                         <span x-text="isDownloadingPdf ? 'Sedang Mengunduh PDF...' : 'File Surat Resmi (.PDF)'">File Surat Resmi (.PDF)</span>
                                     </div>
-                                    <div class="small text-muted" x-text="isDownloadingPdf ? 'Menyiapkan berkas dokumen...' : 'Format standar siap edar & print'">Format standar siap edar & print</div>
+                                    <div class="small text-muted" x-text="isDownloadingPdf ? 'Menyiapkan berkas dokumen...' : '{{ $showAttachmentsCount > 0 ? 'Pilihan: surat saja atau gabungan lampiran' : 'Format standar siap edar & print' }}'">{{ $showAttachmentsCount > 0 ? 'Pilihan: surat saja atau gabungan lampiran' : 'Format standar siap edar & print' }}</div>
                                 </div>
                                 <div>
                                     <span class="spinner-border spinner-border-sm text-success" role="status" aria-hidden="true" x-show="isDownloadingPdf" x-cloak></span>

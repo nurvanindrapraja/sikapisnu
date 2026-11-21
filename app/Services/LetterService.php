@@ -628,4 +628,52 @@ class LetterService
 
         return $relativePath;
     }
+
+    /**
+     * Generate file PDF gabungan yang berisi surat resmi dan seluruh berkas lampiran PDF-nya.
+     *
+     * @return array{path: string, is_temporary: bool, has_merged_attachments: bool}
+     */
+    public function generateMergedPdf(Letter $letter, ?PdfMergerService $pdfMerger = null): array
+    {
+        $this->generatePdf($letter);
+        $letterPdfPath = Storage::disk('public')->path($letter->pdf_path);
+
+        $attachments = $letter->relationLoaded('attachments')
+            ? $letter->attachments
+            : $letter->attachments()->orderBy('id')->get();
+
+        $attachmentPaths = [];
+        foreach ($attachments as $attachment) {
+            if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                $fullPath = Storage::disk('public')->path($attachment->file_path);
+                if (is_file($fullPath) && filesize($fullPath) > 0) {
+                    $attachmentPaths[] = $fullPath;
+                }
+            }
+        }
+
+        if ($attachmentPaths === []) {
+            return [
+                'path' => $letterPdfPath,
+                'is_temporary' => false,
+                'has_merged_attachments' => false,
+            ];
+        }
+
+        $tmpDir = storage_path('app/private/tmp');
+        if (! is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+
+        $mergedPath = $tmpDir.'/Surat_'.$letter->letter_code.'_merged_'.uniqid('', true).'.pdf';
+        $merger = $pdfMerger ?? app(PdfMergerService::class);
+        $merger->merge(array_merge([$letterPdfPath], $attachmentPaths), $mergedPath);
+
+        return [
+            'path' => $mergedPath,
+            'is_temporary' => true,
+            'has_merged_attachments' => true,
+        ];
+    }
 }

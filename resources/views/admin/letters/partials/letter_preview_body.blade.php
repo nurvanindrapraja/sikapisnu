@@ -149,15 +149,6 @@
                     <td>:</td>
                     <td>
                         <span>{{ $letter->lampiran ?: '-' }}</span>
-                        @if($letter->attachments && $letter->attachments->isNotEmpty())
-                            <div class="mt-1 d-flex flex-wrap gap-1">
-                                @foreach($letter->attachments as $att)
-                                    <span class="badge bg-light text-dark border small fw-normal">
-                                        <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i>{{ $att->file_name }} ({{ $att->formatted_file_size }})
-                                    </span>
-                                @endforeach
-                            </div>
-                        @endif
                     </td>
                 </tr>
                 <tr>

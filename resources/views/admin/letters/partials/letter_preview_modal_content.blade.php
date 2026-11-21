@@ -64,8 +64,21 @@
             @endif
 
             @if($letter->status === 'selesai')
-                <button type="button" class="btn btn-outline-success rounded-pill px-3 btn-sm"
-                        @click="downloadPdfWithSpinner('{{ route('admin.letters.download-pdf', $letter->id) }}', 'Surat_{{ \Illuminate\Support\Str::slug($letter->letter_number, '_') }}.pdf', (val) => {})">
+                @php
+                    $previewAttachmentsCount = $letter->relationLoaded('attachments')
+                        ? $letter->attachments->count()
+                        : $letter->attachments()->count();
+                    $previewPdfSlug = \Illuminate\Support\Str::slug($letter->letter_number, '_');
+                @endphp
+                <button type="button" class="btn btn-outline-success rounded-pill px-3 btn-sm d-inline-flex align-items-center"
+                        onclick="handleLetterPdfDownload({
+                            baseUrl: '{{ route('admin.letters.download-pdf', $letter->id) }}',
+                            mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $letter->id, 'include_attachments' => 1]) }}',
+                            letterNumber: '{{ addslashes($letter->formatted_letter_number) }}',
+                            baseFilename: 'Surat_{{ $previewPdfSlug }}.pdf',
+                            mergedFilename: 'Surat_{{ $previewPdfSlug }}_dan_Lampiran.pdf',
+                            attachmentsCount: {{ $previewAttachmentsCount }}
+                        }, this)">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Unduh PDF
                 </button>
             @endif

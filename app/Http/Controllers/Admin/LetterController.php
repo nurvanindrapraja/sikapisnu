@@ -30,7 +30,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $query = Letter::with(['user', 'secretary', 'chairman']);
+        $query = Letter::with(['user', 'secretary', 'chairman'])->withCount('attachments');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -741,20 +741,39 @@ class LetterController extends Controller
         return redirect()->route('admin.letters.show', $letter->id)->with('warning', 'Konsep surat telah dikembalikan dengan catatan revisi.');
     }
 
-    public function downloadPdf(int $id, LetterService $letterService): BinaryFileResponse
+    public function downloadPdf(Request $request, int $id, LetterService $letterService): BinaryFileResponse
     {
         $this->checkAccess();
 
-        $letter = Letter::findOrFail($id);
+        $letter = Letter::with(['attachments' => fn ($query) => $query->orderBy('id')])->findOrFail($id);
 
         // KETENTUAN: File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap
         if ($letter->status !== Letter::STATUS_SELESAI) {
             abort(403, 'File PDF surat resmi baru dapat diunduh ketika surat telah selesai ditandatangani secara lengkap oleh Sekretaris dan Ketua.');
         }
 
+        $slug = Str::slug($letter->letter_number, '_');
+
+        if ($request->boolean('include_attachments') && $letter->attachments->isNotEmpty()) {
+            $result = $letterService->generateMergedPdf($letter);
+            $filename = $result['has_merged_attachments']
+                ? "Surat_{$slug}_dan_Lampiran.pdf"
+                : "Surat_{$slug}.pdf";
+
+            $response = response()->download($result['path'], $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+
+            if ($result['is_temporary']) {
+                $response->deleteFileAfterSend(true);
+            }
+
+            return $response;
+        }
+
         $letterService->generatePdf($letter);
 
-        $filename = 'Surat_'.Str::slug($letter->letter_number, '_').'.pdf';
+        $filename = "Surat_{$slug}.pdf";
         $fullPath = Storage::disk('public')->path($letter->pdf_path);
 
         return response()->download($fullPath, $filename, [

@@ -642,6 +642,7 @@
 
     <!-- Modal Popup Pratinjau Berkas Lampiran -->
     @include('partials.attachment_preview_modal')
+    @include('partials.letter_pdf_download_modal')
 
     <script>
         function openCardDownloadModal(baseUrl, name, number) {

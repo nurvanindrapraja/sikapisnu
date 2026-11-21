@@ -375,6 +375,9 @@ function lettersIndex() {
             })
             .then(html => {
                 contentEl.innerHTML = html;
+                if (window.Alpine) {
+                    window.Alpine.initTree(contentEl);
+                }
                 this.isPreviewLoading = false;
             })
             .catch(err => {

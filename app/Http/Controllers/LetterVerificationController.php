@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Letter;
 use App\Services\LetterService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -59,17 +60,38 @@ class LetterVerificationController extends Controller
     /**
      * Unduh salinan PDF resmi dari halaman verifikasi publik.
      */
-    public function downloadPdf(string $code, LetterService $letterService): BinaryFileResponse
+    public function downloadPdf(Request $request, string $code, LetterService $letterService): BinaryFileResponse
     {
-        $letter = Letter::where('letter_code', $code)->firstOrFail();
+        $letter = Letter::with(['attachments' => fn ($query) => $query->orderBy('id')])
+            ->where('letter_code', $code)
+            ->firstOrFail();
 
         if ($letter->status !== Letter::STATUS_SELESAI) {
             abort(403, 'File PDF surat resmi baru dapat diunduh ketika surat telah selesai ditandatangani secara lengkap oleh Sekretaris dan Ketua.');
         }
 
+        $slug = Str::slug($letter->letter_number, '_');
+
+        if ($request->boolean('include_attachments') && $letter->attachments->isNotEmpty()) {
+            $result = $letterService->generateMergedPdf($letter);
+            $filename = $result['has_merged_attachments']
+                ? "Surat_{$slug}_dan_Lampiran.pdf"
+                : "Surat_{$slug}.pdf";
+
+            $response = response()->download($result['path'], $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+
+            if ($result['is_temporary']) {
+                $response->deleteFileAfterSend(true);
+            }
+
+            return $response;
+        }
+
         $letterService->generatePdf($letter);
 
-        $filename = 'Surat_'.Str::slug($letter->letter_number, '_').'.pdf';
+        $filename = "Surat_{$slug}.pdf";
         $fullPath = Storage::disk('public')->path($letter->pdf_path);
 
         return response()->download($fullPath, $filename, [

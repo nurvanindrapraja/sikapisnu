@@ -93,9 +93,20 @@
                                 </a>
                             @endif
                             @if($item->status === 'selesai')
-                                <button type="button" class="btn btn-outline-success" title="Unduh PDF Resmi"
+                                @php
+                                    $itemAttachmentsCount = (int) ($item->attachments_count ?? ($item->relationLoaded('attachments') ? $item->attachments->count() : 0));
+                                    $itemPdfSlug = \Illuminate\Support\Str::slug($item->letter_number, '_');
+                                @endphp
+                                <button type="button" class="btn btn-outline-success" title="{{ $itemAttachmentsCount > 0 ? 'Unduh PDF (Surat saja / Surat + Lampiran)' : 'Unduh PDF Resmi' }}"
                                         :disabled="downloadingId === {{ $item->id }}"
-                                        @click="downloadPdfWithSpinner('{{ route('admin.letters.download-pdf', $item->id) }}', 'Surat_{{ \Illuminate\Support\Str::slug($item->letter_number, '_') }}.pdf', (val) => downloadingId = val ? {{ $item->id }} : null)">
+                                        @click="handleLetterPdfDownload({
+                                            baseUrl: '{{ route('admin.letters.download-pdf', $item->id) }}',
+                                            mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $item->id, 'include_attachments' => 1]) }}',
+                                            letterNumber: '{{ addslashes($item->formatted_letter_number) }}',
+                                            baseFilename: 'Surat_{{ $itemPdfSlug }}.pdf',
+                                            mergedFilename: 'Surat_{{ $itemPdfSlug }}_dan_Lampiran.pdf',
+                                            attachmentsCount: {{ $itemAttachmentsCount }}
+                                        }, (val) => downloadingId = val ? {{ $item->id }} : null)">
                                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="downloadingId === {{ $item->id }}" x-cloak></span>
                                     <i class="bi bi-file-earmark-pdf" x-show="downloadingId !== {{ $item->id }}"></i>
                                 </button>
@@ -234,9 +245,20 @@
                         </a>
                     @endif
                     @if($item->status === 'selesai')
-                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 d-flex align-items-center justify-content-center" title="Unduh PDF Resmi"
+                        @php
+                            $mobileAttachmentsCount = (int) ($item->attachments_count ?? ($item->relationLoaded('attachments') ? $item->attachments->count() : 0));
+                            $mobilePdfSlug = \Illuminate\Support\Str::slug($item->letter_number, '_');
+                        @endphp
+                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 d-flex align-items-center justify-content-center" title="{{ $mobileAttachmentsCount > 0 ? 'Unduh PDF (Surat saja / Surat + Lampiran)' : 'Unduh PDF Resmi' }}"
                                 :disabled="downloadingId === {{ $item->id }}"
-                                @click="downloadPdfWithSpinner('{{ route('admin.letters.download-pdf', $item->id) }}', 'Surat_{{ \Illuminate\Support\Str::slug($item->letter_number, '_') }}.pdf', (val) => downloadingId = val ? {{ $item->id }} : null)">
+                                @click="handleLetterPdfDownload({
+                                    baseUrl: '{{ route('admin.letters.download-pdf', $item->id) }}',
+                                    mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $item->id, 'include_attachments' => 1]) }}',
+                                    letterNumber: '{{ addslashes($item->formatted_letter_number) }}',
+                                    baseFilename: 'Surat_{{ $mobilePdfSlug }}.pdf',
+                                    mergedFilename: 'Surat_{{ $mobilePdfSlug }}_dan_Lampiran.pdf',
+                                    attachmentsCount: {{ $mobileAttachmentsCount }}
+                                }, (val) => downloadingId = val ? {{ $item->id }} : null)">
                             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="downloadingId === {{ $item->id }}" x-cloak></span>
                             <i class="bi bi-file-earmark-pdf" x-show="downloadingId !== {{ $item->id }}"></i>
                         </button>

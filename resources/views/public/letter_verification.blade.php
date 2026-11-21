@@ -195,15 +195,26 @@
 
                         <!-- Unduh Dokumen Resmi jika Selesai -->
                         @if($letter->status === 'selesai')
+                            @php
+                                $verifyAttachmentsCount = $letter->attachments ? $letter->attachments->count() : 0;
+                                $verifyPdfSlug = \Illuminate\Support\Str::slug($letter->letter_number, '_');
+                            @endphp
                             <div class="col-md-12 text-center pt-3" x-data="{ isDownloading: false }">
                                 <div class="p-4 rounded-4 bg-light border text-center">
                                     <h6 class="fw-bold mb-2">Unduh Salinan Dokumen Resmi</h6>
                                     <p class="text-muted small mb-3">
-                                        Anda dapat mengunduh dokumen resmi dalam format PDF ber-QRCode dan berkop resmi PC ISNU Surabaya.
+                                        Anda dapat mengunduh dokumen resmi dalam format PDF ber-QRCode dan berkop resmi PC ISNU Surabaya{{ $verifyAttachmentsCount > 0 ? ' (tersedia pilihan surat saja atau surat + lampiran dalam satu PDF)' : '' }}.
                                     </p>
                                     <button type="button" class="btn btn-success px-4 py-2 rounded-pill shadow-sm d-inline-flex align-items-center"
                                             :disabled="isDownloading"
-                                            @click="downloadPdfWithSpinner('{{ route('surat.download-pdf', $letter->letter_code) }}', 'Surat_{{ \Illuminate\Support\Str::slug($letter->letter_number, '_') }}.pdf', (val) => isDownloading = val)">
+                                            @click="handleLetterPdfDownload({
+                                                baseUrl: '{{ route('surat.download-pdf', $letter->letter_code) }}',
+                                                mergedUrl: '{{ route('surat.download-pdf', ['code' => $letter->letter_code, 'include_attachments' => 1]) }}',
+                                                letterNumber: '{{ addslashes($letter->formatted_letter_number) }}',
+                                                baseFilename: 'Surat_{{ $verifyPdfSlug }}.pdf',
+                                                mergedFilename: 'Surat_{{ $verifyPdfSlug }}_dan_Lampiran.pdf',
+                                                attachmentsCount: {{ $verifyAttachmentsCount }}
+                                            }, (val) => isDownloading = val)">
                                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" x-show="isDownloading" x-cloak></span>
                                         <i class="bi bi-file-earmark-pdf-fill me-2" x-show="!isDownloading"></i>
                                         <span x-text="isDownloading ? 'Mengunduh Dokumen...' : 'Unduh Salinan PDF'">Unduh Salinan PDF</span>
