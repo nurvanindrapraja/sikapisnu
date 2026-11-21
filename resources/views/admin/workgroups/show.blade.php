@@ -25,6 +25,7 @@
             <i class="bi bi-arrow-left"></i>
             <span class="d-none d-md-inline ms-1">Kembali ke Daftar</span>
         </a>
+        @if(auth()->user()->canManageWorkgroups())
         <button type="button"
                 class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
                 data-bs-toggle="modal"
@@ -34,6 +35,7 @@
             <i class="bi bi-person-plus-fill"></i>
             <span class="d-none d-md-inline ms-1">Tambah Anggota dari Seksi</span>
         </button>
+        @endif
     </div>
 </div>
 
@@ -125,6 +127,7 @@
             </h6>
             <small class="text-muted">Daftar pengurus seksi yang saat ini aktif bernaung dalam Pokja ini</small>
         </div>
+        @if(auth()->user()->canManageWorkgroups())
         <button type="button"
                 class="btn btn-sm btn-outline-success rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
                 data-bs-toggle="modal"
@@ -134,6 +137,7 @@
             <i class="bi bi-plus-lg"></i>
             <span class="d-none d-md-inline ms-1">Tambah Anggota</span>
         </button>
+        @endif
     </div>
 
     <!-- Desktop Table View (>= 768px) -->
@@ -196,20 +200,22 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center"
-                                        style="width: 32px; height: 32px;"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalEditMemberRole{{ $m->id }}"
-                                        title="Ubah Peran di Pokja">
-                                    <i class="bi bi-pencil-fill"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
-                                        style="width: 32px; height: 32px;"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#modalRemoveMember{{ $m->id }}"
-                                        title="Keluarkan dari Pokja">
-                                    <i class="bi bi-person-x-fill"></i>
-                                </button>
+                                @if(auth()->user()->canManageWorkgroups())
+                                    <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalEditMemberRole{{ $m->id }}"
+                                            title="Ubah Peran di Pokja">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
+                                            style="width: 32px; height: 32px;"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalRemoveMember{{ $m->id }}"
+                                            title="Keluarkan dari Pokja">
+                                        <i class="bi bi-person-x-fill"></i>
+                                    </button>
+                                @endif
                                 <a href="{{ route('admin.anggota.show', $m->id) }}" class="btn btn-sm btn-outline-secondary rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Lihat Profil Anggota" target="_blank">
                                     <i class="bi bi-box-arrow-up-right"></i>
                                 </a>
@@ -221,11 +227,13 @@
                         <td colspan="8" class="text-center py-5 text-muted">
                             <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
                             Belum ada pengurus seksi yang ditugaskan ke Kelompok Kerja ini.
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-isnu-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
-                                    <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Pertama
-                                </button>
-                            </div>
+                            @if(auth()->user()->canManageWorkgroups())
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-isnu-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
+                                        <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Pertama
+                                    </button>
+                                </div>
+                            @endif
                         </td>
                     </tr>
                 @endforelse
@@ -274,24 +282,26 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-                        <button type="button"
-                                class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
-                                style="width: 34px; height: 34px;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalEditMemberRole{{ $m->id }}"
-                                title="Ubah Peran di Pokja"
-                                aria-label="Ubah Peran di Pokja">
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
-                        <button type="button"
-                                class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center"
-                                style="width: 34px; height: 34px;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalRemoveMember{{ $m->id }}"
-                                title="Keluarkan dari Pokja"
-                                aria-label="Keluarkan dari Pokja">
-                            <i class="bi bi-person-x-fill"></i>
-                        </button>
+                        @if(auth()->user()->canManageWorkgroups())
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
+                                    style="width: 34px; height: 34px;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEditMemberRole{{ $m->id }}"
+                                    title="Ubah Peran di Pokja"
+                                    aria-label="Ubah Peran di Pokja">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center"
+                                    style="width: 34px; height: 34px;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalRemoveMember{{ $m->id }}"
+                                    title="Keluarkan dari Pokja"
+                                    aria-label="Keluarkan dari Pokja">
+                                <i class="bi bi-person-x-fill"></i>
+                            </button>
+                        @endif
                         <a href="{{ route('admin.anggota.show', $m->id) }}"
                            class="btn btn-sm btn-outline-secondary rounded-circle d-inline-flex align-items-center justify-content-center"
                            style="width: 34px; height: 34px;"
@@ -307,15 +317,18 @@
             <div class="text-center py-5 text-muted bg-light rounded-4">
                 <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
                 Belum ada pengurus seksi yang ditugaskan ke Kelompok Kerja ini.
-                <div class="mt-2">
-                    <button type="button" class="btn btn-sm btn-isnu-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
-                        <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Pertama
-                    </button>
-                </div>
+                @if(auth()->user()->canManageWorkgroups())
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-isnu-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
+                            <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Pertama
+                        </button>
+                    </div>
+                @endif
             </div>
         @endforelse
     </div>
 
+    @if(auth()->user()->canManageWorkgroups())
     <!-- Modals Ubah Peran & Keluarkan Anggota Pokja -->
     @foreach($workgroup->members as $m)
         @php $seksi = $m->activePosition?->section; @endphp
@@ -393,8 +406,10 @@
             </div>
         </div>
     @endforeach
+    @endif
 </div>
 
+@if(auth()->user()->canManageWorkgroups())
 <!-- Modal Tambah Anggota Pokja Baru -->
 <div class="modal fade" id="modalAddPokjaMember" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -467,4 +482,5 @@
         </div>
     </div>
 </div>
+@endif
 @endsection

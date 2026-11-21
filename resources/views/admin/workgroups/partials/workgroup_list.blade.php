@@ -63,25 +63,33 @@
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
-                            <a href="{{ route('admin.workgroups.show', $wg->id) }}"
-                               class="btn btn-sm btn-success rounded-pill px-2.5 py-1 d-flex align-items-center gap-1 shadow-sm"
-                               title="Kelola Anggota Pokja">
-                                <i class="bi bi-person-gear"></i> <span class="d-none d-lg-inline small">Kelola</span>
-                            </a>
-                            <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center"
-                                    style="width: 32px; height: 32px;"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalEditWorkgroup{{ $wg->id }}"
-                                    title="Edit Pokja">
-                                <i class="bi bi-pencil-fill"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
-                                    style="width: 32px; height: 32px;"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalDeleteWorkgroup{{ $wg->id }}"
-                                    title="Hapus Pokja">
-                                <i class="bi bi-trash-fill"></i>
-                            </button>
+                            @if(auth()->user()->canManageWorkgroups())
+                                <a href="{{ route('admin.workgroups.show', $wg->id) }}"
+                                   class="btn btn-sm btn-success rounded-pill px-2.5 py-1 d-flex align-items-center gap-1 shadow-sm"
+                                   title="Kelola Anggota Pokja">
+                                    <i class="bi bi-person-gear"></i> <span class="d-none d-lg-inline small">Kelola</span>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center"
+                                        style="width: 32px; height: 32px;"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEditWorkgroup{{ $wg->id }}"
+                                        title="Edit Pokja">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
+                                        style="width: 32px; height: 32px;"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalDeleteWorkgroup{{ $wg->id }}"
+                                        title="Hapus Pokja">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            @else
+                                <a href="{{ route('admin.workgroups.show', $wg->id) }}"
+                                   class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 d-flex align-items-center gap-1"
+                                   title="Lihat Anggota Pokja">
+                                    <i class="bi bi-eye"></i> <span class="d-none d-lg-inline small">Detail</span>
+                                </a>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -140,30 +148,37 @@
                 @endif
 
                 <div class="d-flex align-items-center justify-content-between gap-2 pt-2 border-top">
-                    <a href="{{ route('admin.workgroups.show', $wg->id) }}"
-                       class="btn btn-sm btn-success rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
-                        <i class="bi bi-person-gear"></i> Kelola Anggota
-                    </a>
-                    <div class="d-flex gap-2">
-                        <button type="button"
-                                class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
-                                style="width: 34px; height: 34px;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalEditWorkgroup{{ $wg->id }}"
-                                title="Edit Pokja"
-                                aria-label="Edit Pokja">
-                            <i class="bi bi-pencil-fill"></i>
-                        </button>
-                        <button type="button"
-                                class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center"
-                                style="width: 34px; height: 34px;"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalDeleteWorkgroup{{ $wg->id }}"
-                                title="Hapus Pokja"
-                                aria-label="Hapus Pokja">
-                            <i class="bi bi-trash-fill"></i>
-                        </button>
-                    </div>
+                    @if(auth()->user()->canManageWorkgroups())
+                        <a href="{{ route('admin.workgroups.show', $wg->id) }}"
+                           class="btn btn-sm btn-success rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                            <i class="bi bi-person-gear"></i> Kelola Anggota
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
+                                    style="width: 34px; height: 34px;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalEditWorkgroup{{ $wg->id }}"
+                                    title="Edit Pokja"
+                                    aria-label="Edit Pokja">
+                                <i class="bi bi-pencil-fill"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center"
+                                    style="width: 34px; height: 34px;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalDeleteWorkgroup{{ $wg->id }}"
+                                    title="Hapus Pokja"
+                                    aria-label="Hapus Pokja">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    @else
+                        <a href="{{ route('admin.workgroups.show', $wg->id) }}"
+                           class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1">
+                            <i class="bi bi-eye"></i> Lihat Anggota
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -175,6 +190,7 @@
     @endforelse
 </div>
 
+@if(auth()->user()->canManageWorkgroups())
 <!-- Modals Edit & Hapus Kelompok Kerja -->
 @foreach($workgroups as $wg)
     <div class="modal fade text-start" id="modalEditWorkgroup{{ $wg->id }}" tabindex="-1" aria-hidden="true">
@@ -336,6 +352,7 @@
         </div>
     </div>
 @endforeach
+@endif
 
 <div class="mt-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 px-3 pb-3">
     <div class="small text-muted">

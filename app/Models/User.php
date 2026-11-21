@@ -672,6 +672,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Memeriksa apakah user adalah akun pengurus Bendahara / Wakil Bendahara (bukan admin sistem).
+     */
+    public function isBendaharaOfficer(): bool
+    {
+        if ($this->isSystemAdmin()) {
+            return false;
+        }
+
+        return $this->isBendahara();
+    }
+
+    /**
+     * Memeriksa apakah user berhak menambah, mengubah, dan menghapus Master Kelompok Kerja (Pokja).
+     * Bendahara hanya diperbolehkan melihat data Pokja (read-only).
+     */
+    public function canManageWorkgroups(): bool
+    {
+        if ($this->isRestrictedOfficer() || $this->isBendaharaOfficer()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Memeriksa apakah user dapat mengelola menu Keuangan (Kas Masuk & Kas Keluar).
      * Hak akses: Bendahara dan Admin (Superadmin, Admin Kota, Admin PAC, Admin MWC).
      */
@@ -773,7 +798,7 @@ class User extends Authenticatable
 
     /**
      * Memeriksa apakah user berhak mengakses menu pengajuan konsep surat dan e-TTD.
-     * Hak akses: Admin, Ketua, Sekretaris, Wakil Ketua, Wakil Sekretaris, Koordinator Seksi, dan Anggota Seksi.
+     * Hak akses: Admin, Ketua, Sekretaris, Bendahara, Wakil Ketua, Wakil Sekretaris, Wakil Bendahara, Koordinator Seksi, dan Anggota Seksi.
      */
     public function canAccessLetterSubmission(): bool
     {
@@ -781,7 +806,7 @@ class User extends Authenticatable
             return true;
         }
 
-        if ($this->isKoordinatorSeksi() || $this->isPengurusAnggotaSeksi()) {
+        if ($this->isKoordinatorSeksi() || $this->isPengurusAnggotaSeksi() || $this->isBendahara()) {
             return true;
         }
 
@@ -793,8 +818,10 @@ class User extends Authenticatable
         if (in_array($title, [
             'Ketua',
             'Sekretaris',
+            'Bendahara',
             'Wakil Ketua',
             'Wakil Sekretaris',
+            'Wakil Bendahara',
             'Koordinator Seksi',
             'Koordinator',
             'Anggota Seksi',

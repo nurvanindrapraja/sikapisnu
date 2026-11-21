@@ -848,7 +848,7 @@ class SikapIsnuTest extends TestCase
         $this->actingAs($bendaharaUser)->get('/admin/anggota')->assertStatus(200);
         $this->actingAs($bendaharaUser)->get('/admin/anggota/'.$targetMember->id)->assertStatus(200);
         $this->actingAs($bendaharaUser)->get('/admin/pengurus')->assertStatus(200);
-        $this->actingAs($bendaharaUser)->get('/admin/verifikasi')->assertStatus(200);
+        $this->actingAs($bendaharaUser)->get('/admin/verifikasi')->assertStatus(403);
         $this->actingAs($bendaharaUser)->get('/admin/anggota/rekap-pdf')->assertStatus(200);
 
         // In admin anggota index, edit and delete buttons are hidden

@@ -7,6 +7,7 @@ use App\Models\Letter;
 use App\Models\Member;
 use App\Models\Position;
 use App\Models\User;
+use App\Models\Workgroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -487,5 +488,74 @@ class FinanceAndSuperAdminLetterDeleteTest extends TestCase
         $response->assertSee('alt="TTD Sekretaris"', false);
         $response->assertSee('alt="Stempel Resmi"', false);
         $response->assertSee('alt="QR Verifikasi Dokumen"', false);
+    }
+
+    public function test_bendahara_sidebar_pokja_readonly_and_letter_submission_access(): void
+    {
+        $bendahara = $this->createOfficer('Bendahara Akses', 'member', 'Bendahara');
+        $wakilBendahara = $this->createOfficer('Wakil Bendahara Akses', 'member', 'Wakil Bendahara');
+
+        $workgroup = Workgroup::create([
+            'level' => 'PC ISNU',
+            'name' => 'Pokja Digitalisasi',
+            'code' => 'PKJ-DIG',
+            'is_active' => true,
+        ]);
+
+        foreach ([$bendahara, $wakilBendahara] as $user) {
+            $this->actingAs($user);
+
+            // 1. Sidebar: sembunyikan Verifikasi Pendaftar, Export Laporan, Audit Log System; tampilkan Konsep Surat & E-TTD
+            $dashboard = $this->get(route('admin.dashboard'));
+            $dashboard->assertStatus(200);
+            $dashboard->assertDontSee('Verifikasi Pendaftar');
+            $dashboard->assertDontSee('Export Laporan');
+            $dashboard->assertDontSee('Audit Log System');
+            $dashboard->assertSee('Konsep Surat & E-TTD', false);
+            $dashboard->assertSee('Master Kelompok Kerja');
+
+            // 2. Blokir akses langsung ke Verifikasi, Laporan, Audit Log
+            $this->get(route('admin.verifikasi.index'))->assertStatus(403);
+            $this->get(route('admin.laporan.index'))->assertStatus(403);
+            $this->get(route('admin.laporan.export'))->assertStatus(403);
+            $this->get(route('admin.audit.index'))->assertStatus(403);
+
+            // 3. Master Pokja: hanya bisa melihat (read-only), tidak bisa tambah/edit/hapus
+            $pokjaIndex = $this->get(route('admin.workgroups.index'));
+            $pokjaIndex->assertStatus(200);
+            $pokjaIndex->assertSee('Pokja Digitalisasi');
+            $pokjaIndex->assertDontSee('Tambah Pokja Baru');
+            $pokjaIndex->assertDontSee('modalEditWorkgroup'.$workgroup->id);
+            $pokjaIndex->assertDontSee('modalDeleteWorkgroup'.$workgroup->id);
+
+            $pokjaShow = $this->get(route('admin.workgroups.show', $workgroup->id));
+            $pokjaShow->assertStatus(200);
+            $pokjaShow->assertDontSee('Tambah Anggota dari Seksi');
+            $pokjaShow->assertDontSee('modalAddPokjaMember');
+
+            $this->post(route('admin.workgroups.store'), [
+                'level' => 'PC ISNU',
+                'name' => 'Pokja Tidak Sah',
+            ])->assertStatus(403);
+
+            $this->put(route('admin.workgroups.update', $workgroup->id), [
+                'level' => 'PC ISNU',
+                'name' => 'Pokja Diubah',
+            ])->assertStatus(403);
+
+            $this->delete(route('admin.workgroups.destroy', $workgroup->id))->assertStatus(403);
+            $this->post(route('admin.workgroups.members.add', $workgroup->id), [
+                'member_id' => $user->member->id,
+                'role' => 'Anggota Pokja',
+            ])->assertStatus(403);
+            $this->put(route('admin.workgroups.members.update', [$workgroup->id, $user->member->id]), [
+                'role' => 'Ketua Pokja',
+            ])->assertStatus(403);
+            $this->delete(route('admin.workgroups.members.remove', [$workgroup->id, $user->member->id]))->assertStatus(403);
+
+            // 4. Dapat mengakses menu Pengajuan Konsep Surat & membuat konsep surat
+            $this->get(route('admin.letters.index'))->assertStatus(200);
+            $this->get(route('admin.letters.create'))->assertStatus(200);
+        }
     }
 }

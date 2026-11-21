@@ -305,7 +305,7 @@
             </li>
 
             <li class="sidebar-header">Verifikasi & Keanggotaan</li>
-            @if(!auth()->user()->isRestrictedOfficer() && !auth()->user()->isKetuaOrSekretarisPac())
+            @if(!auth()->user()->isRestrictedOfficer() && !auth()->user()->isKetuaOrSekretarisPac() && !auth()->user()->isBendaharaOfficer())
             <li>
                 <a href="{{ route('admin.verifikasi.index') }}" class="sidebar-link {{ request()->routeIs('admin.verifikasi.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-person-check-fill"></i> Verifikasi Pendaftar
@@ -488,7 +488,7 @@
             </li>
             @endif
 
-            @if(!auth()->user()->isKetuaOrSekretarisPac() && (!auth()->user()->isRestrictedOfficer() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota()))))
+            @if(!auth()->user()->isKetuaOrSekretarisPac() && !auth()->user()->isBendaharaOfficer() && (!auth()->user()->isRestrictedOfficer() || (auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota()))))
             <li class="sidebar-header">Laporan & Keamanan</li>
             @if(!auth()->user()->isRestrictedOfficer())
             <li>

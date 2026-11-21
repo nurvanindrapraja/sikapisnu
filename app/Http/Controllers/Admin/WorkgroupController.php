@@ -22,6 +22,15 @@ class WorkgroupController extends Controller
         }
     }
 
+    protected function checkManageAccess(): void
+    {
+        $this->checkAccess();
+
+        if (! auth()->user()?->canManageWorkgroups()) {
+            abort(403, 'Anda hanya memiliki hak akses lihat pada Master Kelompok Kerja.');
+        }
+    }
+
     /**
      * Menampilkan daftar Master Kelompok Kerja.
      */
@@ -91,7 +100,7 @@ class WorkgroupController extends Controller
      */
     public function store(Request $request): JsonResponse|RedirectResponse
     {
-        $this->checkAccess();
+        $this->checkManageAccess();
 
         $validated = $request->validate([
             'level' => 'required|in:PC ISNU,PAC ISNU',
@@ -180,6 +189,8 @@ class WorkgroupController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse|RedirectResponse
     {
+        $this->checkManageAccess();
+
         $workgroup = Workgroup::findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
@@ -225,6 +236,8 @@ class WorkgroupController extends Controller
      */
     public function destroy(Request $request, int $id): JsonResponse|RedirectResponse
     {
+        $this->checkManageAccess();
+
         $workgroup = Workgroup::findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
@@ -254,6 +267,8 @@ class WorkgroupController extends Controller
      */
     public function addMember(Request $request, int $id): JsonResponse|RedirectResponse
     {
+        $this->checkManageAccess();
+
         $workgroup = Workgroup::findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
@@ -317,6 +332,8 @@ class WorkgroupController extends Controller
      */
     public function updateMember(Request $request, int $id, int $member_id): JsonResponse|RedirectResponse
     {
+        $this->checkManageAccess();
+
         $workgroup = Workgroup::findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
@@ -358,6 +375,8 @@ class WorkgroupController extends Controller
      */
     public function removeMember(Request $request, int $id, int $member_id): JsonResponse|RedirectResponse
     {
+        $this->checkManageAccess();
+
         $workgroup = Workgroup::findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {

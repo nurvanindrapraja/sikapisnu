@@ -13,6 +13,7 @@
             Kelola struktur khusus gugus tugas yang beranggotakan pengurus dari Seksi-Seksi PC & PAC ISNU
         </p>
     </div>
+    @if(auth()->user()->canManageWorkgroups())
     <button type="button"
             class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
             data-bs-toggle="modal"
@@ -22,6 +23,7 @@
         <i class="bi bi-plus-lg"></i>
         <span class="d-none d-md-inline ms-1">Tambah Pokja Baru</span>
     </button>
+    @endif
 </div>
 
 <!-- Notice Edukatif Mengenai Ketentuan Pokja -->
@@ -193,6 +195,7 @@
     </div>
 </div>
 
+@if(auth()->user()->canManageWorkgroups())
 <!-- Modal Tambah Kelompok Kerja Baru -->
 <div class="modal fade" id="modalAddWorkgroup" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -300,4 +303,5 @@
         </div>
     </div>
 </div>
+@endif
 @endsection
