@@ -6,8 +6,21 @@
 @section('content')
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
     <div>
-        <h4 class="fw-bold text-dark m-0"><i class="bi bi-graph-up-arrow text-success me-2"></i> Rekap Tingkat Kehadiran Kegiatan</h4>
-        <p class="text-secondary small m-0 mt-1">Pantau keaktifan dan kehadiran semua anggota, pengurus, serta calon anggota ISNU Surabaya</p>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h4 class="fw-bold text-dark m-0"><i class="bi bi-graph-up-arrow text-success me-2"></i> Rekap Tingkat Kehadiran Kegiatan</h4>
+            @if(!empty($isPacScoped) && !empty($scopedPac))
+                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1 small">
+                    <i class="bi bi-geo-alt-fill me-1"></i>{{ $scopedPac->display_name }}
+                </span>
+            @endif
+        </div>
+        <p class="text-secondary small m-0 mt-1">
+            @if(!empty($isPacScoped) && !empty($scopedPac))
+                Pantau keaktifan dan kehadiran anggota, pengurus, serta calon anggota wilayah {{ $scopedPac->display_name }}
+            @else
+                Pantau keaktifan dan kehadiran semua anggota, pengurus, serta calon anggota ISNU Surabaya
+            @endif
+        </p>
     </div>
     <div>
         <a href="{{ route('admin.events.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm">
@@ -123,7 +136,7 @@
     <!-- Header Filter Bar -->
     <div class="card-header bg-white border-0 p-3 p-md-4">
         <div class="row g-3 align-items-center">
-            <div class="col-12 col-md-3">
+            <div class="col-12 {{ !empty($isPacScoped) ? 'col-md-5' : 'col-md-3' }}">
                 <div class="input-group input-group-sm search-box">
                     <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" x-model="search" @input.debounce.400ms="fetchRekap()" class="form-control bg-light border-start-0" placeholder="Cari nama / NIK / No. Anggota...">
@@ -137,15 +150,17 @@
                     <option value="calon anggota">Calon Anggota</option>
                 </select>
             </div>
+            @if(empty($isPacScoped))
             <div class="col-6 col-md-3">
                 <select x-model="pac_id" @change="fetchRekap()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua PAC ISNU --</option>
                     @foreach($pacs as $pac)
-                        <option value="{{ $pac->id }}">{{ $pac->name }}</option>
+                        <option value="{{ $pac->id }}">{{ $pac->display_name }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            @endif
+            <div class="col-6 {{ !empty($isPacScoped) ? 'col-md-3' : 'col-md-2' }}">
                 <select x-model="sort" @change="fetchRekap()" class="form-select form-select-sm bg-light">
                     <option value="most_active">Kehadiran Terbanyak</option>
                     <option value="least_active">Kehadiran Tersedikit</option>

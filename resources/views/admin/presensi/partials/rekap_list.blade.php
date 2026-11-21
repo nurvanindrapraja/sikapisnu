@@ -49,7 +49,7 @@
                         @endif
                     </td>
                     <td>
-                        <div class="fw-medium text-dark">{{ $member->pac->name ?? $member->activePosition->pac->name ?? '-' }}</div>
+                        <div class="fw-medium text-dark">{{ $member->pac->display_name ?? $member->activePosition?->pac?->display_name ?? '-' }}</div>
                         @if($member->mwc)
                             <small class="text-muted fs-xs">MWC: {{ $member->mwc->name }}</small>
                         @endif
@@ -57,7 +57,7 @@
                     <td>
                         @if($member->activePosition)
                             <span class="badge bg-info-subtle text-info border border-info-subtle fs-xs">
-                                {{ $member->activePosition->position_name ?? ($member->activePosition->section->name ?? 'Pengurus') }}
+                                {{ $member->activePosition->position_title ?? ($member->activePosition->section->name ?? 'Pengurus') }}
                             </span>
                         @else
                             <span class="text-muted fs-xs">-</span>
@@ -155,7 +155,7 @@
                 <div class="row g-2 pt-2 border-top fs-xs">
                     <div class="col-6">
                         <span class="text-muted d-block">PAC / Wilayah:</span>
-                        <strong class="text-dark d-block text-truncate">{{ $member->pac->name ?? $member->activePosition->pac->name ?? '-' }}</strong>
+                        <strong class="text-dark d-block text-truncate">{{ $member->pac->display_name ?? $member->activePosition?->pac?->display_name ?? '-' }}</strong>
                     </div>
                     <div class="col-6">
                         <span class="text-muted d-block">Total Kehadiran:</span>

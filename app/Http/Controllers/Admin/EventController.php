@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\Pac;
 use App\Models\Program;
 use App\Models\Section;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -64,25 +65,53 @@ class EventController extends Controller
         return view('admin.events.index', compact('events', 'sections'));
     }
 
+    /**
+     * Terapkan batasan lingkup kader khusus wilayah PAC bagi akun pengurus/admin PAC.
+     */
+    protected function applyPacMemberScope($query, ?User $user = null): void
+    {
+        $user = $user ?? auth()->user();
+        if (! $user || ! $user->isScopedToPac()) {
+            return;
+        }
+
+        $pacId = $user->getManagedPacId();
+        $pacKecamatan = $user->getManagedPacKecamatan();
+
+        if (! $pacId) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(function ($q) use ($pacId, $pacKecamatan) {
+            $q->where('pac_id', $pacId)
+                ->orWhereHas('activePosition', function ($p) use ($pacId) {
+                    $p->whereIn('level', ['PAC', 'PAC ISNU', 'Kecamatan'])
+                        ->where('pac_id', $pacId);
+                });
+
+            if ($pacKecamatan) {
+                $q->orWhere(function ($sub) use ($pacKecamatan) {
+                    $sub->whereNull('pac_id')
+                        ->where('kecamatan', 'like', "%{$pacKecamatan}%");
+                });
+            }
+        });
+    }
+
     public function rekapPresensi(Request $request)
     {
+        $user = auth()->user();
+        $isPacScoped = $user->isScopedToPac();
+        $scopedPac = $isPacScoped ? $user->getManagedPac() : null;
+
         $query = Member::withCount('presences')
             ->with(['pac', 'mwc', 'activePosition.pac', 'activePosition.section', 'presences' => function ($q) {
                 $q->with('event')->latest('attended_at');
             }]);
 
-        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $kecamatan = auth()->user()->member?->kecamatan;
-            $query->where(function ($q) use ($pacId, $kecamatan) {
-                if ($pacId) {
-                    $q->where('pac_id', $pacId);
-                }
-                if ($kecamatan) {
-                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
-                }
-            });
-        }
+        $this->applyPacMemberScope($query, $user);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -108,7 +137,7 @@ class EventController extends Controller
             }
         }
 
-        if ($request->filled('pac_id')) {
+        if (! $isPacScoped && $request->filled('pac_id')) {
             $query->where('pac_id', $request->pac_id);
         }
 
@@ -124,17 +153,36 @@ class EventController extends Controller
         }
 
         $members = $query->paginate(15)->withQueryString();
-        $pacs = Pac::orderBy('name')->get();
+        $pacs = $isPacScoped
+            ? ($scopedPac ? collect([$scopedPac]) : collect())
+            : Pac::orderBy('name')->get();
 
-        $totalKaderCount = Member::has('presences')->count();
-        $totalPresensiCount = EventPresence::count();
-        $topParticipant = Member::withCount('presences')->orderByDesc('presences_count')->first();
+        $scopedMemberBase = function () use ($user) {
+            $q = Member::query();
+            $this->applyPacMemberScope($q, $user);
+
+            return $q;
+        };
+
+        $totalKaderCount = $scopedMemberBase()->has('presences')->count();
+        $totalPresensiCount = $isPacScoped
+            ? EventPresence::whereHas('member', fn ($q) => $this->applyPacMemberScope($q, $user))->count()
+            : EventPresence::count();
+        $topParticipant = $scopedMemberBase()->withCount('presences')->orderByDesc('presences_count')->first();
 
         if ($request->ajax()) {
             return view('admin.presensi.partials.rekap_list', compact('members'));
         }
 
-        return view('admin.presensi.rekap', compact('members', 'pacs', 'totalKaderCount', 'totalPresensiCount', 'topParticipant'));
+        return view('admin.presensi.rekap', compact(
+            'members',
+            'pacs',
+            'totalKaderCount',
+            'totalPresensiCount',
+            'topParticipant',
+            'isPacScoped',
+            'scopedPac'
+        ));
     }
 
     public function detailPresensiKader($member_id)
@@ -149,7 +197,7 @@ class EventController extends Controller
             },
         ])->findOrFail($member_id);
 
-        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isScopedToPac() && auth()->user()->canViewMember($member))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki wewenang untuk melihat detail kader di luar wilayah PAC Anda.',
@@ -164,8 +212,8 @@ class EventController extends Controller
                 'nik' => $member->nik ?? $member->member_number,
                 'photo_url' => $member->photo_url,
                 'membership_status' => ucfirst($member->membership_status ?? 'Anggota'),
-                'position_title' => $member->activePosition ? ($member->activePosition->position_name ?? 'Pengurus') : null,
-                'pac_name' => $member->pac ? $member->pac->name : ($member->activePosition && $member->activePosition->pac ? $member->activePosition->pac->name : '-'),
+                'position_title' => $member->activePosition ? ($member->activePosition->position_title ?? 'Pengurus') : null,
+                'pac_name' => $member->pac ? $member->pac->display_name : ($member->activePosition && $member->activePosition->pac ? $member->activePosition->pac->display_name : '-'),
                 'total_presences' => $member->presences->count(),
             ],
             'presences' => $member->presences->map(function ($p) {

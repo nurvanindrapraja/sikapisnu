@@ -19,22 +19,23 @@ class OfficerController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $isPacScoped = $user->isScopedToPac();
+        $scopedPac = $isPacScoped ? $user->getManagedPac() : null;
+        $scopedPacId = $scopedPac?->id ?? ($isPacScoped ? $user->getManagedPacId() : null);
+
         $query = Member::where('membership_status', 'pengurus')
             ->with(['activePosition.pac', 'activePosition.section', 'activeCard', 'workgroups']);
 
-        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $kecamatan = auth()->user()->member?->kecamatan;
-            $query->where(function ($q) use ($pacId, $kecamatan) {
-                if ($pacId) {
-                    $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
-                }
-                if ($kecamatan) {
-                    $q->orWhere(function ($sub) use ($kecamatan) {
-                        $sub->whereNull('pac_id')->where('kecamatan', 'like', "%{$kecamatan}%");
-                    });
-                }
-            });
+        if ($isPacScoped) {
+            if ($scopedPacId) {
+                $query->whereHas('activePosition', function ($p) use ($scopedPacId) {
+                    $p->whereIn('level', ['PAC', 'PAC ISNU', 'Kecamatan'])
+                        ->where('pac_id', $scopedPacId);
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         // Search Text
@@ -48,24 +49,25 @@ class OfficerController extends Controller
             });
         }
 
-        // Filter Level Kepengurusan (PC ISNU / PAC ISNU)
-        if ($request->filled('level')) {
-            $level = $request->level;
-            $query->whereHas('activePosition', function ($q) use ($level) {
-                if ($level === 'PC ISNU' || $level === 'Kota') {
-                    $q->whereIn('level', ['PC ISNU', 'Kota', 'PC']);
-                } elseif ($level === 'PAC ISNU' || $level === 'PAC') {
-                    $q->whereIn('level', ['PAC ISNU', 'PAC']);
-                }
-            });
-        }
+        // Filter Level Kepengurusan & Lokasi PAC hanya berlaku untuk akun non-PAC (PC/Admin)
+        if (! $isPacScoped) {
+            if ($request->filled('level')) {
+                $level = $request->level;
+                $query->whereHas('activePosition', function ($q) use ($level) {
+                    if ($level === 'PC ISNU' || $level === 'Kota') {
+                        $q->whereIn('level', ['PC ISNU', 'Kota', 'PC']);
+                    } elseif ($level === 'PAC ISNU' || $level === 'PAC') {
+                        $q->whereIn('level', ['PAC ISNU', 'PAC', 'Kecamatan']);
+                    }
+                });
+            }
 
-        // Filter PAC Location
-        if ($request->filled('pac_id')) {
-            $pacId = $request->pac_id;
-            $query->whereHas('activePosition', function ($q) use ($pacId) {
-                $q->where('pac_id', $pacId);
-            });
+            if ($request->filled('pac_id')) {
+                $pacId = $request->pac_id;
+                $query->whereHas('activePosition', function ($q) use ($pacId) {
+                    $q->where('pac_id', $pacId);
+                });
+            }
         }
 
         // Filter Jabatan Pengurus
@@ -81,27 +83,28 @@ class OfficerController extends Controller
         }
 
         $officers = $query->latest()->paginate(15)->withQueryString();
-        $pacs = auth()->user()->isKetuaOrSekretarisPac()
-            ? Pac::where('id', auth()->user()->getManagedPacId())->get()
+        $pacs = $isPacScoped
+            ? ($scopedPac ? collect([$scopedPac]) : collect())
             : Pac::orderBy('name')->get();
-        $sections = auth()->user()->isKetuaOrSekretarisPac()
-            ? Section::with('pac')->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+        $sections = $isPacScoped
+            ? Section::with('pac')->where('pac_id', $scopedPacId)->orderBy('name')->get()
             : Section::with('pac')->orderBy('level')->orderBy('name')->get();
 
         $eligibleQuery = Member::where('membership_status', 'terverifikasi')->whereDoesntHave('activePosition');
-        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $kecamatan = auth()->user()->member?->kecamatan;
-            $eligibleQuery->where(function ($q) use ($pacId, $kecamatan) {
-                if ($pacId) {
-                    $q->where('pac_id', $pacId)->orWhereHas('activePosition', fn ($p) => $p->where('pac_id', $pacId));
-                }
-                if ($kecamatan) {
-                    $q->orWhere(function ($sub) use ($kecamatan) {
-                        $sub->whereNull('pac_id')->where('kecamatan', 'like', "%{$kecamatan}%");
-                    });
-                }
-            });
+        if ($isPacScoped) {
+            $pacKecamatan = $user->getManagedPacKecamatan();
+            if ($scopedPacId) {
+                $eligibleQuery->where(function ($q) use ($scopedPacId, $pacKecamatan) {
+                    $q->where('pac_id', $scopedPacId);
+                    if ($pacKecamatan) {
+                        $q->orWhere(function ($sub) use ($pacKecamatan) {
+                            $sub->whereNull('pac_id')->where('kecamatan', 'like', "%{$pacKecamatan}%");
+                        });
+                    }
+                });
+            } else {
+                $eligibleQuery->whereRaw('1 = 0');
+            }
         }
         $eligibleMembers = $eligibleQuery->orderBy('full_name')->get();
 
@@ -109,7 +112,7 @@ class OfficerController extends Controller
             return view('admin.pengurus.partials.officer_list', compact('officers'));
         }
 
-        return view('admin.pengurus.index', compact('officers', 'pacs', 'sections', 'eligibleMembers'));
+        return view('admin.pengurus.index', compact('officers', 'pacs', 'sections', 'eligibleMembers', 'isPacScoped', 'scopedPac'));
     }
 
     public function promote(Request $request, $member_id)

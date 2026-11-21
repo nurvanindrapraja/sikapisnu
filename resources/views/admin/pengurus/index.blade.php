@@ -72,11 +72,16 @@
 }">
     <div class="card-body p-4">
         <!-- Top Action Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4 gap-2">
-            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2 flex-wrap">
                 <i class="bi bi-award-fill text-warning fs-4"></i>
-                <span class="d-none d-sm-inline">Daftar Pengurus ISNU Kota Surabaya</span>
-                <span class="d-inline d-sm-none">Pengurus ISNU</span>
+                @if(!empty($isPacScoped) && !empty($scopedPac))
+                    <span class="d-none d-sm-inline">Daftar Pengurus {{ $scopedPac->display_name }}</span>
+                    <span class="d-inline d-sm-none">Pengurus {{ $scopedPac->display_name }}</span>
+                @else
+                    <span class="d-none d-sm-inline">Daftar Pengurus ISNU Kota Surabaya</span>
+                    <span class="d-inline d-sm-none">Pengurus ISNU</span>
+                @endif
             </h5>
 
             @if(auth()->user()->canManageMembersAndOfficers())
@@ -91,34 +96,36 @@
         <!-- Filter & Search Bar -->
         <form @submit.prevent="applyFilter()" class="mb-4 bg-light p-3 rounded-4 border">
             <div class="row g-2">
-                <div class="col-md-3">
+                <div class="{{ !empty($isPacScoped) ? 'col-md-6' : 'col-md-3' }}">
                     <label class="form-label fw-bold small text-muted">Cari Nama / NIK</label>
                     <input type="text" x-model="search" @input.debounce.300ms="applyFilter()" class="form-control form-control-sm" placeholder="Nama atau no. anggota...">
                 </div>
 
-                <!-- 4.3 Filter Tingkat Kepengurusan -->
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Tingkat Kepengurusan</label>
-                    <select x-model="level" @change="applyFilter()" class="form-select form-select-sm">
-                        <option value="">-- Semua Tingkat --</option>
-                        <option value="PC ISNU">PC ISNU (Kota)</option>
-                        <option value="PAC ISNU">PAC ISNU (Kecamatan)</option>
-                    </select>
-                </div>
+                @if(empty($isPacScoped))
+                    <!-- 4.3 Filter Tingkat Kepengurusan -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Tingkat Kepengurusan</label>
+                        <select x-model="level" @change="applyFilter()" class="form-select form-select-sm">
+                            <option value="">-- Semua Tingkat --</option>
+                            <option value="PC ISNU">PC ISNU (Kota)</option>
+                            <option value="PAC ISNU">PAC ISNU (Kecamatan)</option>
+                        </select>
+                    </div>
 
-                <!-- 4.3 Filter Lokasi PAC (Tampil jika PAC ISNU dipilih) -->
-                <div class="col-md-3" x-show="level === 'PAC ISNU'" x-transition>
-                    <label class="form-label fw-bold small text-muted">Lokasi PAC ISNU</label>
-                    <select x-model="pacId" @change="applyFilter()" class="form-select form-select-sm">
-                        <option value="">-- Semua PAC --</option>
-                        @foreach($pacs as $p)
-                            <option value="{{ $p->id }}">{{ $p->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                    <!-- 4.3 Filter Lokasi PAC (Tampil jika PAC ISNU dipilih) -->
+                    <div class="col-md-3" x-show="level === 'PAC ISNU'" x-transition>
+                        <label class="form-label fw-bold small text-muted">Lokasi PAC ISNU</label>
+                        <select x-model="pacId" @change="applyFilter()" class="form-select form-select-sm">
+                            <option value="">-- Semua PAC --</option>
+                            @foreach($pacs as $p)
+                                <option value="{{ $p->id }}">{{ $p->display_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
 
                 <!-- 4.3 Filter Jabatan Pengurus -->
-                <div class="col-md-3">
+                <div class="{{ !empty($isPacScoped) ? 'col-md-6' : 'col-md-3' }}">
                     <label class="form-label fw-bold small text-muted">Jabatan Pengurus</label>
                     <select x-model="positionTitle" @change="applyFilter()" class="form-select form-select-sm">
                         <option value="">-- Semua Jabatan --</option>

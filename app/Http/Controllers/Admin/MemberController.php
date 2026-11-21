@@ -22,6 +22,42 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class MemberController extends Controller
 {
+    /**
+     * Terapkan batasan data anggota khusus wilayah PAC bagi akun pengurus/admin PAC.
+     * Menggunakan pac_id dan kecamatan milik master PAC terkait (bukan domisili pribadi pengurus).
+     */
+    protected function applyPacMemberScope($query, ?User $user = null): void
+    {
+        $user = $user ?? auth()->user();
+        if (! $user || ! $user->isScopedToPac()) {
+            return;
+        }
+
+        $pacId = $user->getManagedPacId();
+        $pacKecamatan = $user->getManagedPacKecamatan();
+
+        if (! $pacId) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(function ($q) use ($pacId, $pacKecamatan) {
+            $q->where('pac_id', $pacId)
+                ->orWhereHas('activePosition', function ($p) use ($pacId) {
+                    $p->whereIn('level', ['PAC', 'PAC ISNU', 'Kecamatan'])
+                        ->where('pac_id', $pacId);
+                });
+
+            if ($pacKecamatan) {
+                $q->orWhere(function ($sub) use ($pacKecamatan) {
+                    $sub->whereNull('pac_id')
+                        ->where('kecamatan', 'like', "%{$pacKecamatan}%");
+                });
+            }
+        });
+    }
+
     public function index(Request $request)
     {
         if (auth()->user()?->isRestrictedOfficer()) {
@@ -29,19 +65,7 @@ class MemberController extends Controller
         }
 
         $query = Member::with(['user', 'mwc', 'pac', 'activePosition']);
-
-        if (auth()->user()->isAdminPac() || auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $kecamatan = auth()->user()->member?->kecamatan;
-            $query->where(function ($q) use ($pacId, $kecamatan) {
-                if ($pacId) {
-                    $q->where('pac_id', $pacId);
-                }
-                if ($kecamatan) {
-                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
-                }
-            });
-        }
+        $this->applyPacMemberScope($query);
 
         // Search Multi-Parameter
         if ($request->filled('search')) {
@@ -634,19 +658,7 @@ class MemberController extends Controller
         }
 
         $query = Member::onlyTrashed()->with(['user', 'mwc']);
-
-        if (auth()->user()->isAdminPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $kecamatan = auth()->user()->member?->kecamatan;
-            $query->where(function ($q) use ($pacId, $kecamatan) {
-                if ($pacId) {
-                    $q->where('pac_id', $pacId);
-                }
-                if ($kecamatan) {
-                    $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
-                }
-            });
-        }
+        $this->applyPacMemberScope($query);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -726,21 +738,11 @@ class MemberController extends Controller
     public function rekapPdf(Request $request)
     {
         $currentUser = auth()->user();
-        $isPacAdmin = $currentUser->isAdminPac() || $currentUser->isKetuaOrSekretarisPac();
+        $isPacAdmin = $currentUser->isScopedToPac();
         $pacId = $isPacAdmin ? $currentUser->getManagedPacId() : null;
-        $kecamatan = $isPacAdmin ? $currentUser->member?->kecamatan : null;
 
-        $applyScope = function ($query) use ($isPacAdmin, $pacId, $kecamatan) {
-            if ($isPacAdmin) {
-                $query->where(function ($q) use ($pacId, $kecamatan) {
-                    if ($pacId) {
-                        $q->where('pac_id', $pacId);
-                    }
-                    if ($kecamatan) {
-                        $q->orWhere('kecamatan', 'like', "%{$kecamatan}%");
-                    }
-                });
-            }
+        $applyScope = function ($query) use ($currentUser) {
+            $this->applyPacMemberScope($query, $currentUser);
         };
 
         // 1. Ringkasan Statistik Status Keanggotaan
@@ -817,12 +819,19 @@ class MemberController extends Controller
             ->groupBy('field');
 
         // 7. Daftar Pengurus ISNU
-        $officers = Position::with(['member.educations', 'member.pac', 'section', 'pac'])
-            ->where('is_active', true)
-            ->whereHas('member', function ($q) use ($applyScope, $isPacAdmin) {
-                $q->when($isPacAdmin, $applyScope);
-            })
-            ->get()
+        $officersQuery = Position::with(['member.educations', 'member.pac', 'section', 'pac'])
+            ->where('is_active', true);
+
+        if ($isPacAdmin) {
+            if ($pacId) {
+                $officersQuery->whereIn('level', ['PAC', 'PAC ISNU', 'Kecamatan'])
+                    ->where('pac_id', $pacId);
+            } else {
+                $officersQuery->whereRaw('1 = 0');
+            }
+        }
+
+        $officers = $officersQuery->get()
             ->sortBy(function ($p) {
                 $order = [
                     'Ketua' => 1,
@@ -891,7 +900,7 @@ class MemberController extends Controller
             'certifications',
         ])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isScopedToPac() && auth()->user()->canViewMember($member))) {
             abort(403, 'Anda tidak memiliki wewenang untuk melihat anggota di luar wilayah PAC Anda.');
         }
 
@@ -911,7 +920,7 @@ class MemberController extends Controller
     {
         $member = Member::withTrashed()->with(['activeCard', 'activePosition', 'mwc', 'pac'])->findOrFail($id);
 
-        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isKetuaOrSekretarisPac() && auth()->user()->canViewMember($member))) {
+        if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isScopedToPac() && auth()->user()->canViewMember($member))) {
             abort(403, 'Anda tidak memiliki wewenang untuk melihat anggota di luar wilayah PAC Anda.');
         }
 

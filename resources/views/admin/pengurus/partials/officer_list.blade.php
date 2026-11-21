@@ -48,13 +48,9 @@
                         <small class="text-muted">{{ $pos ? $pos->period : '-' }}</small>
                     </td>
                     <td>
-                        @if($pos && ($pos->level === 'PAC ISNU' || $pos->level === 'PAC') && $pos->pac)
+                        @if($pos && in_array($pos->level, ['PAC ISNU', 'PAC', 'Kecamatan'], true) && $pos->pac)
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                                PAC ISNU {{ $pos->pac->name }}
-                            </span>
-                        @elseif($o->pac)
-                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                                PAC ISNU {{ $o->pac->name }}
+                                {{ $pos->pac->display_name }}
                             </span>
                         @else
                             <span class="text-muted">PC ISNU Kota Surabaya</span>
@@ -134,10 +130,8 @@
                 <div class="d-flex justify-content-between">
                     <span class="text-muted">Wilayah / PAC:</span>
                     <span class="fw-semibold text-success ms-2 text-end text-break">
-                        @if($pos && ($pos->level === 'PAC ISNU' || $pos->level === 'PAC') && $pos->pac)
-                            PAC ISNU {{ $pos->pac->name }}
-                        @elseif($o->pac)
-                            PAC ISNU {{ $o->pac->name }}
+                        @if($pos && in_array($pos->level, ['PAC ISNU', 'PAC', 'Kecamatan'], true) && $pos->pac)
+                            {{ $pos->pac->display_name }}
                         @else
                             PC ISNU Kota Surabaya
                         @endif

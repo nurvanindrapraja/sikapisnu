@@ -458,16 +458,94 @@ class User extends Authenticatable
     }
 
     /**
-     * Memeriksa apakah user dibatasi hanya pada lingkup surat milik PAC tertentu
+     * Memeriksa apakah user dibatasi hanya pada lingkup wilayah PAC tertentu
      * (seluruh Pengurus PAC dan Admin PAC, kecuali Super Admin / Admin Kota / Admin PC).
      */
-    public function isScopedToPacLetters(): bool
+    public function isScopedToPac(): bool
     {
         if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
             return false;
         }
 
         return $this->isOfficerPac() || $this->isAdminPac();
+    }
+
+    /**
+     * Memeriksa apakah user dibatasi hanya pada lingkup surat milik PAC tertentu.
+     */
+    public function isScopedToPacLetters(): bool
+    {
+        return $this->isScopedToPac();
+    }
+
+    /**
+     * Mendapatkan model PAC yang menaungi user saat ini.
+     */
+    public function getManagedPac(): ?Pac
+    {
+        $pacId = $this->getManagedPacId();
+
+        return $pacId ? Pac::find($pacId) : null;
+    }
+
+    /**
+     * Mendapatkan nama kecamatan wilayah PAC yang dikelola/dinaungi user
+     * (diambil dari master PAC, bukan domisili pribadi akun pengurus).
+     */
+    public function getManagedPacKecamatan(): ?string
+    {
+        $pac = $this->getManagedPac();
+        if ($pac) {
+            if (! empty($pac->kecamatan)) {
+                return trim((string) $pac->kecamatan);
+            }
+
+            $clean = trim((string) preg_replace('/^(PAC\s+ISNU\s+|PAC\s+)/i', '', trim((string) $pac->name)));
+            if ($clean !== '') {
+                return $clean;
+            }
+        }
+
+        return $this->member?->kecamatan ? trim((string) $this->member->kecamatan) : null;
+    }
+
+    /**
+     * Memeriksa apakah seorang anggota masuk dalam wilayah PAC yang dinaungi user.
+     */
+    public function isMemberInManagedPac(Member $member): bool
+    {
+        $pacId = $this->getManagedPacId();
+        if (! $pacId) {
+            return false;
+        }
+
+        if ($member->pac_id !== null && (int) $member->pac_id === $pacId) {
+            return true;
+        }
+
+        $memberPos = $member->relationLoaded('activePosition') ? $member->activePosition : $member->activePosition()->first();
+        if (
+            $memberPos
+            && in_array($memberPos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true)
+            && (int) $memberPos->pac_id === $pacId
+        ) {
+            return true;
+        }
+
+        // Jika anggota sudah terdaftar secara eksplisit di PAC lain, tidak masuk wilayah PAC ini
+        if ($member->pac_id !== null) {
+            return false;
+        }
+
+        $pacKecamatan = $this->getManagedPacKecamatan();
+        if ($pacKecamatan && $member->kecamatan) {
+            $normPac = strtolower(trim($pacKecamatan));
+            $normMember = strtolower(trim((string) $member->kecamatan));
+
+            return $normMember === $normPac || str_contains($normMember, $normPac);
+        }
+
+        return false;
     }
 
     /**
@@ -640,32 +718,15 @@ class User extends Authenticatable
         $title = $this->getOfficerPositionTitle();
         if (in_array($title, ['Ketua', 'Sekretaris'], true)) {
             $pos = $this->getOfficerPosition();
-            if (! $pos || in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || ! $pos->pac_id) {
+            if (! $pos || (! $this->isOfficerPac() && (in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || ! $pos->pac_id))) {
                 return true;
             }
 
-            if ($pos->pac_id && $member->pac_id) {
-                return (int) $member->pac_id === (int) $pos->pac_id;
-            }
-
-            if ($this->member?->kecamatan && $member->kecamatan) {
-                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
-            }
-
-            return false;
+            return $this->isMemberInManagedPac($member);
         }
 
         if ($this->isAdminPac()) {
-            $pacId = $this->getManagedPacId();
-            if ($pacId && $member->pac_id) {
-                return (int) $member->pac_id === (int) $pacId;
-            }
-
-            if ($this->member?->kecamatan && $member->kecamatan) {
-                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
-            }
-
-            return false;
+            return $this->isMemberInManagedPac($member);
         }
 
         return false;
@@ -685,34 +746,17 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($this->isScopedToPac()) {
+            return $this->isMemberInManagedPac($member);
+        }
+
         $pos = $this->getOfficerPosition();
         if ($pos) {
             if (! $pos->pac_id || in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true)) {
                 return true;
             }
 
-            if ($pos->pac_id && $member->pac_id) {
-                return (int) $member->pac_id === (int) $pos->pac_id;
-            }
-
-            if ($this->member?->kecamatan && $member->kecamatan) {
-                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
-            }
-
-            return false;
-        }
-
-        if ($this->isAdminPac()) {
-            $pacId = $this->getManagedPacId();
-            if ($pacId && $member->pac_id) {
-                return (int) $member->pac_id === (int) $pacId;
-            }
-
-            if ($this->member?->kecamatan && $member->kecamatan) {
-                return strtolower(trim($this->member->kecamatan)) === strtolower(trim($member->kecamatan));
-            }
-
-            return false;
+            return $this->isMemberInManagedPac($member);
         }
 
         if ($this->member && (int) $this->member->id === (int) $member->id) {

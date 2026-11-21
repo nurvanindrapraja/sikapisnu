@@ -579,4 +579,185 @@ class PacOfficerPermissionTest extends TestCase
         ])->assertStatus(403);
         $this->delete(route('admin.events.destroy', $this->eventSukolilo->id))->assertStatus(403);
     }
+
+    public function test_pengurus_pac_berdomisili_kecamatan_lain_hanya_melihat_anggota_dan_pengurus_pac_jabatannya(): void
+    {
+        $mwc = Mwc::first();
+        $pacGayungan = Pac::firstOrCreate(
+            ['code' => 'PAC-GYG'],
+            ['mwc_id' => $mwc->id, 'name' => 'PAC GAYUNGAN', 'kecamatan' => 'Gayungan', 'city' => 'Kota Surabaya', 'province' => 'Jawa Timur']
+        );
+
+        // Ketua PAC Gayungan yang domisili pribadinya di Rungkut (pac_id member null, jabatan di PAC Gayungan)
+        $ketuaGayunganUser = User::factory()->create([
+            'name' => 'Ketua PAC Gayungan Domisili Rungkut',
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $ketuaGayunganMember = $this->createTestMember([
+            'user_id' => $ketuaGayunganUser->id,
+            'full_name' => 'Ketua PAC Gayungan Domisili Rungkut',
+            'membership_status' => 'pengurus',
+            'pac_id' => null,
+            'kecamatan' => 'Rungkut',
+        ]);
+        Position::create([
+            'member_id' => $ketuaGayunganMember->id,
+            'position_title' => 'Ketua',
+            'level' => 'PAC',
+            'pac_id' => $pacGayungan->id,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Sekretaris PAC Gayungan
+        $sekretarisGayunganMember = $this->createTestMember([
+            'full_name' => 'Sekretaris PAC Gayungan',
+            'membership_status' => 'pengurus',
+            'pac_id' => $pacGayungan->id,
+            'kecamatan' => 'Gayungan',
+        ]);
+        Position::create([
+            'member_id' => $sekretarisGayunganMember->id,
+            'position_title' => 'Sekretaris',
+            'level' => 'PAC',
+            'pac_id' => $pacGayungan->id,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Koordinator Seksi PAC Gayungan (untuk uji pengurus PAC selain Ketua/Sekretaris di menu Pengurus)
+        $koordGayunganUser = User::factory()->create([
+            'name' => 'Koordinator Seksi PAC Gayungan',
+            'role' => 'member',
+            'is_active' => true,
+        ]);
+        $koordGayunganMember = $this->createTestMember([
+            'user_id' => $koordGayunganUser->id,
+            'full_name' => 'Koordinator Seksi PAC Gayungan',
+            'membership_status' => 'pengurus',
+            'pac_id' => $pacGayungan->id,
+            'kecamatan' => 'Gayungan',
+        ]);
+        Position::create([
+            'member_id' => $koordGayunganMember->id,
+            'position_title' => 'Koordinator Seksi',
+            'level' => 'PAC',
+            'pac_id' => $pacGayungan->id,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Anggota wilayah Gayungan (via pac_id dan via kecamatan)
+        $anggotaGayunganPac = $this->createTestMember([
+            'full_name' => 'Anggota Wilayah Gayungan Explicit',
+            'membership_status' => 'terverifikasi',
+            'pac_id' => $pacGayungan->id,
+            'kecamatan' => 'Gayungan',
+        ]);
+        $anggotaGayunganKec = $this->createTestMember([
+            'full_name' => 'Anggota Wilayah Gayungan Kecamatan',
+            'membership_status' => 'terverifikasi',
+            'pac_id' => null,
+            'kecamatan' => 'Gayungan',
+        ]);
+
+        // Anggota wilayah Rungkut (harus TIDAK tampil di PAC Gayungan walau Ketua PAC Gayungan tinggal di Rungkut)
+        $anggotaRungkut = $this->createTestMember([
+            'full_name' => 'Anggota Domisili Rungkut',
+            'membership_status' => 'terverifikasi',
+            'pac_id' => null,
+            'kecamatan' => 'Rungkut',
+        ]);
+
+        // Pengurus PC ISNU domisili Rungkut (harus TIDAK tampil di Anggota maupun Pengurus PAC Gayungan)
+        $pengurusPcRungkut = $this->createTestMember([
+            'full_name' => 'Wakil Ketua PC Domisili Rungkut',
+            'membership_status' => 'pengurus',
+            'pac_id' => null,
+            'kecamatan' => 'Rungkut',
+        ]);
+        Position::create([
+            'member_id' => $pengurusPcRungkut->id,
+            'position_title' => 'Wakil Ketua',
+            'level' => 'Kota',
+            'pac_id' => null,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // Pengurus PC ISNU domisili Gayungan (boleh tampil di Anggota Gayungan, tapi TIDAK BOLEH tampil di Pengurus PAC Gayungan)
+        $pengurusPcGayungan = $this->createTestMember([
+            'full_name' => 'Sekretaris PC Domisili Gayungan',
+            'membership_status' => 'pengurus',
+            'pac_id' => $pacGayungan->id,
+            'kecamatan' => 'Gayungan',
+        ]);
+        Position::create([
+            'member_id' => $pengurusPcGayungan->id,
+            'position_title' => 'Sekretaris',
+            'level' => 'Kota',
+            'pac_id' => null,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        // 1. Database Anggota untuk Ketua PAC Gayungan: hanya anggota wilayah PAC Gayungan (bukan Rungkut / Wonokromo / Sukolilo)
+        $anggotaRes = $this->actingAs($ketuaGayunganUser)->get(route('admin.anggota.index'));
+        $anggotaRes->assertOk();
+        $anggotaRes->assertSee($anggotaGayunganPac->full_name);
+        $anggotaRes->assertSee($anggotaGayunganKec->full_name);
+        $anggotaRes->assertSee($sekretarisGayunganMember->full_name);
+        $anggotaRes->assertDontSee($anggotaRungkut->full_name);
+        $anggotaRes->assertDontSee($pengurusPcRungkut->full_name);
+        $anggotaRes->assertDontSee($this->memberSukolilo->full_name);
+
+        // Detail anggota Rungkut ditolak (403) untuk Ketua PAC Gayungan
+        $this->actingAs($ketuaGayunganUser)->get(route('admin.anggota.show', $anggotaRungkut->id))->assertForbidden();
+        $this->actingAs($ketuaGayunganUser)->get(route('admin.anggota.show', $anggotaGayunganPac->id))->assertOk();
+
+        // 2. Menu Pengurus untuk Ketua PAC Gayungan: HANYA pengurus PAC Gayungan (bukan Pengurus PC maupun PAC lain)
+        $pengurusRes = $this->actingAs($ketuaGayunganUser)->get(route('admin.pengurus.index'));
+        $pengurusRes->assertOk();
+        $pengurusRes->assertSee('Daftar Pengurus PAC ISNU GAYUNGAN');
+        $pengurusRes->assertSee($ketuaGayunganMember->full_name);
+        $pengurusRes->assertSee($sekretarisGayunganMember->full_name);
+        $pengurusRes->assertSee($koordGayunganMember->full_name);
+        $pengurusRes->assertDontSee($pengurusPcRungkut->full_name);
+        $pengurusRes->assertDontSee($pengurusPcGayungan->full_name);
+        $pengurusRes->assertDontSee($this->ketuaPac->name);
+        $pengurusRes->assertDontSee('PAC ISNU PAC GAYUNGAN');
+
+        // Filter query level=PC ISNU tetap tidak membocorkan pengurus PC
+        $pengurusFilterRes = $this->actingAs($ketuaGayunganUser)->get(route('admin.pengurus.index', ['level' => 'PC ISNU']));
+        $pengurusFilterRes->assertOk();
+        $pengurusFilterRes->assertSee($ketuaGayunganMember->full_name);
+        $pengurusFilterRes->assertDontSee($pengurusPcRungkut->full_name);
+        $pengurusFilterRes->assertDontSee($pengurusPcGayungan->full_name);
+
+        // 3. Pengurus PAC selain Ketua/Sekretaris (Koordinator Seksi PAC) juga hanya melihat pengurus PAC-nya di menu Pengurus
+        $koordPengurusRes = $this->actingAs($koordGayunganUser)->get(route('admin.pengurus.index'));
+        $koordPengurusRes->assertOk();
+        $koordPengurusRes->assertSee($ketuaGayunganMember->full_name);
+        $koordPengurusRes->assertSee($sekretarisGayunganMember->full_name);
+        $koordPengurusRes->assertDontSee($pengurusPcRungkut->full_name);
+        $koordPengurusRes->assertDontSee($pengurusPcGayungan->full_name);
+        $koordPengurusRes->assertDontSee($this->ketuaPac->name);
+
+        // 4. Rekap Tingkat Kehadiran Kegiatan Kader untuk Ketua PAC Gayungan: hanya kader wilayah PAC Gayungan
+        $rekapRes = $this->actingAs($ketuaGayunganUser)->get(route('admin.presensi.rekap'));
+        $rekapRes->assertOk();
+        $rekapRes->assertSee($anggotaGayunganPac->full_name);
+        $rekapRes->assertSee($anggotaGayunganKec->full_name);
+        $rekapRes->assertSee($sekretarisGayunganMember->full_name);
+        $rekapRes->assertSee($ketuaGayunganMember->full_name);
+        $rekapRes->assertDontSee($anggotaRungkut->full_name);
+        $rekapRes->assertDontSee($pengurusPcRungkut->full_name);
+        $rekapRes->assertDontSee($this->memberSukolilo->full_name);
+        $rekapRes->assertDontSee('-- Semua PAC ISNU --');
+
+        // Detail presensi kader di luar PAC Gayungan ditolak (403), kader PAC Gayungan diizinkan (200)
+        $this->actingAs($ketuaGayunganUser)->getJson(route('admin.presensi.detail_kader', $anggotaRungkut->id))->assertForbidden();
+        $this->actingAs($ketuaGayunganUser)->getJson(route('admin.presensi.detail_kader', $anggotaGayunganPac->id))->assertOk();
+    }
 }
