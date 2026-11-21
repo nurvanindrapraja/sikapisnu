@@ -275,4 +275,5 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/product-orders/{id}/verify-payment', [AdminProductOrder::class, 'verifyPayment'])->name('product_orders.verify_payment');
     Route::post('/product-orders/{id}/update-shipping', [AdminProductOrder::class, 'updateShipping'])->name('product_orders.update_shipping');
     Route::post('/product-orders/{id}/mark-received', [AdminProductOrder::class, 'markReceived'])->name('product_orders.mark_received');
+    Route::delete('/product-orders/{id}', [AdminProductOrder::class, 'destroy'])->name('product_orders.destroy');
 });

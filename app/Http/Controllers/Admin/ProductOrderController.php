@@ -8,6 +8,8 @@ use App\Models\ProductOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProductOrderController extends Controller
@@ -266,5 +268,61 @@ class ProductOrderController extends Controller
         }
 
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Menghapus data pemesanan merchandise (khusus Super Admin).
+     */
+    public function destroy(Request $request, int $id): RedirectResponse|JsonResponse
+    {
+        if (! auth()->check() || ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang berhak menghapus data pemesanan merchandise.');
+        }
+
+        $order = ProductOrder::with(['items.product'])->findOrFail($id);
+        $orderNumber = $order->order_number;
+        $recipientName = $order->user->name ?? $order->recipient_name;
+        $formattedTotal = $order->formatted_grand_total;
+
+        DB::transaction(function () use ($order, $orderNumber, $recipientName, $formattedTotal): void {
+            if (in_array($order->status, [
+                ProductOrder::STATUS_PENDING_PAYMENT,
+                ProductOrder::STATUS_PAYMENT_UPLOADED,
+                ProductOrder::STATUS_PAID,
+            ], true)) {
+                foreach ($order->items as $item) {
+                    if ($item->product) {
+                        $item->product->increment('stock', (int) $item->quantity);
+                    }
+                }
+            }
+
+            if ($order->payment_proof_path && Storage::disk('public')->exists($order->payment_proof_path)) {
+                Storage::disk('public')->delete($order->payment_proof_path);
+            }
+
+            if ($order->receipt_proof_path && Storage::disk('public')->exists($order->receipt_proof_path)) {
+                Storage::disk('public')->delete($order->receipt_proof_path);
+            }
+
+            $order->delete();
+
+            AuditLog::record(
+                auth()->id(),
+                'Hapus Pesanan Merchandise',
+                "Super Admin menghapus data pesanan merchandise {$orderNumber} atas nama {$recipientName} ({$formattedTotal})."
+            );
+        });
+
+        $msg = "Data pesanan {$orderNumber} berhasil dihapus.";
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->route('admin.product_orders.index')->with('success', $msg);
     }
 }

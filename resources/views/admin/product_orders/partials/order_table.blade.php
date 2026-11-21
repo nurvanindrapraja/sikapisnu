@@ -16,12 +16,12 @@
                     <th class="text-end">Total Tagihan</th>
                     <th class="text-center">Bukti Transfer</th>
                     <th class="text-center">Status Pesanan</th>
-                    <th class="text-center" style="width: 120px;">Aksi</th>
+                    <th class="text-center" style="width: {{ auth()->user()->isSuperAdmin() ? '160px' : '120px' }};">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($orders as $ord)
-                    <tr id="order-row-{{ $ord->id }}">
+                    <tr id="order-row-{{ $ord->id }}" data-order-row="{{ $ord->id }}">
                         <td>
                             <a href="{{ route('admin.product_orders.show', $ord->id) }}" class="fw-bold text-dark text-decoration-none hover-success d-block">
                                 {{ $ord->order_number }}
@@ -68,9 +68,22 @@
                             </span>
                         </td>
                         <td class="text-center">
-                            <a href="{{ route('admin.product_orders.show', $ord->id) }}" class="btn btn-sm btn-isnu-primary rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.78rem;">
-                                Kelola <i class="bi bi-arrow-right ms-1"></i>
-                            </a>
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <a href="{{ route('admin.product_orders.show', $ord->id) }}" class="btn btn-sm btn-isnu-primary rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.78rem;">
+                                    Kelola <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                                @if(auth()->user()->isSuperAdmin())
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 btn-delete-order"
+                                            data-id="{{ $ord->id }}"
+                                            data-order-number="{{ $ord->order_number }}"
+                                            data-recipient-name="{{ $ord->user->name ?? $ord->recipient_name }}"
+                                            data-url="{{ route('admin.product_orders.destroy', $ord->id) }}"
+                                            title="Hapus Pesanan">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @endforeach
@@ -81,7 +94,7 @@
     <!-- Mobile Card View -->
     <div class="d-md-none p-3 d-flex flex-column gap-3">
         @foreach($orders as $ord)
-            <div class="card border shadow-sm rounded-4">
+            <div class="card border shadow-sm rounded-4" data-order-row="{{ $ord->id }}">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <div class="min-w-0">
@@ -133,9 +146,22 @@
                         @else
                             <span class="badge bg-light text-muted border">Belum Upload</span>
                         @endif
-                        <a href="{{ route('admin.product_orders.show', $ord->id) }}" class="btn btn-sm btn-isnu-primary rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.78rem;">
-                            Kelola <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
+                        <div class="d-inline-flex align-items-center gap-1">
+                            <a href="{{ route('admin.product_orders.show', $ord->id) }}" class="btn btn-sm btn-isnu-primary rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.78rem;">
+                                Kelola <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                            @if(auth()->user()->isSuperAdmin())
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 btn-delete-order"
+                                        data-id="{{ $ord->id }}"
+                                        data-order-number="{{ $ord->order_number }}"
+                                        data-recipient-name="{{ $ord->user->name ?? $ord->recipient_name }}"
+                                        data-url="{{ route('admin.product_orders.destroy', $ord->id) }}"
+                                        title="Hapus Pesanan">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>

@@ -709,4 +709,81 @@ class MerchandiseStoreTest extends TestCase
         $storeResponse->assertSee('Toko Merchandise');
         $storeResponse->assertSee('Pengurus ISNU');
     }
+
+    public function test_superadmin_and_admin_do_not_see_toko_merchandise_and_pesanan_saya_in_sidebar(): void
+    {
+        $superAdmin = User::factory()->create(['role' => 'super_admin', 'is_active' => true]);
+        $adminKota = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+
+        foreach ([$superAdmin, $adminKota] as $adminUser) {
+            $response = $this->actingAs($adminUser)->get(route('admin.dashboard'));
+            $response->assertStatus(200);
+            $response->assertDontSee(route('member.store.index'));
+            $response->assertDontSee(route('member.orders.index'));
+            $response->assertSee('Kelola Produk Toko');
+            $response->assertSee('Pesanan Merchandise');
+        }
+    }
+
+    public function test_only_superadmin_can_delete_merchandise_order(): void
+    {
+        $superAdmin = User::factory()->create(['role' => 'super_admin', 'is_active' => true]);
+        $adminKota = User::factory()->create(['role' => 'admin_kota', 'is_active' => true]);
+        $buyer = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $this->createMember($buyer);
+
+        $product = Product::create([
+            'name' => 'Produk Hapus Test',
+            'slug' => 'produk-hapus-test',
+            'category' => 'aksesoris',
+            'price' => 75000,
+            'stock' => 8,
+            'is_active' => true,
+        ]);
+
+        $order = ProductOrder::create([
+            'order_number' => ProductOrder::generateOrderNumber(),
+            'user_id' => $buyer->id,
+            'total_amount' => 150000,
+            'shipping_cost' => 0,
+            'grand_total' => 150000,
+            'recipient_name' => 'Pembeli Uji',
+            'recipient_phone' => '081234567890',
+            'shipping_address' => 'Surabaya',
+            'status' => ProductOrder::STATUS_PENDING_PAYMENT,
+        ]);
+
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => $product->price,
+            'quantity' => 2,
+            'subtotal' => 150000,
+        ]);
+
+        // Admin kota sees list without delete button and gets 403 on delete
+        $adminListResponse = $this->actingAs($adminKota)->get(route('admin.product_orders.index'));
+        $adminListResponse->assertStatus(200);
+        $adminListResponse->assertDontSee('btn-delete-order');
+        $adminListResponse->assertDontSee('modalConfirmDeleteOrder');
+
+        $this->actingAs($adminKota)
+            ->deleteJson(route('admin.product_orders.destroy', $order->id))
+            ->assertStatus(403);
+        $this->assertDatabaseHas('product_orders', ['id' => $order->id]);
+
+        // Superadmin sees delete button & modal and can delete via AJAX, restoring stock
+        $superListResponse = $this->actingAs($superAdmin)->get(route('admin.product_orders.index'));
+        $superListResponse->assertStatus(200);
+        $superListResponse->assertSee('btn-delete-order');
+        $superListResponse->assertSee('modalConfirmDeleteOrder');
+
+        $deleteResponse = $this->actingAs($superAdmin)
+            ->deleteJson(route('admin.product_orders.destroy', $order->id));
+        $deleteResponse->assertStatus(200);
+        $deleteResponse->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('product_orders', ['id' => $order->id]);
+        $this->assertEquals(10, $product->fresh()->stock);
+    }
 }

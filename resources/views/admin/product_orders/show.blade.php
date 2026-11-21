@@ -17,10 +17,20 @@
                 <h4 class="fw-bold text-dark mb-0">Pesanan: {{ $order->order_number }}</h4>
                 <small class="text-muted">Dibuat pada: {{ $order->created_at->translatedFormat('d F Y, H:i') }} WIB</small>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
                 <span id="orderStatusBadge" class="badge {{ $order->status_badge_class }} rounded-pill px-3 py-2 fw-bold fs-6 shadow-sm">
                     {{ $order->status_label }}
                 </span>
+                @if(auth()->user()->isSuperAdmin())
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger rounded-pill px-3 py-2 fw-semibold"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalConfirmDeleteOrderShow"
+                            title="Hapus Pesanan">
+                        <i class="bi bi-trash"></i>
+                        <span class="d-none d-md-inline ms-1">Hapus Pesanan</span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>
@@ -534,6 +544,38 @@
         </div>
     </div>
 </div>
+
+@if(auth()->user()->isSuperAdmin())
+<!-- Modal Konfirmasi Hapus Pesanan Merchandise (Khusus Super Admin) -->
+<div class="modal fade" id="modalConfirmDeleteOrderShow" tabindex="-1" aria-labelledby="modalConfirmDeleteOrderShowLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                    <i class="bi bi-trash fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2" id="modalConfirmDeleteOrderShowLabel">Hapus Data Pesanan?</h5>
+                <p class="text-secondary small mb-3">
+                    Apakah Anda yakin ingin menghapus pesanan <strong class="text-dark">{{ $order->order_number }}</strong> atas nama <strong class="text-dark">{{ $order->user->name ?? $order->recipient_name }}</strong>?
+                    Data pesanan yang dihapus tidak dapat dikembalikan.
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <form action="{{ route('admin.product_orders.destroy', $order->id) }}" method="POST" class="d-inline" x-data="{ deleting: false }" @submit="deleting = true">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="deleting">
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="deleting" x-cloak></span>
+                            <i class="bi bi-trash me-1" x-show="!deleting"></i>
+                            <span x-text="deleting ? 'Menghapus...' : 'Ya, Hapus'"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('scripts')

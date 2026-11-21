@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel') - SIKAP ISNU Kota Surabaya</title>
     
     <!-- Favicon -->
@@ -406,7 +407,9 @@
             </li>
             @endif
 
+            @if(!auth()->user()->isSystemAdmin() || auth()->user()->canManageProducts() || auth()->user()->canManageProductOrders())
             <li class="sidebar-header">Toko & Merchandise ISNU</li>
+            @if(!auth()->user()->isSystemAdmin())
             <li>
                 <a href="{{ route('member.store.index') }}" class="sidebar-link {{ request()->routeIs('member.store.*') ? 'active' : '' }}" @click="sidebarOpen = false">
                     <i class="bi bi-shop text-warning"></i> Toko Merchandise
@@ -423,6 +426,7 @@
                     @endif
                 </a>
             </li>
+            @endif
             @if(auth()->user()->canManageProducts())
             <li>
                 <a href="{{ route('admin.products.index') }}" class="sidebar-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" @click="sidebarOpen = false">
@@ -442,6 +446,7 @@
                     @endif
                 </a>
             </li>
+            @endif
             @endif
 
             @if(auth()->user()->canAccessLetterSubmission())

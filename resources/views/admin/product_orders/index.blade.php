@@ -188,6 +188,33 @@
         </div>
     </div>
 </div>
+
+@if(auth()->user()->isSuperAdmin())
+<!-- Modal Konfirmasi Hapus Pesanan Merchandise (Khusus Super Admin) -->
+<div class="modal fade" id="modalConfirmDeleteOrder" tabindex="-1" aria-labelledby="modalConfirmDeleteOrderLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                    <i class="bi bi-trash fs-3"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2" id="modalConfirmDeleteOrderLabel">Hapus Data Pesanan?</h5>
+                <p class="text-secondary small mb-3">
+                    Apakah Anda yakin ingin menghapus pesanan <strong id="deleteOrderNumber" class="text-dark"></strong> atas nama <strong id="deleteOrderRecipient" class="text-dark"></strong>?
+                    Data pesanan yang dihapus tidak dapat dikembalikan.
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" id="btnExecuteDeleteOrder" class="btn btn-danger rounded-pill px-4 fw-bold">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        <i class="bi bi-trash me-1"></i> Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('scripts')
@@ -332,7 +359,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 modal.show();
             });
         });
+
+        @if(auth()->user()->isSuperAdmin())
+        // Hapus Pesanan Modal Trigger (Khusus Super Admin)
+        tableContainer.querySelectorAll('.btn-delete-order').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modalEl = document.getElementById('modalConfirmDeleteOrder');
+                const btnConfirm = document.getElementById('btnExecuteDeleteOrder');
+                if (!modalEl || !btnConfirm) return;
+
+                const id = this.getAttribute('data-id');
+                const orderNumber = this.getAttribute('data-order-number');
+                const recipientName = this.getAttribute('data-recipient-name');
+                const url = this.getAttribute('data-url');
+
+                document.getElementById('deleteOrderNumber').textContent = orderNumber;
+                document.getElementById('deleteOrderRecipient').textContent = recipientName;
+                btnConfirm.setAttribute('data-id', id);
+                btnConfirm.setAttribute('data-url', url);
+
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            });
+        });
+        @endif
     }
+
+    @if(auth()->user()->isSuperAdmin())
+    const btnExecuteDeleteOrder = document.getElementById('btnExecuteDeleteOrder');
+    if (btnExecuteDeleteOrder) {
+        btnExecuteDeleteOrder.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            const id = this.getAttribute('data-id');
+            const spinner = this.querySelector('.spinner-border');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+
+            this.disabled = true;
+            if (spinner) spinner.classList.remove('d-none');
+
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(errData => { throw errData; }).catch(() => { throw new Error('Gagal menghapus data pesanan.'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                bootstrap.Modal.getInstance(document.getElementById('modalConfirmDeleteOrder'))?.hide();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    const rows = document.querySelectorAll(`[data-order-row="${id}"]`);
+                    if (rows.length > 0) {
+                        rows.forEach(row => {
+                            row.style.transition = 'all 0.3s ease';
+                            row.style.opacity = '0';
+                        });
+                        setTimeout(() => fetchOrders(), 350);
+                    } else {
+                        fetchOrders();
+                    }
+                } else {
+                    showNotification(data.message || 'Gagal menghapus data pesanan.', 'danger');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showNotification(err.message || 'Terjadi kesalahan saat menghapus data pesanan.', 'danger');
+            })
+            .finally(() => {
+                this.disabled = false;
+                if (spinner) spinner.classList.add('d-none');
+            });
+        });
+    }
+    @endif
 
     bindDynamicEvents();
 });
