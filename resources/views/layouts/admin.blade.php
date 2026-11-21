@@ -421,11 +421,29 @@
                     <i class="bi bi-file-earmark-text-fill"></i> Konsep Surat & E-TTD
                     @php
                         $pendingSignCount = 0;
-                        if (auth()->user()->canSignAsSecretary()) {
-                            $pendingSignCount += \App\Models\Letter::where('status', \App\Models\Letter::STATUS_MENUNGGU_SEKRETARIS)->count();
+                        $sidebarUser = auth()->user();
+                        $sidebarLetterBase = function () use ($sidebarUser) {
+                            $q = \App\Models\Letter::query();
+                            if ($sidebarUser->isScopedToPacLetters()) {
+                                $pacId = $sidebarUser->getLetterPacId();
+                                if ($pacId) {
+                                    $q->where('level', \App\Models\Letter::LEVEL_PAC)->where('pac_id', $pacId);
+                                } else {
+                                    $q->whereRaw('1 = 0');
+                                }
+                            } else {
+                                $q->where(function ($sub) {
+                                    $sub->where('level', \App\Models\Letter::LEVEL_PC)->orWhereNull('level');
+                                });
+                            }
+
+                            return $q;
+                        };
+                        if ($sidebarUser->canSignAsSecretary()) {
+                            $pendingSignCount += $sidebarLetterBase()->where('status', \App\Models\Letter::STATUS_MENUNGGU_SEKRETARIS)->count();
                         }
-                        if (auth()->user()->canSignAsChairman()) {
-                            $pendingSignCount += \App\Models\Letter::where('status', \App\Models\Letter::STATUS_MENUNGGU_KETUA)->count();
+                        if ($sidebarUser->canSignAsChairman()) {
+                            $pendingSignCount += $sidebarLetterBase()->where('status', \App\Models\Letter::STATUS_MENUNGGU_KETUA)->count();
                         }
                     @endphp
                     @if($pendingSignCount > 0)

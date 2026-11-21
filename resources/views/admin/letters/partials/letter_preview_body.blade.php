@@ -116,7 +116,7 @@
     </div>
 
     <p class="mb-3 text-justify" style="line-height: 1.7;">
-        Yang bertandatangan dibawah ini adalah Pengurus Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya merekomendasikan kepada:
+        Yang bertandatangan dibawah ini adalah Pengurus {{ $letter->isLevelPac() ? 'Pimpinan Anak Cabang Ikatan Sarjana Nahdlatul Ulama (PAC ISNU) Kecamatan ' . ($letter->pac_kecamatan_name ?: ($letter->pac?->name ?? '')) : 'Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya' }} merekomendasikan kepada:
     </p>
 
     <div class="p-3 bg-light rounded-3 mb-3 letter-preview-body text-justify" style="line-height: 1.7;">

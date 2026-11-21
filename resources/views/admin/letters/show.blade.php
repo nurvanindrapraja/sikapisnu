@@ -220,7 +220,7 @@
                         </div>
 
                         <p class="mb-3 text-justify" style="line-height: 1.7;">
-                            Yang bertandatangan dibawah ini adalah Pengurus Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya merekomendasikan kepada:
+                            Yang bertandatangan dibawah ini adalah Pengurus {{ $letter->isLevelPac() ? 'Pimpinan Anak Cabang Ikatan Sarjana Nahdlatul Ulama (PAC ISNU) Kecamatan ' . ($letter->pac_kecamatan_name ?: ($letter->pac?->name ?? '')) : 'Pimpinan Cabang Ikatan Sarjana Nahdlatul Ulama (PC ISNU) Kota Surabaya' }} merekomendasikan kepada:
                         </p>
 
                         <div class="p-3 bg-light rounded-3 mb-3 letter-preview-body text-justify" style="line-height: 1.7;">
@@ -637,7 +637,7 @@
         </div>
     </div>
 
-    @if(auth()->user()->canSignAsSecretary() && in_array($letter->status, ['menunggu_sekretaris', 'draft']))
+    @if(auth()->user()->canSignAsSecretary($letter) && in_array($letter->status, ['menunggu_sekretaris', 'draft']))
     <!-- Modal Konfirmasi E-TTD Sekretaris -->
     <div class="modal fade" id="signSecretaryModal" tabindex="-1" aria-labelledby="signSecretaryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -661,7 +661,7 @@
                             <span class="fw-semibold text-dark">Informasi Penandatanganan:</span>
                         </div>
                         <div>Nama: <strong>{{ auth()->user()->name }}</strong></div>
-                        <div>Jabatan: <strong>{{ auth()->user()->position ?? 'Sekretaris PC ISNU Kota Surabaya' }}</strong></div>
+                        <div>Jabatan: <strong>{{ ($letter->isLevelPac() && $letter->pac) ? ((auth()->user()->getOfficerPositionTitle() ?: 'Sekretaris') . ' ' . $letter->pac_display_name) : (auth()->user()->getOfficerPositionTitle() ?: 'Sekretaris PC ISNU Kota Surabaya') }}</strong></div>
                         <div class="mt-1 text-secondary">
                             <i class="bi bi-shield-check text-success me-1"></i> Stempel resmi ISNU akan otomatis disematkan di atas gambar tanda tangan Sekretaris.
                         </div>
@@ -741,7 +741,7 @@
     </div>
     @endif
 
-    @if(auth()->user()->canSignAsChairman() && $letter->status === 'menunggu_ketua')
+    @if(auth()->user()->canSignAsChairman($letter) && $letter->status === 'menunggu_ketua')
     <!-- Modal Konfirmasi E-TTD Ketua -->
     <div class="modal fade" id="signChairmanModal" tabindex="-1" aria-labelledby="signChairmanModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -765,7 +765,7 @@
                             <span class="fw-semibold text-dark">Informasi Penandatanganan Final:</span>
                         </div>
                         <div>Nama: <strong>{{ auth()->user()->name }}</strong></div>
-                        <div>Jabatan: <strong>{{ auth()->user()->position ?? 'Ketua PC ISNU Kota Surabaya' }}</strong></div>
+                        <div>Jabatan: <strong>{{ ($letter->isLevelPac() && $letter->pac) ? ((auth()->user()->getOfficerPositionTitle() ?: 'Ketua') . ' ' . $letter->pac_display_name) : (auth()->user()->getOfficerPositionTitle() ?: 'Ketua PC ISNU Kota Surabaya') }}</strong></div>
                         <div class="mt-1 text-secondary">Status surat akan menjadi <span class="badge bg-success-subtle text-success">Selesai</span> dan berkas surat resmi siap diedarkan serta divalidasi.</div>
                     </div>
 

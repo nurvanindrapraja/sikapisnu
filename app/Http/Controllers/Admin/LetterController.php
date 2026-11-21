@@ -8,6 +8,7 @@ use App\Models\Letter;
 use App\Models\LetterAttachment;
 use App\Models\Pac;
 use App\Services\LetterService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,11 +27,72 @@ class LetterController extends Controller
         }
     }
 
+    /**
+     * Terapkan batasan lingkup surat khusus PAC apabila user login adalah pengurus/admin PAC.
+     *
+     * @param  Builder<Letter>  $query
+     */
+    protected function applyPacScope($query): void
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->isScopedToPacLetters()) {
+            return;
+        }
+
+        $pacId = $user->getLetterPacId();
+        if ($pacId) {
+            $query->where('level', Letter::LEVEL_PAC)->where('pac_id', $pacId);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+    }
+
+    protected function authorizeLetterAccess(Letter $letter): void
+    {
+        if (! auth()->user() || ! auth()->user()->canViewLetter($letter)) {
+            abort(403, 'Anda hanya dapat mengakses surat milik PAC Anda.');
+        }
+    }
+
+    /**
+     * Terapkan batasan lingkup surat khusus PAC apabila user login adalah pengurus/admin PAC.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Letter>  $query
+     */
+    protected function applyPacScope($query): void
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->isScopedToPacLetters()) {
+            return;
+        }
+
+        $pacId = $user->getLetterPacId();
+        if ($pacId) {
+            $query->where('level', Letter::LEVEL_PAC)->where('pac_id', $pacId);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+    }
+
+    protected function authorizeLetterAccess(Letter $letter): void
+    {
+        if (! auth()->user() || ! auth()->user()->canViewLetter($letter)) {
+            abort(403, 'Anda hanya dapat mengakses surat milik PAC Anda.');
+        }
+    }
+
     public function index(Request $request): View
     {
         $this->checkAccess();
 
-        $query = Letter::with(['user', 'secretary', 'chairman'])->withCount('attachments');
+        $user = auth()->user();
+        $isPacScoped = $user->isScopedToPacLetters();
+        $scopedPac = $isPacScoped && $user->getLetterPacId()
+            ? Pac::find($user->getLetterPacId())
+            : null;
+
+        $query = Letter::with(['user', 'secretary', 'chairman', 'pac'])->withCount('attachments');
+        $this->applyPacScope($query);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -57,16 +119,26 @@ class LetterController extends Controller
             return view('admin.letters.partials.letter_list', compact('letters'));
         }
 
+        $countByStatus = function (?string $status = null): int {
+            $q = Letter::query();
+            $this->applyPacScope($q);
+            if ($status !== null) {
+                $q->where('status', $status);
+            }
+
+            return $q->count();
+        };
+
         $statusCounts = [
-            'all' => Letter::count(),
-            'draft' => Letter::where('status', Letter::STATUS_DRAFT)->count(),
-            'menunggu_sekretaris' => Letter::where('status', Letter::STATUS_MENUNGGU_SEKRETARIS)->count(),
-            'menunggu_ketua' => Letter::where('status', Letter::STATUS_MENUNGGU_KETUA)->count(),
-            'selesai' => Letter::where('status', Letter::STATUS_SELESAI)->count(),
-            'ditolak' => Letter::where('status', Letter::STATUS_DITOLAK)->count(),
+            'all' => $countByStatus(),
+            'draft' => $countByStatus(Letter::STATUS_DRAFT),
+            'menunggu_sekretaris' => $countByStatus(Letter::STATUS_MENUNGGU_SEKRETARIS),
+            'menunggu_ketua' => $countByStatus(Letter::STATUS_MENUNGGU_KETUA),
+            'selesai' => $countByStatus(Letter::STATUS_SELESAI),
+            'ditolak' => $countByStatus(Letter::STATUS_DITOLAK),
         ];
 
-        return view('admin.letters.index', compact('letters', 'statusCounts'));
+        return view('admin.letters.index', compact('letters', 'statusCounts', 'isPacScoped', 'scopedPac'));
     }
 
     public function create(Request $request): View
@@ -82,17 +154,32 @@ class LetterController extends Controller
             $type = Letter::TYPE_SURAT_BIASA;
         }
 
-        // Hitung nomor urut surat estimasi
-        $countThisYear = Letter::where('year', $year)->count() + 1;
-        $suggestedNumber = sprintf('%03d/PC-VI/ISNU-SBY/%s/%s', $countThisYear, $romanMonth, $year);
-
-        $pacs = Pac::orderBy('name')->get();
         $user = auth()->user();
-        $pos = $user?->getOfficerPosition();
-        $defaultPacId = $user?->getManagedPacId();
-        $defaultLevel = ($pos && (in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || $pos->pac_id))
-            ? Letter::LEVEL_PAC
-            : ($user?->isAdminPac() ? Letter::LEVEL_PAC : Letter::LEVEL_PC);
+        $isPacScoped = $user->isScopedToPacLetters();
+        $lockedPacId = $isPacScoped ? $user->getLetterPacId() : null;
+        $lockedPac = $lockedPacId ? Pac::find($lockedPacId) : null;
+
+        if ($isPacScoped && ! $lockedPac) {
+            abort(403, 'Akun pengurus PAC Anda belum terhubung dengan wilayah PAC tertentu.');
+        }
+
+        if ($isPacScoped) {
+            $countThisYear = Letter::where('year', $year)
+                ->where('level', Letter::LEVEL_PAC)
+                ->where('pac_id', $lockedPac->id)
+                ->count() + 1;
+            $pacSlug = strtoupper(Str::slug($lockedPac->kecamatan ?: preg_replace('/^(PAC\s+ISNU\s+|PAC\s+)/i', '', trim($lockedPac->name)), ''));
+            $suggestedNumber = sprintf('%03d/PAC/ISNU-%s/%s/%s', $countThisYear, $pacSlug ?: 'SBY', $romanMonth, $year);
+            $pacs = collect([$lockedPac]);
+            $defaultLevel = Letter::LEVEL_PAC;
+            $defaultPacId = $lockedPac->id;
+        } else {
+            $countThisYear = Letter::where('year', $year)->count() + 1;
+            $suggestedNumber = sprintf('%03d/PC-VI/ISNU-SBY/%s/%s', $countThisYear, $romanMonth, $year);
+            $pacs = Pac::orderBy('name')->get();
+            $defaultLevel = Letter::LEVEL_PC;
+            $defaultPacId = null;
+        }
 
         return view('admin.letters.create', [
             'suggestedNumber' => $suggestedNumber,
@@ -103,12 +190,27 @@ class LetterController extends Controller
             'pacs' => $pacs,
             'defaultLevel' => $defaultLevel,
             'defaultPacId' => $defaultPacId,
+            'isPacScoped' => $isPacScoped,
+            'lockedPac' => $lockedPac,
         ]);
     }
 
     public function store(Request $request, LetterService $letterService): RedirectResponse
     {
         $this->checkAccess();
+
+        $user = auth()->user();
+        if ($user->isScopedToPacLetters()) {
+            $lockedPacId = $user->getLetterPacId();
+            if (! $lockedPacId) {
+                abort(403, 'Akun pengurus PAC Anda belum terhubung dengan wilayah PAC tertentu.');
+            }
+
+            $request->merge([
+                'level' => Letter::LEVEL_PAC,
+                'pac_id' => $lockedPacId,
+            ]);
+        }
 
         $validated = $request->validate([
             'letter_type' => 'nullable|in:surat_biasa,surat_mandat,surat_rekomendasi',
@@ -222,6 +324,7 @@ class LetterController extends Controller
         $data = $request->except(['_token', '_method']);
 
         if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac', 'attachments'])->find($request->id)) {
+            $this->authorizeLetterAccess($existing);
             $letter = $existing;
             $letter->fill($data);
         } else {
@@ -231,6 +334,13 @@ class LetterController extends Controller
             $letter->letter_code = $letter->letter_code ?: ('DRAFT-'.strtoupper(Str::random(6)));
             $letter->status = Letter::STATUS_DRAFT;
             $letter->setRelation('attachments', collect());
+        }
+
+        if (auth()->user()->isScopedToPacLetters()) {
+            $lockedPacId = auth()->user()->getLetterPacId();
+            $letter->level = Letter::LEVEL_PAC;
+            $letter->pac_id = $lockedPacId;
+            $letter->setRelation('pac', $lockedPacId ? Pac::find($lockedPacId) : null);
         }
 
         if ($letter->isi_surat === null) {
@@ -298,6 +408,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         return view('admin.letters.partials.letter_preview_modal_content', compact('letter'));
     }
@@ -307,6 +418,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         return view('admin.letters.show', compact('letter'));
     }
@@ -316,6 +428,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with('attachments')->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         if (! auth()->user()->canEditLetter($letter)) {
             if ($letter->status === Letter::STATUS_SELESAI) {
@@ -325,9 +438,16 @@ class LetterController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk menyunting konsep surat ini.');
         }
 
-        $pacs = Pac::orderBy('name')->get();
+        $user = auth()->user();
+        $isPacScoped = $user->isScopedToPacLetters();
+        $lockedPac = $isPacScoped && $user->getLetterPacId()
+            ? Pac::find($user->getLetterPacId())
+            : null;
+        $pacs = $isPacScoped
+            ? ($lockedPac ? collect([$lockedPac]) : collect())
+            : Pac::orderBy('name')->get();
 
-        return view('admin.letters.edit', compact('letter', 'pacs'));
+        return view('admin.letters.edit', compact('letter', 'pacs', 'isPacScoped', 'lockedPac'));
     }
 
     public function update(Request $request, int $id, LetterService $letterService): RedirectResponse
@@ -335,6 +455,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with('attachments')->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         if (! auth()->user()->canEditLetter($letter)) {
             if ($letter->status === Letter::STATUS_SELESAI) {
@@ -342,6 +463,19 @@ class LetterController extends Controller
             }
 
             abort(403, 'Anda tidak memiliki hak akses untuk menyunting konsep surat ini.');
+        }
+
+        $user = auth()->user();
+        if ($user->isScopedToPacLetters()) {
+            $lockedPacId = $user->getLetterPacId();
+            if (! $lockedPacId) {
+                abort(403, 'Akun pengurus PAC Anda belum terhubung dengan wilayah PAC tertentu.');
+            }
+
+            $request->merge([
+                'level' => Letter::LEVEL_PAC,
+                'pac_id' => $lockedPacId,
+            ]);
         }
 
         $validated = $request->validate([
@@ -497,6 +631,7 @@ class LetterController extends Controller
 
         $attachment = LetterAttachment::with('letter')->findOrFail($attachmentId);
         $letter = $attachment->letter;
+        $this->authorizeLetterAccess($letter);
 
         if (! auth()->user()->canEditLetter($letter)) {
             if ($letter->status === Letter::STATUS_SELESAI) {
@@ -523,7 +658,8 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $attachment = LetterAttachment::findOrFail($attachmentId);
+        $attachment = LetterAttachment::with('letter')->findOrFail($attachmentId);
+        $this->authorizeLetterAccess($attachment->letter);
         $fullPath = Storage::disk('public')->path($attachment->file_path);
 
         if (! file_exists($fullPath)) {
@@ -540,7 +676,8 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $attachment = LetterAttachment::findOrFail($attachmentId);
+        $attachment = LetterAttachment::with('letter')->findOrFail($attachmentId);
+        $this->authorizeLetterAccess($attachment->letter);
         $fullPath = Storage::disk('public')->path($attachment->file_path);
 
         if (! file_exists($fullPath)) {
@@ -555,6 +692,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with('attachments')->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         if ($letter->status === Letter::STATUS_SELESAI && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Surat yang telah selesai ditandatangani hanya dapat dihapus oleh Super Admin.');
@@ -599,6 +737,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         if (! auth()->user()->canEditLetter($letter)) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengajukan konsep surat ini.');
@@ -642,6 +781,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $this->authorizeLetterAccess($letter);
         $user = auth()->user();
 
         if (! $user->canSignAsSecretary($letter)) {
@@ -678,6 +818,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $this->authorizeLetterAccess($letter);
         $user = auth()->user();
 
         if (! $user->canSignAsChairman($letter)) {
@@ -718,6 +859,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::findOrFail($id);
+        $this->authorizeLetterAccess($letter);
         $user = auth()->user();
         if (! $user->canSignAsSecretary($letter) && ! $user->canSignAsChairman($letter)) {
             abort(403, 'Hanya penandatangan yang berwenang (Ketua/Sekretaris) pada tingkatan surat ini yang berhak menolak atau meminta revisi surat.');
@@ -746,6 +888,7 @@ class LetterController extends Controller
         $this->checkAccess();
 
         $letter = Letter::with(['attachments' => fn ($query) => $query->orderBy('id')])->findOrFail($id);
+        $this->authorizeLetterAccess($letter);
 
         // KETENTUAN: File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap
         if ($letter->status !== Letter::STATUS_SELESAI) {

@@ -324,15 +324,56 @@ class User extends Authenticatable
 
     public function getManagedPacId(): ?int
     {
-        if ($this->member?->pac_id) {
-            return $this->member->pac_id;
+        if ($this->member?->activePosition?->pac_id) {
+            return (int) $this->member->activePosition->pac_id;
         }
 
-        if ($this->member?->activePosition?->pac_id) {
-            return $this->member->activePosition->pac_id;
+        if ($this->member?->pac_id) {
+            return (int) $this->member->pac_id;
         }
 
         return null;
+    }
+
+    /**
+     * Memeriksa apakah user dibatasi hanya pada lingkup surat milik PAC tertentu
+     * (seluruh Pengurus PAC dan Admin PAC, kecuali Super Admin / Admin Kota / Admin PC).
+     */
+    public function isScopedToPacLetters(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return false;
+        }
+
+        return $this->isOfficerPac() || $this->isAdminPac();
+    }
+
+    /**
+     * Mendapatkan ID PAC yang menaungi user untuk keperluan surat-menyurat.
+     */
+    public function getLetterPacId(): ?int
+    {
+        return $this->getManagedPacId();
+    }
+
+    /**
+     * Memeriksa apakah user berhak melihat / mengakses surat tertentu.
+     */
+    public function canViewLetter(Letter $letter): bool
+    {
+        if (! $this->canAccessLetterSubmission()) {
+            return false;
+        }
+
+        if ($this->isScopedToPacLetters()) {
+            $pacId = $this->getLetterPacId();
+
+            return $pacId !== null
+                && $letter->isLevelPac()
+                && (int) $letter->pac_id === $pacId;
+        }
+
+        return true;
     }
 
     /**
@@ -615,12 +656,13 @@ class User extends Authenticatable
         if ($letter) {
             if ($letter->isLevelPac()) {
                 $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+                $officerPacId = (int) ($pos->pac_id ?: $this->getManagedPacId());
 
-                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+                return $isPacLevel && $officerPacId > 0 && $officerPacId === (int) $letter->pac_id;
             }
 
             // Surat level PC ISNU
-            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+            return ! $this->isOfficerPac() && (in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id));
         }
 
         return true;
@@ -648,12 +690,13 @@ class User extends Authenticatable
         if ($letter) {
             if ($letter->isLevelPac()) {
                 $isPacLevel = in_array($pos->level, ['PAC', 'PAC ISNU', 'Kecamatan'], true) || (bool) $pos->pac_id;
+                $officerPacId = (int) ($pos->pac_id ?: $this->getManagedPacId());
 
-                return $isPacLevel && (int) $pos->pac_id === (int) $letter->pac_id;
+                return $isPacLevel && $officerPacId > 0 && $officerPacId === (int) $letter->pac_id;
             }
 
             // Surat level PC ISNU
-            return in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id);
+            return ! $this->isOfficerPac() && (in_array($pos->level, ['Kota', 'PC ISNU', 'PC'], true) || empty($pos->pac_id));
         }
 
         return true;
@@ -679,6 +722,11 @@ class User extends Authenticatable
             return false;
         }
 
+        // 1b. Pengurus / Admin PAC hanya boleh menyunting surat milik PAC-nya sendiri
+        if ($this->isScopedToPacLetters() && ! $this->canViewLetter($letter)) {
+            return false;
+        }
+
         // 2. Pembuat surat selalu berhak mengedit surat buatannya
         if ((int) $this->id === (int) $letter->user_id) {
             return true;
@@ -690,7 +738,7 @@ class User extends Authenticatable
         }
 
         if ($this->isAdminPac()) {
-            if (! $letter->isLevelPac() || (int) $this->getManagedPacId() === (int) $letter->pac_id) {
+            if ($letter->isLevelPac() && (int) $this->getLetterPacId() === (int) $letter->pac_id) {
                 return true;
             }
         }

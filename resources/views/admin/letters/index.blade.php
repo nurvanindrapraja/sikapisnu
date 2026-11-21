@@ -10,8 +10,21 @@
     <!-- Header & Action Button -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
-            <h4 class="fw-bold mb-1 text-dark">Daftar Konsep Surat & E-TTD</h4>
-            <p class="text-muted small mb-0">Kelola pengajuan konsep surat berbasis template resmi dan penandatanganan digital bertahap (Sekretaris & Ketua).</p>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h4 class="fw-bold mb-0 text-dark">Daftar Konsep Surat & E-TTD</h4>
+                @if(!empty($isPacScoped) && !empty($scopedPac))
+                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1 small">
+                        <i class="bi bi-geo-alt-fill me-1"></i>{{ preg_match('/^PAC/i', trim($scopedPac->name)) ? trim($scopedPac->name) : 'PAC ISNU ' . trim($scopedPac->name) }}
+                    </span>
+                @endif
+            </div>
+            <p class="text-muted small mb-0">
+                @if(!empty($isPacScoped) && !empty($scopedPac))
+                    Menampilkan khusus surat milik {{ preg_match('/^PAC/i', trim($scopedPac->name)) ? trim($scopedPac->name) : 'PAC ISNU ' . trim($scopedPac->name) }} dengan penandatanganan digital Sekretaris &amp; Ketua PAC.
+                @else
+                    Kelola pengajuan konsep surat berbasis template resmi dan penandatanganan digital bertahap (Sekretaris & Ketua).
+                @endif
+            </p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-success rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#chooseLetterTypeModal">

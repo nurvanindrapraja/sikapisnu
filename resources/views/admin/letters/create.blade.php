@@ -190,38 +190,72 @@
 
                         <!-- Tingkat Surat & Wilayah PAC -->
                         <div class="row g-3 mb-3 p-3 bg-light rounded-4 border">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Tingkat / Level Surat <span class="text-danger">*</span></label>
-                                <div class="d-flex gap-3 mt-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="level" id="levelPC" value="PC ISNU" x-model="letterLevel" {{ old('level', $defaultLevel ?? 'PC ISNU') === 'PC ISNU' ? 'checked' : '' }}>
-                                        <label class="form-check-label fw-bold text-dark" for="levelPC">
-                                            PC ISNU (Tingkat Kota)
-                                        </label>
+                            @if(!empty($isPacScoped) && !empty($lockedPac))
+                                @php
+                                    $lockedPacLabel = preg_match('/^PAC/i', trim($lockedPac->name))
+                                        ? trim($lockedPac->name)
+                                        : 'PAC ISNU ' . trim($lockedPac->name);
+                                @endphp
+                                <input type="hidden" name="level" value="PAC ISNU">
+                                <input type="hidden" name="pac_id" value="{{ $lockedPac->id }}">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small">Tingkat / Level Surat <span class="text-danger">*</span></label>
+                                    <div class="form-control bg-white d-flex align-items-center justify-content-between">
+                                        <span class="fw-bold text-dark">
+                                            <i class="bi bi-building text-info me-1"></i>PAC ISNU (Tingkat Kecamatan)
+                                        </span>
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">Otomatis</span>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="level" id="levelPAC" value="PAC ISNU" x-model="letterLevel" {{ old('level', $defaultLevel ?? 'PC ISNU') === 'PAC ISNU' ? 'checked' : '' }}>
-                                        <label class="form-check-label fw-bold text-dark" for="levelPAC">
-                                            PAC ISNU (Tingkat Kecamatan)
-                                        </label>
+                                    <div class="form-text small">
+                                        Tingkat surat otomatis mengikuti wilayah kepengurusan PAC Anda.
                                     </div>
                                 </div>
-                                <div class="form-text small">
-                                    Penandatangan otomatis disesuaikan: Sekretaris & Ketua PC (level PC) atau Sekretaris & Ketua PAC (level PAC).
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small">Wilayah PAC ISNU <span class="text-danger">*</span></label>
+                                    <div class="form-control bg-white d-flex align-items-center justify-content-between">
+                                        <span class="fw-bold text-dark">
+                                            <i class="bi bi-geo-alt-fill text-success me-1"></i>{{ $lockedPacLabel }}
+                                        </span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Terkunci</span>
+                                    </div>
+                                    <div class="form-text small">
+                                        Penandatanganan E-TTD wajib dilakukan oleh Sekretaris PAC dan Ketua PAC {{ $lockedPacLabel }}.
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6" x-show="letterLevel === 'PAC ISNU'" x-cloak>
-                                <label class="form-label fw-semibold small">Pilih Wilayah PAC ISNU <span class="text-danger">*</span></label>
-                                <select name="pac_id" class="form-select @error('pac_id') is-invalid @enderror" :required="letterLevel === 'PAC ISNU'">
-                                    <option value="">-- Pilih PAC ISNU Kecamatan --</option>
-                                    @foreach($pacs as $pac)
-                                        <option value="{{ $pac->id }}" {{ (string) old('pac_id', $defaultPacId ?? '') === (string) $pac->id ? 'selected' : '' }}>
-                                            PAC ISNU {{ $pac->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="form-text small">Hanya akun Sekretaris PAC dan Ketua PAC wilayah ini yang berhak menandatangani surat.</div>
-                            </div>
+                            @else
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small">Tingkat / Level Surat <span class="text-danger">*</span></label>
+                                    <div class="d-flex gap-3 mt-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level" id="levelPC" value="PC ISNU" x-model="letterLevel" {{ old('level', $defaultLevel ?? 'PC ISNU') === 'PC ISNU' ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold text-dark" for="levelPC">
+                                                PC ISNU (Tingkat Kota)
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="level" id="levelPAC" value="PAC ISNU" x-model="letterLevel" {{ old('level', $defaultLevel ?? 'PC ISNU') === 'PAC ISNU' ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold text-dark" for="levelPAC">
+                                                PAC ISNU (Tingkat Kecamatan)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="form-text small">
+                                        Penandatangan otomatis disesuaikan: Sekretaris & Ketua PC (level PC) atau Sekretaris & Ketua PAC (level PAC).
+                                    </div>
+                                </div>
+                                <div class="col-md-6" x-show="letterLevel === 'PAC ISNU'" x-cloak>
+                                    <label class="form-label fw-semibold small">Pilih Wilayah PAC ISNU <span class="text-danger">*</span></label>
+                                    <select name="pac_id" class="form-select @error('pac_id') is-invalid @enderror" :required="letterLevel === 'PAC ISNU'">
+                                        <option value="">-- Pilih PAC ISNU Kecamatan --</option>
+                                        @foreach($pacs as $pac)
+                                            <option value="{{ $pac->id }}" {{ (string) old('pac_id', $defaultPacId ?? '') === (string) $pac->id ? 'selected' : '' }}>
+                                                PAC ISNU {{ $pac->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text small">Hanya akun Sekretaris PAC dan Ketua PAC wilayah ini yang berhak menandatangani surat.</div>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="row g-3 mb-3">
