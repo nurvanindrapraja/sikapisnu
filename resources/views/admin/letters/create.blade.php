@@ -395,6 +395,8 @@
                             </div>
                         </div>
 
+                        @include('admin.letters.partials.html_attachments_editor')
+
                         <h5 class="fw-bold border-bottom pb-2 mt-4 mb-3"
                             :class="letterType === 'surat_mandat' ? 'text-primary' : (letterType === 'surat_rekomendasi' ? 'text-warning-emphasis' : 'text-success')">
                             <span x-show="letterType === 'surat_biasa'"><i class="bi bi-body-text me-2"></i>Isi Surat</span>
@@ -1390,6 +1392,9 @@
     }
 
     function syncEditorContent() {
+        if (typeof window.syncHtmlAttachments === 'function') {
+            window.syncHtmlAttachments();
+        }
         if (!quillInstance) {
             const input = document.getElementById('isi_surat_input');
             return input && input.value.trim() !== '';

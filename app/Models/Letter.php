@@ -110,6 +110,11 @@ class Letter extends Model
         return $this->hasMany(LetterAttachment::class);
     }
 
+    public function htmlAttachments(): HasMany
+    {
+        return $this->hasMany(LetterHtmlAttachment::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function isLevelPac(): bool
     {
         return $this->level === self::LEVEL_PAC;

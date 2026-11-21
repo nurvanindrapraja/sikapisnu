@@ -559,6 +559,10 @@ class LetterService
      */
     public function renderPdfContent(Letter $letter): string
     {
+        if ($letter->exists && ! $letter->relationLoaded('htmlAttachments')) {
+            $letter->load('htmlAttachments');
+        }
+
         $secSigBase64 = null;
         if ($letter->secretary_signed_at) {
             if ($letter->secretary_signature_path && Storage::disk('public')->exists($letter->secretary_signature_path)) {

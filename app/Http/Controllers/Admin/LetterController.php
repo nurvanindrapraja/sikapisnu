@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Letter;
 use App\Models\LetterAttachment;
+use App\Models\LetterHtmlAttachment;
 use App\Models\Pac;
 use App\Services\LetterService;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +53,45 @@ class LetterController extends Controller
         if (! auth()->user() || ! auth()->user()->canViewLetter($letter)) {
             abort(403, 'Anda hanya dapat mengakses surat milik PAC Anda.');
         }
+    }
+
+    /**
+     * Normalisasi daftar lampiran teks HTML dari request (opsional, bisa lebih dari satu).
+     *
+     * @return array<int, array{title: ?string, content: string, sort_order: int}>
+     */
+    protected function normalizeHtmlAttachments(Request $request): array
+    {
+        $raw = $request->input('html_attachments', []);
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $items = [];
+        $order = 1;
+
+        foreach ($raw as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $title = trim((string) ($entry['title'] ?? ''));
+            $content = trim((string) ($entry['content'] ?? ''));
+            $plainText = trim(html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            $hasRichElement = str_contains($content, '<table') || str_contains($content, '<img');
+
+            if ($plainText === '' && ! $hasRichElement && $title === '') {
+                continue;
+            }
+
+            $items[] = [
+                'title' => $title !== '' ? $title : null,
+                'content' => ($plainText === '' && ! $hasRichElement) ? '' : $content,
+                'sort_order' => $order++,
+            ];
+        }
+
+        return $items;
     }
 
     public function index(Request $request): View
@@ -204,6 +244,9 @@ class LetterController extends Controller
             'isi_surat' => 'required|string',
             'attachments' => 'nullable|array',
             'attachments.*' => 'nullable|file|mimes:pdf|max:10240',
+            'html_attachments' => 'nullable|array',
+            'html_attachments.*.title' => 'nullable|string|max:255',
+            'html_attachments.*.content' => 'nullable|string',
             'action' => 'required|in:draft,submit_secretary',
         ]);
 
@@ -272,6 +315,13 @@ class LetterController extends Controller
             }
         }
 
+        $htmlAttachments = $this->normalizeHtmlAttachments($request);
+        if ($htmlAttachments !== []) {
+            $letter->htmlAttachments()->createMany($htmlAttachments);
+        }
+
+        $letter->load(['attachments', 'htmlAttachments']);
+
         // Generate dokumen draft DOCX & PDF
         $letterService->generateDocx($letter);
         $letterService->generatePdf($letter);
@@ -294,9 +344,9 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $data = $request->except(['_token', '_method']);
+        $data = $request->except(['_token', '_method', 'html_attachments', 'attachments', 'delete_attachment_ids']);
 
-        if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac', 'attachments'])->find($request->id)) {
+        if ($request->filled('id') && $existing = Letter::with(['secretary', 'chairman', 'pac', 'attachments', 'htmlAttachments'])->find($request->id)) {
             $this->authorizeLetterAccess($existing);
             $letter = $existing;
             $letter->fill($data);
@@ -307,6 +357,13 @@ class LetterController extends Controller
             $letter->letter_code = $letter->letter_code ?: ('DRAFT-'.strtoupper(Str::random(6)));
             $letter->status = Letter::STATUS_DRAFT;
             $letter->setRelation('attachments', collect());
+            $letter->setRelation('htmlAttachments', collect());
+        }
+
+        if ($request->isMethod('post') || $request->has('html_attachments')) {
+            $previewHtmlAttachments = collect($this->normalizeHtmlAttachments($request))
+                ->map(fn (array $item) => new LetterHtmlAttachment($item));
+            $letter->setRelation('htmlAttachments', $previewHtmlAttachments);
         }
 
         if (auth()->user()->isScopedToPacLetters()) {
@@ -380,7 +437,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
+        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments', 'htmlAttachments'])->findOrFail($id);
         $this->authorizeLetterAccess($letter);
 
         return view('admin.letters.partials.letter_preview_modal_content', compact('letter'));
@@ -390,7 +447,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments'])->findOrFail($id);
+        $letter = Letter::with(['user', 'secretary', 'chairman', 'pac', 'attachments', 'htmlAttachments'])->findOrFail($id);
         $this->authorizeLetterAccess($letter);
 
         return view('admin.letters.show', compact('letter'));
@@ -400,7 +457,7 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with('attachments')->findOrFail($id);
+        $letter = Letter::with(['attachments', 'htmlAttachments'])->findOrFail($id);
         $this->authorizeLetterAccess($letter);
 
         if (! auth()->user()->canEditLetter($letter)) {
@@ -472,6 +529,9 @@ class LetterController extends Controller
             'attachments.*' => 'nullable|file|mimes:pdf|max:10240',
             'delete_attachment_ids' => 'nullable|array',
             'delete_attachment_ids.*' => 'integer|exists:letter_attachments,id',
+            'html_attachments' => 'nullable|array',
+            'html_attachments.*.title' => 'nullable|string|max:255',
+            'html_attachments.*.content' => 'nullable|string',
             'action' => 'nullable|in:draft,submit_secretary',
         ]);
 
@@ -531,6 +591,13 @@ class LetterController extends Controller
             }
         }
 
+        // Sinkronisasi lampiran teks HTML (opsional, bisa lebih dari satu)
+        $letter->htmlAttachments()->delete();
+        $htmlAttachments = $this->normalizeHtmlAttachments($request);
+        if ($htmlAttachments !== []) {
+            $letter->htmlAttachments()->createMany($htmlAttachments);
+        }
+
         if (isset($validated['action']) && $validated['action'] === 'submit_secretary') {
             $letter->status = Letter::STATUS_MENUNGGU_SEKRETARIS;
             $letter->rejection_note = null;
@@ -583,6 +650,8 @@ class LetterController extends Controller
 
             $letter->save();
         }
+
+        $letter->load(['attachments', 'htmlAttachments']);
 
         // Regenerate docx & pdf
         $letterService->generateDocx($letter);
@@ -864,7 +933,10 @@ class LetterController extends Controller
     {
         $this->checkAccess();
 
-        $letter = Letter::with(['attachments' => fn ($query) => $query->orderBy('id')])->findOrFail($id);
+        $letter = Letter::with([
+            'attachments' => fn ($query) => $query->orderBy('id'),
+            'htmlAttachments',
+        ])->findOrFail($id);
         $this->authorizeLetterAccess($letter);
 
         // KETENTUAN: File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap

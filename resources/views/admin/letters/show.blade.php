@@ -392,6 +392,38 @@
 
                 </div>
             </div>
+
+            <!-- Lampiran Teks HTML (Tampil Sebagai Halaman Lampiran Tambahan) -->
+            @if($letter->htmlAttachments && $letter->htmlAttachments->isNotEmpty())
+                @foreach($letter->htmlAttachments as $attIndex => $htmlAtt)
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 border-bottom pb-3 mb-3">
+                                <div>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1">
+                                        <i class="bi bi-file-earmark-richtext me-1"></i>
+                                        Lampiran{{ $letter->htmlAttachments->count() > 1 ? ' ' . ($attIndex + 1) : '' }} (Teks HTML)
+                                    </span>
+                                    @if(!empty($htmlAtt->title))
+                                        <h5 class="fw-bold text-dark mt-2 mb-0 text-uppercase">{{ $htmlAtt->title }}</h5>
+                                    @endif
+                                </div>
+                                <div class="small text-muted text-md-end">
+                                    <div><strong>Nomor:</strong> {{ $letter->formatted_letter_number }}</div>
+                                    <div><strong>Tanggal:</strong> {{ $letter->formatted_date_letter }}</div>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-light rounded-3 letter-preview-body text-justify" style="line-height: 1.7;">
+                                @if(str_contains((string) $htmlAtt->content, '<') && str_contains((string) $htmlAtt->content, '>'))
+                                    {!! $htmlAtt->content !!}
+                                @else
+                                    {!! nl2br(e((string) $htmlAtt->content)) !!}
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endif
         </div>
 
         <!-- Right Action Sidebar (Digital Signatures & Workflow) -->
@@ -518,7 +550,7 @@
                 </div>
             </div>
 
-            <!-- Berkas Lampiran Surat (PDF) -->
+            <!-- Berkas Lampiran Surat (PDF & Teks HTML) -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center justify-content-between mb-3">
@@ -555,7 +587,36 @@
                         </div>
                     @else
                         <div class="p-3 bg-light rounded-3 text-center text-muted small">
-                            <i class="bi bi-file-earmark-x me-1"></i>Tidak ada berkas lampiran yang diunggah.
+                            <i class="bi bi-file-earmark-x me-1"></i>Tidak ada berkas lampiran PDF yang diunggah.
+                        </div>
+                    @endif
+
+                    <div class="d-flex align-items-center justify-content-between mt-4 mb-2 pt-3 border-top">
+                        <h6 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-file-earmark-richtext text-success me-1"></i>Lampiran Teks HTML
+                        </h6>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                            {{ $letter->htmlAttachments ? $letter->htmlAttachments->count() : 0 }} lampiran
+                        </span>
+                    </div>
+
+                    @if($letter->htmlAttachments && $letter->htmlAttachments->isNotEmpty())
+                        <ul class="list-group list-group-flush rounded-3 border small">
+                            @foreach($letter->htmlAttachments as $idx => $htmlAtt)
+                                <li class="list-group-item py-2 px-3 d-flex align-items-center gap-2">
+                                    <i class="bi bi-file-text text-success flex-shrink-0"></i>
+                                    <span class="text-truncate fw-medium text-dark">
+                                        Lampiran {{ $idx + 1 }}{{ $htmlAtt->title ? ': ' . $htmlAtt->title : '' }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <div class="form-text small mt-1">
+                            Otomatis disertakan sebagai halaman lampiran di dalam dokumen PDF surat.
+                        </div>
+                    @else
+                        <div class="p-2 bg-light rounded-3 text-center text-muted small">
+                            Tidak ada lampiran teks HTML.
                         </div>
                     @endif
                 </div>

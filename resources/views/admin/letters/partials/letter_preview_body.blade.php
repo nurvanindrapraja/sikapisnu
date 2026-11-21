@@ -279,3 +279,39 @@
         Dari Kontemplasi Menjadi Aksi [] Menyapa Semua [] Merangkul Umat [] Menanam untuk Bangsa
     </div>
 </div>
+
+@php
+    $previewHtmlAttachments = $letter->relationLoaded('htmlAttachments')
+        ? $letter->htmlAttachments
+        : ($letter->exists ? $letter->htmlAttachments()->get() : collect());
+@endphp
+@if($previewHtmlAttachments->isNotEmpty())
+    <div class="mt-4 pt-3 border-top">
+        @foreach($previewHtmlAttachments as $attIndex => $htmlAtt)
+            <div class="border rounded-4 p-3 p-md-4 bg-white shadow-sm {{ !$loop->last ? 'mb-3' : '' }}">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
+                    <div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+                            <i class="bi bi-file-earmark-richtext me-1"></i>
+                            Lampiran{{ $previewHtmlAttachments->count() > 1 ? ' ' . ($attIndex + 1) : '' }} (Teks HTML)
+                        </span>
+                        @if(!empty($htmlAtt->title))
+                            <h6 class="fw-bold text-dark mt-2 mb-0 text-uppercase">{{ $htmlAtt->title }}</h6>
+                        @endif
+                    </div>
+                    <div class="small text-muted text-md-end">
+                        <div><strong>Nomor:</strong> {{ $letter->formatted_letter_number }}</div>
+                        <div><strong>Tanggal:</strong> {{ $letter->formatted_date_letter }}</div>
+                    </div>
+                </div>
+                <div class="letter-preview-body text-justify" style="line-height: 1.7;">
+                    @if(str_contains((string) $htmlAtt->content, '<') && str_contains((string) $htmlAtt->content, '>'))
+                        {!! $htmlAtt->content !!}
+                    @else
+                        {!! nl2br(e((string) $htmlAtt->content)) !!}
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif

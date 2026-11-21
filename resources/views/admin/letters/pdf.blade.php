@@ -192,6 +192,32 @@
             padding-top: 6px;
             page-break-inside: avoid;
         }
+        .html-attachment-page {
+            page-break-before: always;
+        }
+        .attachment-meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        .attachment-meta-inner {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+            line-height: 1.35;
+        }
+        .attachment-meta-inner td {
+            vertical-align: top;
+            padding: 1px 2px;
+        }
+        .attachment-title {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            letter-spacing: 0.4px;
+        }
     </style>
 </head>
 <body>
@@ -437,6 +463,59 @@
         </tr>
     </table>
     </div>
+
+    @php
+        $htmlAttachments = $letter->relationLoaded('htmlAttachments')
+            ? $letter->htmlAttachments
+            : ($letter->exists ? $letter->htmlAttachments()->get() : collect());
+    @endphp
+    @foreach($htmlAttachments as $attIndex => $htmlAtt)
+        <div class="html-attachment-page">
+            <table class="attachment-meta-table">
+                <tr>
+                    <td style="width: 50%;"></td>
+                    <td style="width: 50%;">
+                        <table class="attachment-meta-inner">
+                            <tr>
+                                <td style="width: 30%;">Lampiran{{ $htmlAttachments->count() > 1 ? ' ' . ($attIndex + 1) : '' }}</td>
+                                <td style="width: 5%;">:</td>
+                                <td>{{ $letter->letter_type_label }}</td>
+                            </tr>
+                            <tr>
+                                <td>Nomor</td>
+                                <td>:</td>
+                                <td><strong>{{ $letter->formatted_letter_number }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Tanggal</td>
+                                <td>:</td>
+                                <td>{{ $letter->formatted_date_letter }}</td>
+                            </tr>
+                            @if($letter->perihal)
+                            <tr>
+                                <td>Perihal</td>
+                                <td>:</td>
+                                <td>{{ $letter->perihal }}</td>
+                            </tr>
+                            @endif
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            @if(!empty($htmlAtt->title))
+                <div class="attachment-title">{{ $htmlAtt->title }}</div>
+            @endif
+
+            <div class="body-content">
+                @if(str_contains((string) $htmlAtt->content, '<') && str_contains((string) $htmlAtt->content, '>'))
+                    {!! $htmlAtt->content !!}
+                @else
+                    {!! nl2br(e((string) $htmlAtt->content)) !!}
+                @endif
+            </div>
+        </div>
+    @endforeach
 
 </body>
 </html>

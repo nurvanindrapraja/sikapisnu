@@ -193,6 +193,34 @@
                             </div>
                         </div>
 
+                        <!-- Lampiran Teks HTML -->
+                        @if($letter->htmlAttachments && $letter->htmlAttachments->isNotEmpty())
+                            <div class="col-md-12 pt-3">
+                                <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
+                                    <i class="bi bi-file-earmark-richtext me-2"></i>Lampiran Surat ({{ $letter->htmlAttachments->count() }})
+                                </h5>
+                                <div class="d-flex flex-column gap-3">
+                                    @foreach($letter->htmlAttachments as $attIndex => $htmlAtt)
+                                        <div class="p-4 rounded-3 border bg-white" style="line-height: 1.6; text-align: justify;">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                                                    Lampiran{{ $letter->htmlAttachments->count() > 1 ? ' ' . ($attIndex + 1) : '' }}
+                                                </span>
+                                                @if(!empty($htmlAtt->title))
+                                                    <strong class="text-dark text-uppercase">{{ $htmlAtt->title }}</strong>
+                                                @endif
+                                            </div>
+                                            @if(str_contains((string) $htmlAtt->content, '<') && str_contains((string) $htmlAtt->content, '>'))
+                                                {!! $htmlAtt->content !!}
+                                            @else
+                                                {!! nl2br(e((string) $htmlAtt->content)) !!}
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+
                         <!-- Unduh Dokumen Resmi jika Selesai -->
                         @if($letter->status === 'selesai')
                             @php

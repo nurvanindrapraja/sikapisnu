@@ -17,7 +17,7 @@ class LetterVerificationController extends Controller
      */
     public function verify(string $code): View
     {
-        $letter = Letter::with('attachments')->where('letter_code', $code)->firstOrFail();
+        $letter = Letter::with(['attachments', 'htmlAttachments'])->where('letter_code', $code)->firstOrFail();
 
         return view('public.letter_verification', compact('letter'));
     }
@@ -62,7 +62,10 @@ class LetterVerificationController extends Controller
      */
     public function downloadPdf(Request $request, string $code, LetterService $letterService): BinaryFileResponse
     {
-        $letter = Letter::with(['attachments' => fn ($query) => $query->orderBy('id')])
+        $letter = Letter::with([
+            'attachments' => fn ($query) => $query->orderBy('id'),
+            'htmlAttachments',
+        ])
             ->where('letter_code', $code)
             ->firstOrFail();
 
