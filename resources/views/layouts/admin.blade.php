@@ -406,8 +406,23 @@
             </li>
             @endif
 
-            @if(auth()->user()->canManageProducts() || auth()->user()->canManageProductOrders())
             <li class="sidebar-header">Toko & Merchandise ISNU</li>
+            <li>
+                <a href="{{ route('member.store.index') }}" class="sidebar-link {{ request()->routeIs('member.store.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-shop text-warning"></i> Toko Merchandise
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('member.orders.index') }}" class="sidebar-link {{ request()->routeIs('member.orders.*') ? 'active' : '' }}" @click="sidebarOpen = false">
+                    <i class="bi bi-bag-fill"></i> Pesanan Saya
+                    @php
+                        $myOrdersCount = \App\Models\ProductOrder::where('user_id', auth()->id())->count();
+                    @endphp
+                    @if($myOrdersCount > 0)
+                        <span class="badge bg-secondary ms-auto rounded-pill">{{ $myOrdersCount }}</span>
+                    @endif
+                </a>
+            </li>
             @if(auth()->user()->canManageProducts())
             <li>
                 <a href="{{ route('admin.products.index') }}" class="sidebar-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" @click="sidebarOpen = false">
@@ -427,7 +442,6 @@
                     @endif
                 </a>
             </li>
-            @endif
             @endif
 
             @if(auth()->user()->canAccessLetterSubmission())

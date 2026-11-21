@@ -8,7 +8,8 @@
         </button>
     </div>
 @else
-    <div class="table-responsive">
+    <!-- Desktop Table View -->
+    <div class="d-none d-md-block table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr class="small text-muted text-uppercase">
@@ -23,7 +24,7 @@
             </thead>
             <tbody>
                 @foreach($products as $prod)
-                    <tr id="product-row-{{ $prod->id }}">
+                    <tr id="product-row-{{ $prod->id }}" data-product-row="{{ $prod->id }}">
                         <td class="text-center">
                             <div class="rounded-3 bg-light border p-1 mx-auto" style="width: 52px; height: 52px; overflow: hidden;">
                                 @if($prod->image_url)
@@ -97,6 +98,82 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="d-md-none p-3 d-flex flex-column gap-3">
+        @foreach($products as $prod)
+            <div class="card border shadow-sm rounded-4" data-product-row="{{ $prod->id }}">
+                <div class="card-body p-3">
+                    <div class="d-flex gap-3 align-items-start mb-3">
+                        <div class="rounded-3 bg-light border p-1 flex-shrink-0 text-center" style="width: 60px; height: 60px; overflow: hidden;">
+                            @if($prod->image_url)
+                                <img src="{{ $prod->image_url }}" alt="{{ $prod->name }}" class="w-100 h-100 object-fit-cover rounded-2">
+                            @else
+                                <i class="bi bi-box-seam text-success fs-3 lh-lg"></i>
+                            @endif
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <a href="{{ route('store.show', $prod->slug) }}" target="_blank" class="fw-bold text-dark text-decoration-none hover-success lh-sm">
+                                    {{ $prod->name }}
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm rounded-pill px-2 py-0 fw-semibold btn-toggle-status flex-shrink-0 {{ $prod->is_active ? 'btn-success' : 'btn-secondary' }}"
+                                        style="font-size: 0.72rem;"
+                                        data-id="{{ $prod->id }}"
+                                        data-url="{{ route('admin.products.toggle_status', $prod->id) }}"
+                                        title="Klik untuk ubah status aktif/nonaktif">
+                                    <span class="btn-text">{{ $prod->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                                </button>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0" style="font-size: 0.7rem;">
+                                    {{ $prod->category_label }}
+                                </span>
+                                <small class="text-muted" style="font-size: 0.72rem;">{{ $prod->weight_grams }} gram</small>
+                            </div>
+                            <div class="fw-bold text-success mt-2">{{ $prod->formatted_price }}</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            @if($prod->stock <= 0)
+                                <span class="badge bg-danger rounded-pill px-2">Habis</span>
+                            @elseif($prod->stock < 5)
+                                <span class="badge bg-warning text-dark rounded-pill px-2">Stok: {{ $prod->stock }} unit</span>
+                            @else
+                                <span class="badge bg-success rounded-pill px-2">Stok: {{ $prod->stock }} unit</span>
+                            @endif
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-star-fill text-warning me-1"></i>
+                                {{ number_format($prod->average_rating, 1) }}
+                                <small class="text-muted">({{ $prod->reviews_count }})</small>
+                            </span>
+                        </div>
+                        <div class="d-inline-flex gap-1">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary rounded-3 px-2 py-1 btn-edit-product"
+                                    data-id="{{ $prod->id }}"
+                                    data-url="{{ route('admin.products.edit', $prod->id) }}"
+                                    data-update-url="{{ route('admin.products.update', $prod->id) }}"
+                                    title="Edit Produk">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-3 px-2 py-1 btn-delete-product"
+                                    data-id="{{ $prod->id }}"
+                                    data-name="{{ $prod->name }}"
+                                    data-url="{{ route('admin.products.destroy', $prod->id) }}"
+                                    title="Hapus Produk">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
     </div>
 
     @if($products->hasPages())

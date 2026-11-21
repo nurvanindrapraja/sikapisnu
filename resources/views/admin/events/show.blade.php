@@ -258,7 +258,8 @@
     </div>
 
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <!-- Desktop Table View (>= 768px) -->
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
@@ -304,7 +305,51 @@
             </table>
         </div>
 
-        <div class="mt-4 d-flex justify-content-between align-items-center px-3 pb-3">
+        <!-- Mobile Card View (< 768px) -->
+        <div class="d-md-none p-3 d-flex flex-column gap-3">
+            @forelse($presences as $index => $p)
+                <div class="card border rounded-4 shadow-sm bg-white">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div class="min-w-0">
+                                <h6 class="fw-bold text-dark mb-0 text-break">{{ $p->name }}</h6>
+                                <code class="small">{{ $p->nik_or_member_number ?: '-' }}</code>
+                            </div>
+                            @if($p->member)
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill flex-shrink-0">Anggota SIKAP</span>
+                            @else
+                                <span class="badge bg-light text-secondary border rounded-pill flex-shrink-0">Tamu / Umum</span>
+                            @endif
+                        </div>
+                        <div class="bg-light rounded-3 p-2.5 small">
+                            <div class="d-flex justify-content-between gap-2 mb-1">
+                                <span class="text-muted">Institusi / PAC:</span>
+                                <span class="fw-semibold text-dark text-end">{{ $p->institution_or_pac ?: '-' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between gap-2 mb-1">
+                                <span class="text-muted">No. HP / WA:</span>
+                                <span class="text-dark text-end">{{ $p->phone ?: '-' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between gap-2 mb-1">
+                                <span class="text-muted">Waktu Hadir:</span>
+                                <span class="fw-semibold text-dark text-end">{{ $p->attended_at->translatedFormat('d M Y') }}, {{ $p->attended_at->format('H:i:s') }} WIB</span>
+                            </div>
+                            <div class="d-flex justify-content-between gap-2">
+                                <span class="text-muted">IP Address:</span>
+                                <code>{{ $p->ip_address ?: '-' }}</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-5 text-muted bg-light rounded-4">
+                    <i class="bi bi-person-x fs-1 d-block mb-2 text-secondary"></i>
+                    Belum ada data presensi yang masuk.
+                </div>
+            @endforelse
+        </div>
+
+        <div class="mt-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 px-3 pb-3">
             <div class="small text-muted">
                 Menampilkan {{ $presences->firstItem() ?? 0 }} - {{ $presences->lastItem() ?? 0 }} dari total {{ $presences->total() }} Peserta Presensi
             </div>

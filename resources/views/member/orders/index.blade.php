@@ -1,4 +1,4 @@
-@extends('layouts.member')
+@extends(auth()->check() && auth()->user()->isAdmin() ? 'layouts.admin' : 'layouts.member')
 
 @section('title', 'Pesanan Merchandise Saya - SIKAP ISNU')
 @section('header_title', 'Pesanan Merchandise Saya')

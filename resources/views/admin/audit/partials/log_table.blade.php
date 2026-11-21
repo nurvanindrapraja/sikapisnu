@@ -4,7 +4,8 @@
         <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%;"></div>
     </div>
 
-    <div class="table-responsive">
+    <!-- Desktop Table View -->
+    <div class="d-none d-md-block table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
@@ -36,6 +37,38 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="d-md-none d-flex flex-column gap-3">
+        @forelse($logs as $log)
+            <div class="card border shadow-sm rounded-4">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div class="min-w-0">
+                            <div class="fw-bold text-dark lh-sm">{{ $log->user ? $log->user->name : 'Sistem/Publik' }}</div>
+                            @if($log->user)
+                                <div class="small text-muted text-truncate">{{ $log->user->email }}</div>
+                            @endif
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 flex-shrink-0" style="font-size: 0.72rem;">{{ $log->action }}</span>
+                    </div>
+
+                    <div class="small text-dark mb-2" style="word-break: break-word;">
+                        {{ $log->description ?? '-' }}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top small text-muted">
+                        <span><i class="bi bi-clock me-1"></i>{{ $log->created_at->translatedFormat('d M Y H:i:s') }}</span>
+                        <code>{{ $log->ip_address ?? '-' }}</code>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-4 text-muted bg-light rounded-4 border">
+                Belum ada catatan aktivitas.
+            </div>
+        @endforelse
     </div>
 
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mt-4 pt-3 border-top">

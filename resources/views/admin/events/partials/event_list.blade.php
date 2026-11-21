@@ -1,4 +1,5 @@
-<div class="table-responsive">
+<!-- Desktop Table View (>= 768px) -->
+<div class="d-none d-md-block table-responsive">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
             <tr>
@@ -15,6 +16,8 @@
             @forelse($events as $index => $evt)
                 @php
                     $presenceStatus = $evt->presenceStatus();
+                    $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
+                    $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
                 @endphp
                 <tr>
                     <td>{{ $events->firstItem() + $index }}</td>
@@ -98,84 +101,19 @@
                         </span>
                     </td>
                     <td class="text-end">
-                        @php
-                            $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
-                            $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
-                        @endphp
                         <div class="d-flex justify-content-end gap-1">
                             <a href="{{ route('admin.events.show', $evt->id) }}" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 fw-semibold" title="Detail & Kelola Presensi">
                                 <i class="bi bi-eye-fill me-1"></i> Detail
                             </a>
                             @if($canManageEvt)
-                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
                                     style="width: 30px; height: 30px;"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#modalDeleteEvent{{ $evt->id }}" 
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalDeleteEvent{{ $evt->id }}"
                                     title="Hapus Kegiatan">
                                 <i class="bi bi-trash-fill"></i>
                             </button>
                             @endif
-                        </div>
-
-                        <!-- Modal Hapus Event -->
-                        <div class="modal fade text-start" id="modalDeleteEvent{{ $evt->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-sm">
-                                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" x-data="{
-                                    loading: false,
-                                    async submitDelete() {
-                                        this.loading = true;
-                                        const formData = new FormData(this.$refs.deleteForm);
-                                        try {
-                                            const res = await fetch(this.$refs.deleteForm.action, {
-                                                method: 'POST',
-                                                headers: {
-                                                    'X-Requested-With': 'XMLHttpRequest',
-                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                                },
-                                                body: formData
-                                            });
-                                            const data = await res.json();
-                                            this.loading = false;
-                                            if (res.ok && data.success) {
-                                                const modalEl = document.getElementById('modalDeleteEvent{{ $evt->id }}');
-                                                const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                                                modal.hide();
-                                                window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
-                                                window.dispatchEvent(new CustomEvent('refresh-events'));
-                                            } else {
-                                                window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
-                                            }
-                                        } catch (err) {
-                                            this.loading = false;
-                                            console.error(err);
-                                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: 'Terjadi kesalahan server.', type: 'error' } }));
-                                        }
-                                    }
-                                }">
-                                    <div x-show="loading" class="progress rounded-0" style="height: 3px;" x-cloak>
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 100%"></div>
-                                    </div>
-                                    <div class="modal-body text-center p-4">
-                                        <div class="text-danger mb-3">
-                                            <i class="bi bi-exclamation-triangle-fill fs-1"></i>
-                                        </div>
-                                        <h6 class="fw-bold text-dark mb-2">Hapus Kegiatan ISNU?</h6>
-                                        <p class="text-muted small mb-4">Apakah Anda yakin ingin menghapus kegiatan <strong>"{{ $evt->title }}"</strong> beserta seluruh data presensinya?</p>
-                                        <form x-ref="deleteForm" action="{{ route('admin.events.destroy', $evt->id) }}" method="POST" @submit.prevent="submitDelete()">
-                                            @csrf
-                                            @method('DELETE')
-                                            <div class="d-flex gap-2 justify-content-center">
-                                                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
-                                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
-                                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
-                                                    <i class="bi bi-trash-fill me-1" x-show="!loading"></i>
-                                                    <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus'"></span>
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </td>
                 </tr>
@@ -191,7 +129,152 @@
     </table>
 </div>
 
-<div class="mt-4 d-flex justify-content-between align-items-center px-3">
+<!-- Mobile Card View (< 768px) -->
+<div class="d-md-none p-3 d-flex flex-column gap-3">
+    @forelse($events as $evt)
+        @php
+            $presenceStatus = $evt->presenceStatus();
+            $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
+            $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
+        @endphp
+        <div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <h6 class="fw-bold text-dark mb-0 text-break">{{ $evt->title }}</h6>
+                    @if($evt->status === 'completed')
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill flex-shrink-0">Selesai</span>
+                    @elseif($evt->status === 'cancelled')
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill flex-shrink-0">Batal</span>
+                    @else
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill flex-shrink-0">Direncana</span>
+                    @endif
+                </div>
+
+                @if($evt->description)
+                    <p class="small text-secondary mb-2">{{ Str::limit($evt->description, 85) }}</p>
+                @endif
+
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                    @if($evt->method === 'daring')
+                        <span class="badge rounded-pill small fw-semibold" style="background-color: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe;">
+                            <i class="bi bi-camera-video-fill me-1"></i> Daring
+                        </span>
+                    @else
+                        <span class="badge rounded-pill small fw-semibold" style="background-color: #dcfce7; color: #15803d; border: 1px solid #86efac;">
+                            <i class="bi bi-geo-alt-fill me-1"></i> Luring
+                        </span>
+                    @endif
+                    <span class="badge bg-dark rounded-pill small">{{ $evt->presences_count }} Orang</span>
+                    @if($evt->section)
+                        <span class="badge bg-light text-dark border rounded-pill small">{{ Str::limit($evt->section->name, 22) }}</span>
+                    @endif
+                </div>
+
+                <div class="bg-light rounded-3 p-2.5 small mb-3">
+                    <div class="mb-1"><i class="bi bi-calendar3 text-success me-1"></i> <strong>{{ $evt->event_date->translatedFormat('d M Y') }}</strong> &bull; {{ $evt->start_time }} - {{ $evt->end_time }} WIB</div>
+                    <div class="mb-1"><i class="bi bi-geo-alt text-danger me-1"></i> {{ $evt->location }}</div>
+                    <div class="d-flex align-items-center justify-content-between pt-1 mt-1 border-top">
+                        <span class="text-muted">Presensi:</span>
+                        @if($presenceStatus === 'active')
+                            <span class="badge bg-success rounded-pill">Aktif</span>
+                        @elseif($presenceStatus === 'not_started')
+                            <span class="badge bg-warning text-dark rounded-pill">Belum Mulai</span>
+                        @else
+                            <span class="badge bg-secondary rounded-pill">Berakhir</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center gap-2 pt-2 border-top">
+                    <a href="{{ route('admin.events.show', $evt->id) }}" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold flex-grow-1 text-center">
+                        <i class="bi bi-eye-fill me-1"></i> Detail & Presensi
+                    </a>
+                    @if($canManageEvt)
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                style="width: 34px; height: 34px;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalDeleteEvent{{ $evt->id }}"
+                                title="Hapus Kegiatan"
+                                aria-label="Hapus Kegiatan">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="text-center py-5 text-muted bg-light rounded-4">
+            <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+            Belum ada kegiatan ISNU yang direncanakan.
+        </div>
+    @endforelse
+</div>
+
+<!-- Modals Hapus Event -->
+@foreach($events as $evt)
+    <div class="modal fade text-start" id="modalDeleteEvent{{ $evt->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" x-data="{
+                loading: false,
+                async submitDelete() {
+                    this.loading = true;
+                    const formData = new FormData(this.$refs.deleteForm);
+                    try {
+                        const res = await fetch(this.$refs.deleteForm.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: formData
+                        });
+                        const data = await res.json();
+                        this.loading = false;
+                        if (res.ok && data.success) {
+                            const modalEl = document.getElementById('modalDeleteEvent{{ $evt->id }}');
+                            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                            modal.hide();
+                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
+                            window.dispatchEvent(new CustomEvent('refresh-events'));
+                        } else {
+                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
+                        }
+                    } catch (err) {
+                        this.loading = false;
+                        console.error(err);
+                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: 'Terjadi kesalahan server.', type: 'error' } }));
+                    }
+                }
+            }">
+                <div x-show="loading" class="progress rounded-0" style="height: 3px;" x-cloak>
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 100%"></div>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div class="text-danger mb-3">
+                        <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-2">Hapus Kegiatan ISNU?</h6>
+                    <p class="text-muted small mb-4">Apakah Anda yakin ingin menghapus kegiatan <strong>"{{ $evt->title }}"</strong> beserta seluruh data presensinya?</p>
+                    <form x-ref="deleteForm" action="{{ route('admin.events.destroy', $evt->id) }}" method="POST" @submit.prevent="submitDelete()">
+                        @csrf
+                        @method('DELETE')
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
+                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold" :disabled="loading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                                <i class="bi bi-trash-fill me-1" x-show="!loading"></i>
+                                <span x-text="loading ? 'Menghapus...' : 'Ya, Hapus'"></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endforeach
+
+<div class="mt-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 px-3 pb-3">
     <div class="small text-muted">
         Menampilkan {{ $events->firstItem() ?? 0 }} - {{ $events->lastItem() ?? 0 }} dari total {{ $events->total() }} Kegiatan
     </div>

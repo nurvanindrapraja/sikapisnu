@@ -118,19 +118,26 @@
 
 <!-- Daftar Anggota Pokja -->
 <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-    <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center">
-        <div>
+    <div class="card-header bg-white border-0 p-3 p-md-4 d-flex justify-content-between align-items-center gap-2">
+        <div class="min-w-0">
             <h6 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
                 <i class="bi bi-people-fill text-success"></i> Anggota Kelompok Kerja yang Ditugaskan
             </h6>
             <small class="text-muted">Daftar pengurus seksi yang saat ini aktif bernaung dalam Pokja ini</small>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
-            <i class="bi bi-plus-lg me-1"></i> Tambah Anggota
+        <button type="button"
+                class="btn btn-sm btn-outline-success rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                data-bs-toggle="modal"
+                data-bs-target="#modalAddPokjaMember"
+                title="Tambah Anggota"
+                aria-label="Tambah Anggota">
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-md-inline ms-1">Tambah Anggota</span>
         </button>
     </div>
 
-    <div class="table-responsive">
+    <!-- Desktop Table View (>= 768px) -->
+    <div class="d-none d-md-block table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
@@ -189,99 +196,23 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-1">
-                                <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-1 d-flex align-items-center justify-content-center"
                                         style="width: 32px; height: 32px;"
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#modalEditMemberRole{{ $m->id }}" 
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalEditMemberRole{{ $m->id }}"
                                         title="Ubah Peran di Pokja">
                                     <i class="bi bi-pencil-fill"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center" 
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-circle p-1 d-flex align-items-center justify-content-center"
                                         style="width: 32px; height: 32px;"
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#modalRemoveMember{{ $m->id }}" 
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalRemoveMember{{ $m->id }}"
                                         title="Keluarkan dari Pokja">
                                     <i class="bi bi-person-x-fill"></i>
                                 </button>
                                 <a href="{{ route('admin.anggota.show', $m->id) }}" class="btn btn-sm btn-outline-secondary rounded-circle p-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title="Lihat Profil Anggota" target="_blank">
                                     <i class="bi bi-box-arrow-up-right"></i>
                                 </a>
-                            </div>
-
-                            <!-- Modal Ubah Peran Anggota Pokja -->
-                            <div class="modal fade text-start" id="modalEditMemberRole{{ $m->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                                        <form action="{{ route('admin.workgroups.members.update', [$workgroup->id, $m->id]) }}" method="POST">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-header bg-warning text-dark border-0 p-3">
-                                                <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Ubah Peran di Pokja</h6>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body p-4">
-                                                <div class="mb-3">
-                                                    <label class="form-label text-muted small fw-semibold">Nama Pengurus</label>
-                                                    <div class="fw-bold text-dark">{{ $m->full_name }}</div>
-                                                    <div class="text-success small">Seksi: {{ $seksi?->name ?? '-' }}</div>
-                                                </div>
-
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Peran / Posisi dalam Pokja <span class="text-danger">*</span></label>
-                                                    <select name="role" class="form-select" required>
-                                                        <option value="Ketua Pokja" {{ $m->pivot->role === 'Ketua Pokja' ? 'selected' : '' }}>Ketua Pokja</option>
-                                                        <option value="Wakil Ketua Pokja" {{ $m->pivot->role === 'Wakil Ketua Pokja' ? 'selected' : '' }}>Wakil Ketua Pokja</option>
-                                                        <option value="Sekretaris Pokja" {{ $m->pivot->role === 'Sekretaris Pokja' ? 'selected' : '' }}>Sekretaris Pokja</option>
-                                                        <option value="Bendahara Pokja" {{ $m->pivot->role === 'Bendahara Pokja' ? 'selected' : '' }}>Bendahara Pokja</option>
-                                                        <option value="Koordinator Bidang" {{ $m->pivot->role === 'Koordinator Bidang' ? 'selected' : '' }}>Koordinator Bidang</option>
-                                                        <option value="Anggota Pokja" {{ $m->pivot->role === 'Anggota Pokja' ? 'selected' : '' }}>Anggota Pokja</option>
-                                                    </select>
-                                                </div>
-
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Catatan Penugasan / Fokus Tugas</label>
-                                                    <textarea name="notes" class="form-control" rows="3" placeholder="Contoh: Bertanggung jawab pada pengembangan modul presensi barcode">{{ $m->pivot->notes }}</textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer bg-light border-0 px-4 py-3">
-                                                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                                                <button type="submit" class="btn btn-sm btn-warning fw-bold rounded-pill px-4">
-                                                    <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Konfirmasi Hapus Anggota Pokja -->
-                            <div class="modal fade text-start" id="modalRemoveMember{{ $m->id }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered modal-sm">
-                                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                                        <div class="modal-body text-center p-4">
-                                            <div class="text-danger mb-3">
-                                                <i class="bi bi-person-x-fill fs-1"></i>
-                                            </div>
-                                            <h6 class="fw-bold text-dark mb-2">Keluarkan dari Pokja?</h6>
-                                            <p class="text-muted small mb-3">
-                                                Keluarkan <strong>"{{ $m->full_name }}"</strong> dari gugus tugas Pokja ini?
-                                            </p>
-                                            <p class="text-success small mb-4 bg-success-subtle p-2 rounded-3">
-                                                <i class="bi bi-info-circle me-1"></i> Status kepengurusan di Seksi <strong>{{ $seksi?->name ?? 'Seksi' }}</strong> tetap aktif dan tidak berubah.
-                                            </p>
-                                            <form action="{{ route('admin.workgroups.members.remove', [$workgroup->id, $m->id]) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <div class="d-flex gap-2 justify-content-center">
-                                                    <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
-                                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold">
-                                                        <i class="bi bi-trash-fill me-1"></i> Ya, Keluarkan
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </td>
                     </tr>
@@ -301,6 +232,167 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Mobile Card View (< 768px) -->
+    <div class="d-md-none p-3 d-flex flex-column gap-3">
+        @forelse($workgroup->members as $m)
+            @php
+                $pos = $m->activePosition;
+                $seksi = $pos?->section;
+            @endphp
+            <div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-start gap-3 mb-2">
+                        <img src="{{ $m->photo_url }}" alt="" class="rounded-circle object-fit-cover border border-2 border-warning flex-shrink-0" style="width: 44px; height: 44px;">
+                        <div class="min-w-0 flex-grow-1">
+                            <h6 class="fw-bold text-dark mb-0 text-break">{{ $m->full_name }}</h6>
+                            <small class="text-muted d-block">{{ $m->member_number }}</small>
+                            <span class="badge bg-warning text-dark rounded-pill fw-bold mt-1">
+                                <i class="bi bi-person-badge me-1"></i> {{ $m->pivot->role ?? 'Anggota Pokja' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="bg-light rounded-3 p-2.5 small mb-3">
+                        <div class="d-flex justify-content-between gap-2 mb-1">
+                            <span class="text-muted">Seksi Asal:</span>
+                            <span class="fw-semibold text-success text-end">{{ $seksi?->name ?? '-' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between gap-2 mb-1">
+                            <span class="text-muted">Jabatan:</span>
+                            <span class="fw-semibold text-dark text-end">{{ $pos ? $pos->position_title : 'Pengurus' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between gap-2">
+                            <span class="text-muted">Bergabung:</span>
+                            <span class="text-secondary text-end">{{ $m->pivot->created_at ? $m->pivot->created_at->format('d M Y') : '-' }}</span>
+                        </div>
+                        @if($m->pivot->notes)
+                            <div class="text-secondary mt-1 pt-1 border-top">
+                                {{ $m->pivot->notes }}
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width: 34px; height: 34px;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalEditMemberRole{{ $m->id }}"
+                                title="Ubah Peran di Pokja"
+                                aria-label="Ubah Peran di Pokja">
+                            <i class="bi bi-pencil-fill"></i>
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width: 34px; height: 34px;"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalRemoveMember{{ $m->id }}"
+                                title="Keluarkan dari Pokja"
+                                aria-label="Keluarkan dari Pokja">
+                            <i class="bi bi-person-x-fill"></i>
+                        </button>
+                        <a href="{{ route('admin.anggota.show', $m->id) }}"
+                           class="btn btn-sm btn-outline-secondary rounded-circle d-inline-flex align-items-center justify-content-center"
+                           style="width: 34px; height: 34px;"
+                           title="Lihat Profil Anggota"
+                           aria-label="Lihat Profil Anggota"
+                           target="_blank">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-5 text-muted bg-light rounded-4">
+                <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+                Belum ada pengurus seksi yang ditugaskan ke Kelompok Kerja ini.
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-isnu-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
+                        <i class="bi bi-plus-lg me-1"></i> Tambah Anggota Pertama
+                    </button>
+                </div>
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Modals Ubah Peran & Keluarkan Anggota Pokja -->
+    @foreach($workgroup->members as $m)
+        @php $seksi = $m->activePosition?->section; @endphp
+        <div class="modal fade text-start" id="modalEditMemberRole{{ $m->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <form action="{{ route('admin.workgroups.members.update', [$workgroup->id, $m->id]) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-header bg-warning text-dark border-0 p-3">
+                            <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Ubah Peran di Pokja</h6>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-semibold">Nama Pengurus</label>
+                                <div class="fw-bold text-dark">{{ $m->full_name }}</div>
+                                <div class="text-success small">Seksi: {{ $seksi?->name ?? '-' }}</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Peran / Posisi dalam Pokja <span class="text-danger">*</span></label>
+                                <select name="role" class="form-select" required>
+                                    <option value="Ketua Pokja" {{ $m->pivot->role === 'Ketua Pokja' ? 'selected' : '' }}>Ketua Pokja</option>
+                                    <option value="Wakil Ketua Pokja" {{ $m->pivot->role === 'Wakil Ketua Pokja' ? 'selected' : '' }}>Wakil Ketua Pokja</option>
+                                    <option value="Sekretaris Pokja" {{ $m->pivot->role === 'Sekretaris Pokja' ? 'selected' : '' }}>Sekretaris Pokja</option>
+                                    <option value="Bendahara Pokja" {{ $m->pivot->role === 'Bendahara Pokja' ? 'selected' : '' }}>Bendahara Pokja</option>
+                                    <option value="Koordinator Bidang" {{ $m->pivot->role === 'Koordinator Bidang' ? 'selected' : '' }}>Koordinator Bidang</option>
+                                    <option value="Anggota Pokja" {{ $m->pivot->role === 'Anggota Pokja' ? 'selected' : '' }}>Anggota Pokja</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Catatan Penugasan / Fokus Tugas</label>
+                                <textarea name="notes" class="form-control" rows="3" placeholder="Contoh: Bertanggung jawab pada pengembangan modul presensi barcode">{{ $m->pivot->notes }}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-0 px-4 py-3">
+                            <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-sm btn-warning fw-bold rounded-pill px-4">
+                                <i class="bi bi-check-lg me-1"></i> Simpan Perubahan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade text-start" id="modalRemoveMember{{ $m->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                    <div class="modal-body text-center p-4">
+                        <div class="text-danger mb-3">
+                            <i class="bi bi-person-x-fill fs-1"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-2">Keluarkan dari Pokja?</h6>
+                        <p class="text-muted small mb-3">
+                            Keluarkan <strong>"{{ $m->full_name }}"</strong> dari gugus tugas Pokja ini?
+                        </p>
+                        <p class="text-success small mb-4 bg-success-subtle p-2 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i> Status kepengurusan di Seksi <strong>{{ $seksi?->name ?? 'Seksi' }}</strong> tetap aktif dan tidak berubah.
+                        </p>
+                        <form action="{{ route('admin.workgroups.members.remove', [$workgroup->id, $m->id]) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <div class="d-flex gap-2 justify-content-center">
+                                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold">
+                                    <i class="bi bi-trash-fill me-1"></i> Ya, Keluarkan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endforeach
 </div>
 
 <!-- Modal Tambah Anggota Pokja Baru -->

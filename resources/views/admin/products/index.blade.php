@@ -434,6 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Toggle Status Button
         tableContainer.querySelectorAll('.btn-toggle-status').forEach(btn => {
             btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
                 const url = this.getAttribute('data-url');
                 const btnText = this.querySelector('.btn-text');
                 const originalText = btnText.textContent;
@@ -452,8 +453,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        btnText.textContent = data.label;
-                        this.className = `btn btn-sm rounded-pill px-2 py-0 fw-semibold btn-toggle-status ${data.badge_class}`;
+                        tableContainer.querySelectorAll(`.btn-toggle-status[data-id="${id}"]`).forEach(targetBtn => {
+                            const targetText = targetBtn.querySelector('.btn-text');
+                            if (targetText) targetText.textContent = data.label;
+                            targetBtn.className = `btn btn-sm rounded-pill px-2 py-0 fw-semibold btn-toggle-status flex-shrink-0 ${data.badge_class}`;
+                        });
                         showNotification(data.message, 'success');
                     } else {
                         btnText.textContent = originalText;
@@ -720,11 +724,13 @@ document.addEventListener('DOMContentLoaded', function() {
             bootstrap.Modal.getInstance(document.getElementById('modalConfirmDeleteProduct')).hide();
             if (data.success) {
                 showNotification(data.message, 'success');
-                // Smooth remove row
-                const row = document.getElementById(`product-row-${id}`);
-                if (row) {
-                    row.style.transition = 'all 0.3s ease';
-                    row.style.opacity = '0';
+                // Smooth remove row / mobile card
+                const rows = document.querySelectorAll(`[data-product-row="${id}"]`);
+                if (rows.length > 0) {
+                    rows.forEach(row => {
+                        row.style.transition = 'all 0.3s ease';
+                        row.style.opacity = '0';
+                    });
                     setTimeout(() => {
                         fetchProducts();
                     }, 350);

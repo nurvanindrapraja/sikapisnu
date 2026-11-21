@@ -1,9 +1,10 @@
 @php
     $isMemberLayout = request()->routeIs('member.*') || (auth()->check() && !auth()->user()->isAdmin() && !request()->has('public'));
+    $panelLayout = (auth()->check() && auth()->user()->isAdmin()) ? 'layouts.admin' : 'layouts.member';
     $storeIndexRoute = $isMemberLayout ? 'member.store.index' : 'store.index';
     $storeShowRoute = $isMemberLayout ? 'member.store.show' : 'store.show';
 @endphp
-@extends($isMemberLayout ? 'layouts.member' : 'layouts.app')
+@extends($isMemberLayout ? $panelLayout : 'layouts.app')
 
 @section('title', 'Toko Merchandise Resmi ISNU')
 @section('header_title', 'Toko Merchandise ISNU')

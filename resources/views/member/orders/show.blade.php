@@ -1,4 +1,4 @@
-@extends('layouts.member')
+@extends(auth()->check() && auth()->user()->isAdmin() ? 'layouts.admin' : 'layouts.member')
 
 @section('title', 'Rincian Pesanan ' . $order->order_number . ' - SIKAP ISNU')
 @section('header_title', 'Rincian Pesanan ' . $order->order_number)
@@ -166,7 +166,8 @@
                 <h5 class="fw-bold text-dark mb-0"><i class="bi bi-basket me-2 text-success"></i> Rincian Barang Dipesan</h5>
             </div>
             <div class="card-body p-4">
-                <div class="table-responsive">
+                <!-- Desktop Table View -->
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-borderless align-middle mb-0">
                         <thead class="table-light rounded-3">
                             <tr class="small text-muted text-uppercase">
@@ -219,6 +220,49 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- Mobile Card View -->
+                <div class="d-md-none">
+                    <div class="d-flex flex-column gap-3 mb-3">
+                        @foreach($order->items as $item)
+                            <div class="border rounded-4 p-3 bg-light bg-opacity-50">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="rounded-3 bg-white p-1 border text-center flex-shrink-0" style="width: 50px; height: 50px; overflow: hidden;">
+                                        @if($item->product && $item->product->image_url)
+                                            <img src="{{ $item->product->image_url }}" alt="{{ $item->product_name }}" class="w-100 h-100 object-fit-cover rounded-2">
+                                        @else
+                                            <i class="bi bi-box-seam text-success fs-4 lh-lg"></i>
+                                        @endif
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-bold text-dark lh-sm">{{ $item->product_name }}</div>
+                                        @if($item->variant_note)
+                                            <small class="text-primary fw-semibold d-block mt-1"><i class="bi bi-tag me-1"></i> {{ $item->variant_note }}</small>
+                                        @endif
+                                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top small">
+                                            <span class="text-muted">{{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}</span>
+                                            <span class="fw-bold text-dark">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="border-top pt-3 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Total Belanja:</span>
+                            <span class="fw-semibold text-dark">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Biaya Pengiriman:</span>
+                            <span class="fw-semibold text-dark">{{ $order->shipping_cost > 0 ? 'Rp ' . number_format($order->shipping_cost, 0, ',', '.') : 'Gratis / Kantor PCNU' }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="fw-bold text-dark">Total Pembayaran Non-Tunai:</span>
+                            <span class="fw-extrabold fs-5 text-success">{{ $order->formatted_grand_total }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

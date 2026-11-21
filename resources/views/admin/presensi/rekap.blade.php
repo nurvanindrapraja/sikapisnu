@@ -240,41 +240,79 @@
                             <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calendar2-check text-success me-2"></i>Daftar Kegiatan Yang Dihadiri:</h6>
                             
                             <template x-if="selectedMember.presences && selectedMember.presences.length > 0">
-                                <div class="table-responsive bg-white rounded-3 shadow-sm">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="bg-light">
-                                            <tr>
-                                                <th>#</th>
-                                                <th>Nama Kegiatan</th>
-                                                <th>Waktu Hadir</th>
-                                                <th>Metode</th>
-                                                <th>Lokasi</th>
-                                                <th>Catatan / Keterangan</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <template x-for="(pres, idx) in selectedMember.presences" :key="pres.id">
+                                <div>
+                                    <!-- Desktop Table View -->
+                                    <div class="d-none d-md-block table-responsive bg-white rounded-3 shadow-sm">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="bg-light">
                                                 <tr>
-                                                    <td class="fw-medium text-muted" x-text="idx + 1"></td>
-                                                    <td>
-                                                        <div class="fw-bold text-dark" x-text="pres.event_title"></div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="small text-dark fw-medium" x-text="pres.presence_date"></div>
-                                                        <div class="fs-xs text-muted" x-text="pres.presence_time"></div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="badge" 
+                                                    <th>#</th>
+                                                    <th>Nama Kegiatan</th>
+                                                    <th>Waktu Hadir</th>
+                                                    <th>Metode</th>
+                                                    <th>Lokasi</th>
+                                                    <th>Catatan / Keterangan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(pres, idx) in selectedMember.presences" :key="pres.id">
+                                                    <tr>
+                                                        <td class="fw-medium text-muted" x-text="idx + 1"></td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark" x-text="pres.event_title"></div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="small text-dark fw-medium" x-text="pres.presence_date"></div>
+                                                            <div class="fs-xs text-muted" x-text="pres.presence_time"></div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge" 
+                                                                  :class="pres.method && pres.method.toLowerCase() === 'luring' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-info-subtle text-info border border-info-subtle'"
+                                                                  x-text="pres.method">
+                                                            </span>
+                                                        </td>
+                                                        <td class="small text-muted" x-text="pres.location"></td>
+                                                        <td class="small text-muted" x-text="pres.notes || '-'"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Mobile Card View -->
+                                    <div class="d-md-none d-flex flex-column gap-2">
+                                        <template x-for="(pres, idx) in selectedMember.presences" :key="'mob-' + pres.id">
+                                            <div class="card border-0 shadow-sm rounded-3 bg-white">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                                        <div class="fw-bold text-dark lh-sm">
+                                                            <span class="text-muted me-1" x-text="(idx + 1) + '.'"></span>
+                                                            <span x-text="pres.event_title"></span>
+                                                        </div>
+                                                        <span class="badge flex-shrink-0"
                                                               :class="pres.method && pres.method.toLowerCase() === 'luring' ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-info-subtle text-info border border-info-subtle'"
                                                               x-text="pres.method">
                                                         </span>
-                                                    </td>
-                                                    <td class="small text-muted" x-text="pres.location"></td>
-                                                    <td class="small text-muted" x-text="pres.notes || '-'"></td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
+                                                    </div>
+                                                    <div class="small text-muted d-flex flex-column gap-1">
+                                                        <div>
+                                                            <i class="bi bi-clock me-1 text-success"></i>
+                                                            <span class="text-dark fw-medium" x-text="pres.presence_date"></span>
+                                                            <span x-text="pres.presence_time ? ' • ' + pres.presence_time : ''"></span>
+                                                        </div>
+                                                        <div x-show="pres.location">
+                                                            <i class="bi bi-geo-alt me-1 text-danger"></i>
+                                                            <span x-text="pres.location"></span>
+                                                        </div>
+                                                        <div x-show="pres.notes">
+                                                            <i class="bi bi-chat-left-text me-1 text-secondary"></i>
+                                                            <span x-text="pres.notes"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
                             </template>
 

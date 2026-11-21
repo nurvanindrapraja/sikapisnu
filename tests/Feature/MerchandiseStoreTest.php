@@ -681,4 +681,32 @@ class MerchandiseStoreTest extends TestCase
         $reviewResponse->assertStatus(200);
         $reviewResponse->assertJson(['success' => true, 'rating' => 5]);
     }
+
+    public function test_pengurus_sees_toko_and_pesanan_saya_menu_and_stays_in_admin_layout(): void
+    {
+        $officerUser = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $this->createMember($officerUser, [
+            'full_name' => 'Pengurus PAC Test',
+            'membership_status' => 'pengurus',
+        ]);
+
+        // Pengurus sees Toko Merchandise & Pesanan Saya in admin sidebar
+        $dashboardResponse = $this->actingAs($officerUser)->get(route('admin.dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertSee('Toko Merchandise');
+        $dashboardResponse->assertSee('Pesanan Saya');
+        $dashboardResponse->assertSee(route('member.orders.index'));
+
+        // Opening Pesanan Saya keeps the Pengurus (admin) sidebar layout
+        $ordersResponse = $this->actingAs($officerUser)->get(route('member.orders.index'));
+        $ordersResponse->assertStatus(200);
+        $ordersResponse->assertSee('Pesanan Merchandise Saya');
+        $ordersResponse->assertSee('Pengurus ISNU');
+
+        // Opening Toko Merchandise from Pengurus panel keeps the Pengurus (admin) sidebar layout
+        $storeResponse = $this->actingAs($officerUser)->get(route('member.store.index'));
+        $storeResponse->assertStatus(200);
+        $storeResponse->assertSee('Toko Merchandise');
+        $storeResponse->assertSee('Pengurus ISNU');
+    }
 }
