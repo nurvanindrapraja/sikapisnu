@@ -1,7 +1,29 @@
-@extends('layouts.member')
+@extends(auth()->check() && auth()->user()->isAdmin() ? 'layouts.admin' : 'layouts.member')
 
 @section('title', 'Dashboard Member')
 @section('header_title', 'Dashboard Profil Saya')
+
+@section('styles')
+<style>
+    .card-custom {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        background: white;
+    }
+
+    .btn-isnu {
+        background: var(--isnu-green);
+        color: white;
+        font-weight: 600;
+    }
+
+    .btn-isnu:hover {
+        background: var(--isnu-green-dark);
+        color: white;
+    }
+</style>
+@endsection
 
 @section('content')
     <div class="row g-2 g-lg-4">

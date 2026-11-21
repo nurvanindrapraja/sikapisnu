@@ -15,12 +15,12 @@ use Illuminate\View\View;
 class ProductController extends Controller
 {
     /**
-     * Memeriksa otorisasi: hanya Admin PC ISNU yang dapat mengelola produk toko.
+     * Memeriksa otorisasi: hanya Admin PC ISNU dan Bendahara PC ISNU yang dapat mengelola produk toko.
      */
     protected function checkAccess(): void
     {
         if (! auth()->check() || ! auth()->user()->canManageProducts()) {
-            abort(403, 'Hanya Admin PC ISNU yang berhak mengelola master barang / produk toko.');
+            abort(403, 'Hanya Admin PC ISNU dan Bendahara PC ISNU yang berhak mengelola master barang / produk toko.');
         }
     }
 

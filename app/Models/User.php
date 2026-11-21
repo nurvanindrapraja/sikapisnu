@@ -711,11 +711,15 @@ class User extends Authenticatable
 
     /**
      * Memeriksa apakah user dapat mengelola master produk toko merchandise ISNU.
-     * Hak akses: Admin PC ISNU (Superadmin, Admin Kota, role admin).
+     * Hak akses: Admin PC ISNU (Superadmin, Admin Kota, role admin) serta Bendahara / Wakil Bendahara PC ISNU.
      */
     public function canManageProducts(): bool
     {
-        return $this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin';
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        return $this->isBendahara() && ! $this->isOfficerPac();
     }
 
     /**

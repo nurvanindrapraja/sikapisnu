@@ -708,6 +708,12 @@ class MerchandiseStoreTest extends TestCase
         $storeResponse->assertStatus(200);
         $storeResponse->assertSee('Toko Merchandise');
         $storeResponse->assertSee('Pengurus ISNU');
+
+        // Opening Dashboard Profil Saya from Pengurus panel keeps the Pengurus (admin) sidebar layout
+        $memberDashboardResponse = $this->actingAs($officerUser)->get(route('member.dashboard'));
+        $memberDashboardResponse->assertStatus(200);
+        $memberDashboardResponse->assertSee('Pengurus ISNU');
+        $memberDashboardResponse->assertDontSee('PORTAL ANGGOTA');
     }
 
     public function test_superadmin_and_admin_do_not_see_toko_merchandise_and_pesanan_saya_in_sidebar(): void
@@ -785,5 +791,63 @@ class MerchandiseStoreTest extends TestCase
 
         $this->assertDatabaseMissing('product_orders', ['id' => $order->id]);
         $this->assertEquals(10, $product->fresh()->stock);
+    }
+
+    public function test_bendahara_pc_isnu_can_access_and_manage_store_products_while_bendahara_pac_cannot(): void
+    {
+        $bendaharaPcUser = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $bendaharaPcMember = $this->createMember($bendaharaPcUser, [
+            'full_name' => 'Bendahara PC Test',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaPcMember->id,
+            'position_title' => 'Bendahara',
+            'level' => 'PC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $this->assertTrue($bendaharaPcUser->fresh()->canManageProducts());
+
+        $dashboardPc = $this->actingAs($bendaharaPcUser)->get(route('admin.dashboard'));
+        $dashboardPc->assertStatus(200);
+        $dashboardPc->assertSee('Kelola Produk Toko');
+        $dashboardPc->assertSee(route('admin.products.index'));
+
+        $this->actingAs($bendaharaPcUser)->get(route('admin.products.index'))->assertStatus(200);
+        $createRes = $this->actingAs($bendaharaPcUser)->postJson(route('admin.products.store'), [
+            'name' => 'Pin Resmi PC ISNU',
+            'category' => 'pin',
+            'price' => 35000,
+            'stock' => 25,
+            'weight_grams' => 50,
+            'is_active' => true,
+        ]);
+        $createRes->assertStatus(200);
+        $createRes->assertJson(['success' => true]);
+        $this->assertDatabaseHas('products', ['name' => 'Pin Resmi PC ISNU']);
+
+        // Bendahara PAC ISNU tidak berhak mengelola produk toko PC ISNU
+        $bendaharaPacUser = User::factory()->create(['role' => 'member', 'is_active' => true]);
+        $bendaharaPacMember = $this->createMember($bendaharaPacUser, [
+            'full_name' => 'Bendahara PAC Test',
+            'membership_status' => 'pengurus',
+        ]);
+        Position::create([
+            'member_id' => $bendaharaPacMember->id,
+            'position_title' => 'Bendahara',
+            'level' => 'PAC ISNU',
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        $this->assertFalse($bendaharaPacUser->fresh()->canManageProducts());
+
+        $dashboardPac = $this->actingAs($bendaharaPacUser)->get(route('admin.dashboard'));
+        $dashboardPac->assertStatus(200);
+        $dashboardPac->assertDontSee('Kelola Produk Toko');
+
+        $this->actingAs($bendaharaPacUser)->get(route('admin.products.index'))->assertStatus(403);
     }
 }
