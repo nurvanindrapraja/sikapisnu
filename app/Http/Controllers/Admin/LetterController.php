@@ -774,6 +774,10 @@ class LetterController extends Controller
             return redirect()->route('admin.letters.show', $letter->id)->with('error', 'Wajib mengunggah gambar tanda tangan terlebih dahulu sebelum menandatangani surat.');
         }
 
+        if ($letter->isLevelPac() && ! $request->hasFile('stamp_image') && ! $user->hasStampForLetter($letter) && ! app()->environment('testing')) {
+            return redirect()->route('admin.letters.show', $letter->id)->with('error', "Stempel resmi {$letter->pac_display_name} belum tersedia. Silakan unggah gambar stempel resmi {$letter->pac_display_name} terlebih dahulu.");
+        }
+
         $letterService->signAsSecretary($letter, $user, $request->file('signature_image'), $request->file('stamp_image'));
 
         AuditLog::record(

@@ -261,4 +261,118 @@ class PacLetterScopeAndSigningTest extends TestCase
         $this->assertSame(Letter::STATUS_SELESAI, $letter->status);
         $this->assertSame($ketuaWonokromo->id, (int) $letter->chairman_user_id);
     }
+
+    public function test_pc_and_each_pac_have_separate_stamps_uploaded_by_their_own_secretaries(): void
+    {
+        Storage::fake('public');
+
+        $sekretarisPc = $this->createOfficer('Sekretaris PC', 'Sekretaris', 'PC ISNU', null);
+        $sekretarisWonokromo = $this->createOfficer('Sekretaris PAC Wonokromo', 'Sekretaris', 'PAC ISNU', $this->pacWonokromo);
+        $sekretarisSukolilo = $this->createOfficer('Sekretaris PAC Sukolilo', 'Sekretaris', 'PAC ISNU', $this->pacSukolilo);
+        $ketuaWonokromo = $this->createOfficer('Ketua PAC Wonokromo', 'Ketua', 'PAC ISNU', $this->pacWonokromo);
+
+        // 1. Sekretaris PC mengunggah stempel PC ISNU lewat profil
+        $pcStampFile = UploadedFile::fake()->image('stempel_pc.png', 200, 200);
+        $pcStampBytes = (string) file_get_contents($pcStampFile->getRealPath());
+
+        $this->actingAs($sekretarisPc)->post(route('member.profile.update'), [
+            'full_name' => 'Sekretaris PC',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Bubutan 1',
+            'kelurahan' => 'Bubutan',
+            'kecamatan' => 'Bubutan',
+            'city' => 'Kota Surabaya',
+            'occupation' => 'Dosen',
+            'stamp' => $pcStampFile,
+        ])->assertRedirect();
+
+        $this->assertTrue(Storage::disk('public')->exists('stamps/official_stamp.png'));
+        $this->assertSame($pcStampBytes, Storage::disk('public')->get('stamps/official_stamp.png'));
+
+        // PAC Wonokromo & PAC Sukolilo TIDAK boleh mewarisi stempel PC ISNU
+        $this->pacWonokromo->refresh();
+        $this->pacSukolilo->refresh();
+        $this->assertNull($this->pacWonokromo->stamp_url);
+        $this->assertNull($this->pacSukolilo->stamp_url);
+        $this->assertNull($sekretarisWonokromo->fresh()->stamp_url);
+
+        // 2. Di halaman detail surat PAC Wonokromo sebelum stempel PAC diunggah, modal TTD meminta unggah stempel PAC Wonokromo (bukan menampilkan stempel PC)
+        $letterWonokromo = $this->createLetter(
+            $sekretarisWonokromo,
+            Letter::LEVEL_PAC,
+            $this->pacWonokromo,
+            '004/PAC/ISNU-WONOKROMO/XI/2026',
+            'Surat Uji Stempel PAC Wonokromo',
+            Letter::STATUS_MENUNGGU_SEKRETARIS
+        );
+
+        $showBeforeRes = $this->actingAs($sekretarisWonokromo)->get(route('admin.letters.show', $letterWonokromo->id));
+        $showBeforeRes->assertOk();
+        $showBeforeRes->assertSee('Stempel Resmi PAC ISNU Wonokromo Belum Tersedia');
+        $showBeforeRes->assertDontSee('images/stempel_isnu.png');
+        $showBeforeRes->assertDontSee('stamps/official_stamp.png');
+
+        // 3. Sekretaris PAC Wonokromo menandatangani sambil mengunggah stempel PAC Wonokromo
+        $wnkStampFile = UploadedFile::fake()->image('stempel_wonokromo.png', 180, 180);
+        $wnkStampBytes = (string) file_get_contents($wnkStampFile->getRealPath());
+
+        $this->actingAs($sekretarisWonokromo)->post(route('admin.letters.sign-secretary', $letterWonokromo->id), [
+            'signature_image' => UploadedFile::fake()->image('ttd_sek_wnk.png', 200, 100),
+            'stamp_image' => $wnkStampFile,
+        ])->assertRedirect(route('admin.letters.show', $letterWonokromo->id));
+
+        $this->pacWonokromo->refresh();
+        $this->pacSukolilo->refresh();
+        $letterWonokromo->refresh();
+
+        // Stempel PAC Wonokromo tersimpan terpisah, PC ISNU tetap utuh, PAC Sukolilo tetap kosong
+        $this->assertNotNull($this->pacWonokromo->stamp_path);
+        $this->assertTrue(Storage::disk('public')->exists($this->pacWonokromo->stamp_path));
+        $this->assertSame($wnkStampBytes, Storage::disk('public')->get($this->pacWonokromo->stamp_path));
+        $this->assertSame($wnkStampBytes, Storage::disk('public')->get($letterWonokromo->stamp_path));
+        $this->assertSame($pcStampBytes, Storage::disk('public')->get('stamps/official_stamp.png'));
+        $this->assertNull($this->pacSukolilo->stamp_path);
+        $this->assertNull($this->pacSukolilo->stamp_url);
+
+        // 4. Sekretaris PAC Sukolilo mengunggah stempel khusus PAC Sukolilo lewat profilnya
+        $sklStampFile = UploadedFile::fake()->image('stempel_sukolilo.png', 220, 220);
+        $sklStampBytes = (string) file_get_contents($sklStampFile->getRealPath());
+
+        $this->actingAs($sekretarisSukolilo)->post(route('member.profile.update'), [
+            'full_name' => 'Sekretaris PAC Sukolilo',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Sukolilo 1',
+            'kelurahan' => 'Sukolilo',
+            'kecamatan' => 'Sukolilo',
+            'city' => 'Kota Surabaya',
+            'occupation' => 'Dosen',
+            'stamp' => $sklStampFile,
+        ])->assertRedirect();
+
+        $this->pacSukolilo->refresh();
+        $this->pacWonokromo->refresh();
+
+        $this->assertNotNull($this->pacSukolilo->stamp_path);
+        $this->assertSame($sklStampBytes, Storage::disk('public')->get($this->pacSukolilo->stamp_path));
+        $this->assertSame($wnkStampBytes, Storage::disk('public')->get($this->pacWonokromo->stamp_path));
+        $this->assertSame($pcStampBytes, Storage::disk('public')->get('stamps/official_stamp.png'));
+
+        // 5. Pengurus non-sekretaris (mis. Ketua PAC) TIDAK berhak mengunggah stempel
+        $this->actingAs($ketuaWonokromo)->post(route('member.profile.update'), [
+            'full_name' => 'Ketua PAC Wonokromo',
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Wonokromo 1',
+            'kelurahan' => 'Wonokromo',
+            'kecamatan' => 'Wonokromo',
+            'city' => 'Kota Surabaya',
+            'occupation' => 'Dosen',
+            'stamp' => UploadedFile::fake()->image('stempel_ilegal.png', 150, 150),
+        ])->assertForbidden();
+    }
 }

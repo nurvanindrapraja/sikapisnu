@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Pac;
+use App\Services\LetterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +20,7 @@ class ProfileController extends Controller
         return view('admin.profile.index', compact('user'));
     }
 
-    public function updateProfile(Request $request)
+    public function updateProfile(Request $request, LetterService $letterService)
     {
         $user = auth()->user();
 
@@ -42,14 +44,21 @@ class ProfileController extends Controller
         unset($validated['signature']);
 
         if ($request->hasFile('stamp')) {
-            if ($user->stamp_path && Storage::disk('public')->exists($user->stamp_path)) {
-                Storage::disk('public')->delete($user->stamp_path);
+            if (! $user->canUploadStamp()) {
+                abort(403, 'Hanya Sekretaris PC ISNU (untuk stempel PC) atau Sekretaris PAC ISNU (untuk stempel PAC wilayahnya) yang berhak mengunggah stempel resmi.');
             }
-            $stampPath = $request->file('stamp')->store('stamps', 'public');
-            $validated['stamp_path'] = $stampPath;
 
-            // Simpan salinan sebagai stempel resmi aktif organisasi untuk seluruh persuratan
-            Storage::disk('public')->put('stamps/official_stamp.png', (string) file_get_contents($request->file('stamp')->getRealPath()));
+            if ($user->isOfficerPac()) {
+                $pacId = $user->getLetterPacId();
+                $pac = $pacId ? Pac::find($pacId) : null;
+                if (! $pac) {
+                    abort(403, 'Akun Sekretaris PAC Anda belum terhubung dengan wilayah PAC tertentu.');
+                }
+
+                $validated['stamp_path'] = $letterService->saveOfficialPacStamp($pac, $request->file('stamp'), $user);
+            } else {
+                $validated['stamp_path'] = $letterService->saveOfficialPcStamp($request->file('stamp'), $user);
+            }
         }
         unset($validated['stamp']);
 

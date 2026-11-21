@@ -655,6 +655,11 @@
                         Apakah Anda yakin ingin menandatangani surat resmi ini secara digital sebagai <strong>Sekretaris / Wakil Sekretaris</strong>?
                     </p>
 
+                    @php
+                        $letterStampLabel = $letter->isLevelPac() ? $letter->pac_display_name : 'PC ISNU Kota Surabaya';
+                        $activeLetterStampUrl = auth()->user()->getStampUrlForLetter($letter);
+                    @endphp
+
                     <div class="alert alert-light border rounded-3 p-3 mt-3 mb-3 text-start small text-muted">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="bi bi-info-circle-fill text-success"></i>
@@ -663,7 +668,7 @@
                         <div>Nama: <strong>{{ auth()->user()->name }}</strong></div>
                         <div>Jabatan: <strong>{{ ($letter->isLevelPac() && $letter->pac) ? ((auth()->user()->getOfficerPositionTitle() ?: 'Sekretaris') . ' ' . $letter->pac_display_name) : (auth()->user()->getOfficerPositionTitle() ?: 'Sekretaris PC ISNU Kota Surabaya') }}</strong></div>
                         <div class="mt-1 text-secondary">
-                            <i class="bi bi-shield-check text-success me-1"></i> Stempel resmi ISNU akan otomatis disematkan di atas gambar tanda tangan Sekretaris.
+                            <i class="bi bi-shield-check text-success me-1"></i> Stempel resmi <strong>{{ $letterStampLabel }}</strong> akan otomatis disematkan di atas gambar tanda tangan Sekretaris.
                         </div>
                     </div>
 
@@ -691,40 +696,54 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Pratinjau Stempel Resmi Organisasi -->
-                        <div class="border rounded-3 p-3 bg-light text-start mb-2">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <span class="small fw-bold text-dark"><i class="bi bi-patch-check-fill text-success me-1"></i> Stempel Resmi ISNU yang Dibubuhkan:</span>
-                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-circle me-1"></i>Stempel Aktif</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="bg-white border rounded-2 p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 65px;">
-                                    <img src="{{ auth()->user()->stamp_url ?? asset('images/stempel_isnu.png') }}" alt="Stempel Resmi" style="max-height: 55px; max-width: 70px; object-fit: contain;">
-                                </div>
-                                <div class="small text-muted" style="font-size: 0.78rem;">
-                                    Stempel ini akan otomatis dibubuhkan menimpa tanda tangan Sekretaris.
-                                </div>
-                            </div>
-                            <div class="mt-2 pt-2 border-top">
-                                <a class="text-decoration-none small fw-semibold text-secondary" data-bs-toggle="collapse" href="#collapseUploadStampSec" role="button">
-                                    <i class="bi bi-arrow-repeat me-1"></i> Ganti gambar stempel untuk surat ini (opsional)
-                                </a>
-                                <div class="collapse mt-2" id="collapseUploadStampSec">
-                                    <input type="file" name="stamp_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
-                                    <div class="form-text extra-small">Unggah jika ingin memperbarui stempel resmi (PNG transparan disarankan).</div>
-                                </div>
-                            </div>
-                        </div>
                     @else
                         <div class="alert alert-warning border-0 rounded-3 text-start small mb-3">
                             <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Wajib Mengunggah Gambar TTD Terlebih Dahulu</div>
                             <div class="text-secondary">Anda belum memiliki gambar tanda tangan yang tersimpan. Silakan unggah berkas gambar tanda tangan Anda di bawah ini:</div>
                         </div>
-                        <div class="text-start mb-2">
+                        <div class="text-start mb-3">
                             <label class="form-label small fw-bold text-dark">Unggah Berkas Gambar Tanda Tangan <span class="text-danger">*</span></label>
                             <input type="file" name="signature_image" required class="form-control rounded-3" accept="image/png,image/jpeg,image/webp">
                             <div class="form-text small">Format PNG transparan disarankan (atau JPG/WEBP), maks. 3MB. TTD ini juga akan tersimpan ke profil Anda.</div>
+                        </div>
+                    @endif
+
+                    <!-- Pratinjau & Unggah Stempel Resmi Sesuai Lokasi (PC ISNU vs PAC ISNU) -->
+                    @if($activeLetterStampUrl)
+                        <div class="border rounded-3 p-3 bg-light text-start mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-1">
+                                <span class="small fw-bold text-dark"><i class="bi bi-patch-check-fill text-success me-1"></i> Stempel Resmi {{ $letterStampLabel }}:</span>
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-circle me-1"></i>Stempel Aktif</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-white border rounded-2 p-1 d-flex align-items-center justify-content-center shadow-sm" style="width: 80px; height: 65px;">
+                                    <img src="{{ $activeLetterStampUrl }}" alt="Stempel Resmi {{ $letterStampLabel }}" style="max-height: 55px; max-width: 70px; object-fit: contain;">
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.78rem;">
+                                    Stempel resmi <strong>{{ $letterStampLabel }}</strong> ini akan dibubuhkan menimpa tanda tangan Sekretaris.
+                                </div>
+                            </div>
+                            <div class="mt-2 pt-2 border-top">
+                                <a class="text-decoration-none small fw-semibold text-secondary" data-bs-toggle="collapse" href="#collapseUploadStampSec" role="button">
+                                    <i class="bi bi-arrow-repeat me-1"></i> Ganti gambar stempel {{ $letterStampLabel }} (opsional)
+                                </a>
+                                <div class="collapse mt-2" id="collapseUploadStampSec">
+                                    <input type="file" name="stamp_image" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small">Unggah untuk memperbarui stempel resmi <strong>{{ $letterStampLabel }}</strong> (PNG transparan disarankan).</div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="border border-warning rounded-3 p-3 bg-warning-subtle bg-opacity-25 text-start mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-1">
+                                <span class="small fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Stempel Resmi {{ $letterStampLabel }} Belum Tersedia</span>
+                                <span class="badge bg-warning text-dark">Wajib Unggah</span>
+                            </div>
+                            <p class="small text-secondary mb-2" style="font-size: 0.8rem;">
+                                Belum ada gambar stempel untuk <strong>{{ $letterStampLabel }}</strong>. Silakan unggah stempel resmi <strong>{{ $letterStampLabel }}</strong> (tersimpan khusus untuk wilayah ini dan terpisah dari stempel PC maupun PAC lain).
+                            </p>
+                            <input type="file" name="stamp_image" required class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
+                            <div class="form-text extra-small">Format PNG transparan lingkaran stempel disarankan (atau JPG/WEBP), maks. 3MB.</div>
                         </div>
                     @endif
                 </div>

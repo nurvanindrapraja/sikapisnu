@@ -61,6 +61,22 @@ class User extends Authenticatable
 
     public function getStampUrlAttribute(): ?string
     {
+        if ($this->isScopedToPacLetters()) {
+            $pacId = $this->getLetterPacId();
+            if ($pacId) {
+                $pac = Pac::find($pacId);
+                if ($pac && $pac->stamp_url) {
+                    return $pac->stamp_url;
+                }
+            }
+
+            if ($this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
+                return Storage::disk('public')->url($this->stamp_path);
+            }
+
+            return null;
+        }
+
         if ($this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
             return Storage::disk('public')->url($this->stamp_path);
         }
@@ -78,8 +94,114 @@ class User extends Authenticatable
 
     public function hasStamp(): bool
     {
+        if ($this->isScopedToPacLetters()) {
+            $pacId = $this->getLetterPacId();
+            if ($pacId) {
+                $pac = Pac::find($pacId);
+                if ($pac && $pac->hasStamp()) {
+                    return true;
+                }
+            }
+
+            return ! empty($this->stamp_path) && Storage::disk('public')->exists($this->stamp_path);
+        }
+
         return (! empty($this->stamp_path) && Storage::disk('public')->exists($this->stamp_path))
             || Storage::disk('public')->exists('stamps/official_stamp.png');
+    }
+
+    /**
+     * Memeriksa apakah user berhak mengunggah/memperbarui stempel PC ISNU.
+     * Hak akses: Sekretaris / Wakil Sekretaris PC ISNU, serta Admin Kota / Super Admin.
+     */
+    public function canUploadPcStamp(): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        return $this->canSignAsSecretary() && ! $this->isOfficerPac();
+    }
+
+    /**
+     * Memeriksa apakah user berhak mengunggah/memperbarui stempel PAC ISNU tertentu.
+     * Hak akses: Sekretaris / Wakil Sekretaris PAC ISNU pada wilayah PAC terkait.
+     */
+    public function canUploadPacStamp(?int $pacId = null): bool
+    {
+        if (! $this->canSignAsSecretary() || ! $this->isOfficerPac()) {
+            return false;
+        }
+
+        if ($pacId === null) {
+            return $this->getLetterPacId() !== null;
+        }
+
+        return (int) $this->getLetterPacId() === $pacId;
+    }
+
+    /**
+     * Memeriksa apakah user memiliki wewenang mengunggah stempel organisasi (PC atau PAC-nya).
+     */
+    public function canUploadStamp(): bool
+    {
+        return $this->canUploadPcStamp() || $this->canUploadPacStamp();
+    }
+
+    /**
+     * Label lingkup stempel yang dikelola oleh user (PC ISNU atau PAC ISNU wilayahnya).
+     */
+    public function getStampScopeLabelAttribute(): string
+    {
+        if ($this->isScopedToPacLetters()) {
+            $pacId = $this->getLetterPacId();
+            $pac = $pacId ? Pac::find($pacId) : null;
+
+            return $pac ? $pac->display_name : 'PAC ISNU';
+        }
+
+        return 'PC ISNU Kota Surabaya';
+    }
+
+    /**
+     * Mengambil URL stempel resmi aktif yang sesuai dengan tingkatan/lokasi surat.
+     */
+    public function getStampUrlForLetter(Letter $letter): ?string
+    {
+        if ($letter->isLevelPac()) {
+            $pac = $letter->relationLoaded('pac') ? $letter->pac : ($letter->pac_id ? Pac::find($letter->pac_id) : null);
+            if ($pac && $pac->stamp_url) {
+                return $pac->stamp_url;
+            }
+
+            if ($this->isOfficerPac() && (int) $this->getLetterPacId() === (int) $letter->pac_id && $this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
+                return Storage::disk('public')->url($this->stamp_path);
+            }
+
+            return null;
+        }
+
+        if (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+            return Storage::disk('public')->url('stamps/official_stamp.png');
+        }
+
+        if (! $this->isOfficerPac() && $this->stamp_path && Storage::disk('public')->exists($this->stamp_path)) {
+            return Storage::disk('public')->url($this->stamp_path);
+        }
+
+        if (file_exists(public_path('images/stempel_isnu.png'))) {
+            return asset('images/stempel_isnu.png');
+        }
+
+        return null;
+    }
+
+    /**
+     * Memeriksa apakah sudah tersedia stempel aktif untuk tingkatan/lokasi surat terkait.
+     */
+    public function hasStampForLetter(Letter $letter): bool
+    {
+        return $this->getStampUrlForLetter($letter) !== null;
     }
 
     public function sendPasswordResetNotification($token): void

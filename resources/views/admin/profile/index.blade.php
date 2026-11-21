@@ -129,32 +129,40 @@
                         </div>
                     </div>
 
+                    @if($user->canUploadStamp())
                     <div class="mb-4 p-3 bg-light rounded-3 border">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-1">
                             <label class="form-label fw-semibold small text-dark mb-0 d-flex align-items-center gap-2">
-                                <i class="bi bi-patch-check-fill text-primary"></i> Gambar Stempel Resmi Organisasi (E-Stempel Surat)
+                                <i class="bi bi-patch-check-fill text-primary"></i> Gambar Stempel Resmi {{ $user->stamp_scope_label }} (E-Stempel Surat)
                             </label>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
-                                Stempel Aktif
-                            </span>
+                            @if($user->stamp_url)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                    Stempel Aktif
+                                </span>
+                            @else
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                                    Belum Diunggah
+                                </span>
+                            @endif
                         </div>
                         <p class="small text-muted mb-2">
-                            Stempel resmi ini akan otomatis dibubuhkan menimpa tanda tangan Sekretaris pada setiap penerbitan surat resmi digital SIKAP-ISNU.
+                            Stempel resmi khusus <strong>{{ $user->stamp_scope_label }}</strong> ini akan otomatis dibubuhkan menimpa tanda tangan Sekretaris pada surat resmi wilayah {{ $user->stamp_scope_label }}.
                         </p>
                         <div class="d-flex align-items-center gap-3">
                             <div class="border rounded-3 p-2 bg-white d-flex align-items-center justify-content-center shadow-sm" style="width: 140px; height: 80px;">
                                 @if($user->stamp_url)
-                                    <img src="{{ $user->stamp_url }}" alt="Stempel Resmi" style="max-height: 70px; max-width: 125px; object-fit: contain;">
+                                    <img src="{{ $user->stamp_url }}" alt="Stempel Resmi {{ $user->stamp_scope_label }}" style="max-height: 70px; max-width: 125px; object-fit: contain;">
                                 @else
                                     <span class="text-muted small fst-italic text-center">Belum ada stempel</span>
                                 @endif
                             </div>
                             <div class="flex-grow-1">
                                 <input type="file" name="stamp" class="form-control form-control-sm" accept="image/png,image/jpeg,image/webp">
-                                <div class="form-text small mt-1">Format PNG transparan lingkaran stempel disarankan, maks. 3MB. Unggah untuk memperbarui stempel resmi organisasi.</div>
+                                <div class="form-text small mt-1">Format PNG transparan lingkaran stempel disarankan, maks. 3MB. Unggah untuk memperbarui stempel resmi <strong>{{ $user->stamp_scope_label }}</strong>.</div>
                             </div>
                         </div>
                     </div>
+                    @endif
 
                     <div class="text-end">
                         <button type="submit" class="btn btn-success rounded-pill fw-bold px-4 py-2 shadow-sm" :disabled="loading">

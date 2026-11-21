@@ -397,11 +397,19 @@ class Letter extends Model
             return Storage::disk('public')->url($this->stamp_path);
         }
 
+        if ($this->isLevelPac()) {
+            $pac = $this->relationLoaded('pac') ? $this->pac : ($this->pac_id ? Pac::find($this->pac_id) : null);
+
+            return $pac?->stamp_url;
+        }
+
         if (Storage::disk('public')->exists('stamps/official_stamp.png')) {
             return Storage::disk('public')->url('stamps/official_stamp.png');
         }
 
-        return asset('images/stempel_isnu.png');
+        return file_exists(public_path('images/stempel_isnu.png'))
+            ? asset('images/stempel_isnu.png')
+            : null;
     }
 
     public function getVerificationQrDataUrlAttribute(): ?string

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Member;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Mwc;
+use App\Models\Pac;
+use App\Services\LetterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -20,9 +22,10 @@ class ProfileController extends Controller
         return view('member.profile_edit', compact('member', 'mwcs'));
     }
 
-    public function update(Request $request)
+    public function update(Request $request, LetterService $letterService)
     {
-        $member = auth()->user()->member()->firstOrFail();
+        $user = auth()->user();
+        $member = $user->member()->firstOrFail();
 
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
@@ -39,6 +42,7 @@ class ProfileController extends Controller
             'pac_id' => 'nullable|exists:pac,id',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'signature' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
+            'stamp' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:3072',
         ]);
 
         if ($request->hasFile('photo')) {
@@ -54,9 +58,28 @@ class ProfileController extends Controller
             }
             $sigPath = $request->file('signature')->store('signatures', 'public');
             $validated['signature_path'] = $sigPath;
-            auth()->user()->update(['signature_path' => $sigPath]);
+            $user->update(['signature_path' => $sigPath]);
         }
         unset($validated['signature']);
+
+        if ($request->hasFile('stamp')) {
+            if (! $user->canUploadStamp()) {
+                abort(403, 'Hanya Sekretaris PC ISNU (untuk stempel PC) atau Sekretaris PAC ISNU (untuk stempel PAC wilayahnya) yang berhak mengunggah stempel resmi.');
+            }
+
+            if ($user->isOfficerPac()) {
+                $pacId = $user->getLetterPacId();
+                $pac = $pacId ? Pac::find($pacId) : null;
+                if (! $pac) {
+                    abort(403, 'Akun Sekretaris PAC Anda belum terhubung dengan wilayah PAC tertentu.');
+                }
+
+                $letterService->saveOfficialPacStamp($pac, $request->file('stamp'), $user);
+            } else {
+                $letterService->saveOfficialPcStamp($request->file('stamp'), $user);
+            }
+        }
+        unset($validated['stamp']);
 
         // Jika status sebelumnya perbaikan, kembalikan ke menunggu_verifikasi saat di-submit ulang
         if ($member->membership_status === 'perbaikan') {

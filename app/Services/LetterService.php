@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Letter;
+use App\Models\Pac;
 use App\Models\User;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Encoder\Encoder;
@@ -132,30 +133,61 @@ class LetterService
             }
         }
 
-        // Sematkan stempel resmi organisasi
-        if ($stampFile instanceof UploadedFile) {
-            $stampDir = 'letters/stamps';
-            Storage::disk('public')->makeDirectory($stampDir);
-            $stampPath = $stampFile->store($stampDir, 'public');
-            $letter->stamp_path = $stampPath;
+        // Sematkan stempel resmi organisasi sesuai tingkatan/lokasi (PC ISNU vs PAC ISNU masing-masing)
+        if ($letter->isLevelPac()) {
+            $pac = $letter->pac_id ? Pac::find($letter->pac_id) : null;
 
-            // Simpan salinan sebagai stempel resmi aktif organisasi
-            Storage::disk('public')->put('stamps/official_stamp.png', (string) file_get_contents($stampFile->getRealPath()));
-            $user->stamp_path = $stampPath;
-            $user->saveQuietly();
-        } elseif (! $letter->stamp_path) {
-            $destPath = 'letters/stamps/stempel_'.$letter->letter_code.'.png';
-            if ($user->stamp_path && Storage::disk('public')->exists($user->stamp_path)) {
-                Storage::disk('public')->copy($user->stamp_path, $destPath);
-                $letter->stamp_path = $destPath;
-            } elseif (Storage::disk('public')->exists('stamps/official_stamp.png')) {
-                Storage::disk('public')->copy('stamps/official_stamp.png', $destPath);
-                $letter->stamp_path = $destPath;
-            } else {
-                $defaultStamp = public_path('images/stempel_isnu.png');
-                if (file_exists($defaultStamp)) {
-                    Storage::disk('public')->put($destPath, (string) file_get_contents($defaultStamp));
+            if ($stampFile instanceof UploadedFile) {
+                $stampDir = 'letters/stamps';
+                Storage::disk('public')->makeDirectory($stampDir);
+                $stampPath = $stampFile->store($stampDir, 'public');
+                $letter->stamp_path = $stampPath;
+
+                if ($pac) {
+                    $this->saveOfficialPacStamp($pac, $stampFile, $user);
+                } else {
+                    $user->stamp_path = $stampPath;
+                    $user->saveQuietly();
+                }
+            } elseif (! $letter->stamp_path) {
+                $destPath = 'letters/stamps/stempel_'.$letter->letter_code.'.png';
+                $pacStampPath = $pac?->resolved_stamp_path;
+
+                if ($pacStampPath) {
+                    Storage::disk('public')->copy($pacStampPath, $destPath);
                     $letter->stamp_path = $destPath;
+                } elseif (
+                    $user->isOfficerPac()
+                    && (int) $user->getLetterPacId() === (int) $letter->pac_id
+                    && $user->stamp_path
+                    && Storage::disk('public')->exists($user->stamp_path)
+                ) {
+                    Storage::disk('public')->copy($user->stamp_path, $destPath);
+                    $letter->stamp_path = $destPath;
+                }
+            }
+        } else {
+            if ($stampFile instanceof UploadedFile) {
+                $stampDir = 'letters/stamps';
+                Storage::disk('public')->makeDirectory($stampDir);
+                $stampPath = $stampFile->store($stampDir, 'public');
+                $letter->stamp_path = $stampPath;
+
+                $this->saveOfficialPcStamp($stampFile, $user);
+            } elseif (! $letter->stamp_path) {
+                $destPath = 'letters/stamps/stempel_'.$letter->letter_code.'.png';
+                if (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+                    Storage::disk('public')->copy('stamps/official_stamp.png', $destPath);
+                    $letter->stamp_path = $destPath;
+                } elseif (! $user->isOfficerPac() && $user->stamp_path && Storage::disk('public')->exists($user->stamp_path)) {
+                    Storage::disk('public')->copy($user->stamp_path, $destPath);
+                    $letter->stamp_path = $destPath;
+                } else {
+                    $defaultStamp = public_path('images/stempel_isnu.png');
+                    if (file_exists($defaultStamp)) {
+                        Storage::disk('public')->put($destPath, (string) file_get_contents($defaultStamp));
+                        $letter->stamp_path = $destPath;
+                    }
                 }
             }
         }
@@ -559,6 +591,14 @@ class LetterService
         if ($letter->secretary_signed_at) {
             if ($letter->stamp_path && Storage::disk('public')->exists($letter->stamp_path)) {
                 $stampBase64 = base64_encode(Storage::disk('public')->get($letter->stamp_path));
+            } elseif ($letter->isLevelPac()) {
+                $pac = $letter->relationLoaded('pac') ? $letter->pac : ($letter->pac_id ? Pac::find($letter->pac_id) : null);
+                $pacStampPath = $pac?->resolved_stamp_path;
+                if ($pacStampPath) {
+                    $stampBase64 = base64_encode(Storage::disk('public')->get($pacStampPath));
+                }
+            } elseif (Storage::disk('public')->exists('stamps/official_stamp.png')) {
+                $stampBase64 = base64_encode(Storage::disk('public')->get('stamps/official_stamp.png'));
             } else {
                 $stampPath = public_path('images/stempel_isnu.png');
                 if (file_exists($stampPath)) {
@@ -627,6 +667,48 @@ class LetterService
         $letter->saveQuietly();
 
         return $relativePath;
+    }
+
+    /**
+     * Simpan stempel resmi aktif tingkat PC ISNU (terpisah dari seluruh stempel PAC).
+     */
+    public function saveOfficialPcStamp(UploadedFile $stampFile, User $user): string
+    {
+        Storage::disk('public')->makeDirectory('stamps');
+        $storedPath = $stampFile->store('stamps', 'public');
+        Storage::disk('public')->put('stamps/official_stamp.png', (string) file_get_contents($stampFile->getRealPath()));
+
+        if ($user->stamp_path && $user->stamp_path !== $storedPath && Storage::disk('public')->exists($user->stamp_path)) {
+            Storage::disk('public')->delete($user->stamp_path);
+        }
+
+        $user->stamp_path = $storedPath;
+        $user->saveQuietly();
+
+        return $storedPath;
+    }
+
+    /**
+     * Simpan stempel resmi aktif khusus untuk satu wilayah PAC ISNU (tidak menimpa PC maupun PAC lain).
+     */
+    public function saveOfficialPacStamp(Pac $pac, UploadedFile $stampFile, User $user): string
+    {
+        $pacStampDir = 'stamps/pac';
+        Storage::disk('public')->makeDirectory($pacStampDir);
+        $storedPath = $stampFile->store($pacStampDir, 'public');
+        Storage::disk('public')->put("stamps/pac_{$pac->id}_stamp.png", (string) file_get_contents($stampFile->getRealPath()));
+
+        if ($pac->stamp_path && $pac->stamp_path !== $storedPath && Storage::disk('public')->exists($pac->stamp_path)) {
+            Storage::disk('public')->delete($pac->stamp_path);
+        }
+
+        $pac->stamp_path = $storedPath;
+        $pac->saveQuietly();
+
+        $user->stamp_path = $storedPath;
+        $user->saveQuietly();
+
+        return $storedPath;
     }
 
     /**

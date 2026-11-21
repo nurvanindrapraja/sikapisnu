@@ -536,6 +536,34 @@
                                 </div>
                             </div>
                         </div>
+
+                        @if(auth()->user()->canUploadStamp())
+                        <div class="col-12">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label fw-semibold mb-0">
+                                    <i class="bi bi-patch-check-fill text-primary me-1"></i>Stempel Resmi {{ auth()->user()->stamp_scope_label }}
+                                </label>
+                                @if(auth()->user()->stamp_url)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">Stempel Aktif</span>
+                                @else
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill small">Belum Diunggah</span>
+                                @endif
+                            </div>
+                            <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border">
+                                <div class="position-relative flex-shrink-0 bg-white rounded-3 d-flex align-items-center justify-content-center p-2 shadow-sm" style="width: 140px; height: 80px; border: 1px solid #ced4da;">
+                                    @if(auth()->user()->stamp_url)
+                                        <img src="{{ auth()->user()->stamp_url }}" alt="Stempel Resmi {{ auth()->user()->stamp_scope_label }}" style="max-height: 65px; max-width: 125px; object-fit: contain;">
+                                    @else
+                                        <span class="text-secondary extra-small fst-italic text-center" style="font-size: 11px;">Belum Ada Stempel</span>
+                                    @endif
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="file" name="stamp" class="form-control form-control-sm mb-1" accept="image/png,image/jpeg,image/webp">
+                                    <div class="form-text extra-small text-muted mb-0"><i class="bi bi-info-circle me-1"></i>Format PNG transparan lingkaran stempel disarankan, maks 3MB. Stempel ini tersimpan khusus untuk <strong>{{ auth()->user()->stamp_scope_label }}</strong> (terpisah dari PC maupun PAC lain).</div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                     </div>
 
                     <div class="mt-4 text-end">
