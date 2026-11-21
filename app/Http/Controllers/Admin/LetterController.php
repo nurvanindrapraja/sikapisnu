@@ -54,33 +54,6 @@ class LetterController extends Controller
         }
     }
 
-    /**
-     * Terapkan batasan lingkup surat khusus PAC apabila user login adalah pengurus/admin PAC.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder<Letter>  $query
-     */
-    protected function applyPacScope($query): void
-    {
-        $user = auth()->user();
-        if (! $user || ! $user->isScopedToPacLetters()) {
-            return;
-        }
-
-        $pacId = $user->getLetterPacId();
-        if ($pacId) {
-            $query->where('level', Letter::LEVEL_PAC)->where('pac_id', $pacId);
-        } else {
-            $query->whereRaw('1 = 0');
-        }
-    }
-
-    protected function authorizeLetterAccess(Letter $letter): void
-    {
-        if (! auth()->user() || ! auth()->user()->canViewLetter($letter)) {
-            abort(403, 'Anda hanya dapat mengakses surat milik PAC Anda.');
-        }
-    }
-
     public function index(Request $request): View
     {
         $this->checkAccess();
