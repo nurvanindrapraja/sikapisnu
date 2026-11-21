@@ -889,6 +889,10 @@ class MemberController extends Controller
 
     public function downloadCv($id)
     {
+        if (! auth()->user()->canDownloadMemberCardAndCv()) {
+            abort(403, 'Akun Bendahara tidak memiliki wewenang untuk mengunduh CV anggota.');
+        }
+
         $member = Member::withTrashed()->with([
             'mwc',
             'pac',
@@ -918,6 +922,10 @@ class MemberController extends Controller
 
     public function downloadCard($id, Request $request)
     {
+        if (! auth()->user()->canDownloadMemberCardAndCv()) {
+            abort(403, 'Akun Bendahara tidak memiliki wewenang untuk mengunduh kartu anggota atau kartu pengurus.');
+        }
+
         $member = Member::withTrashed()->with(['activeCard', 'activePosition', 'mwc', 'pac'])->findOrFail($id);
 
         if (! auth()->user()->canManageMember($member) && ! (auth()->user()->isScopedToPac() && auth()->user()->canViewMember($member))) {

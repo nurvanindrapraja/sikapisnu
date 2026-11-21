@@ -9,7 +9,9 @@
                 <th>Tingkat & Periode</th>
                 <th>PAC / Wilayah</th>
                 @if(!auth()->user()->isRestrictedOfficer())
-                    <th>Kartu Digital</th>
+                    @if(auth()->user()->canDownloadMemberCardAndCv())
+                        <th>Kartu Digital</th>
+                    @endif
                     <th class="text-end">Aksi</th>
                 @endif
             </tr>
@@ -57,11 +59,13 @@
                         @endif
                     </td>
                     @if(!auth()->user()->isRestrictedOfficer())
-                        <td>
-                            <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
-                                <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
-                            </button>
-                        </td>
+                        @if(auth()->user()->canDownloadMemberCardAndCv())
+                            <td>
+                                <button type="button" class="btn btn-sm btn-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" title="Download Kartu Pengurus (PNG/PDF)" onclick="openCardDownloadModal('{{ route('admin.anggota.card.download', $o->id) }}', '{{ addslashes($o->full_name) }}', '{{ $o->member_number ?? '' }}')">
+                                    <i class="bi bi-person-vcard-fill me-1"></i> KARTU PENGURUS
+                                </button>
+                            </td>
+                        @endif
                         <td class="text-end">
                             <div class="d-inline-flex gap-1">
                                 <a href="{{ route('admin.anggota.show', $o->id) }}" class="btn btn-sm btn-outline-success rounded-pill px-3">
@@ -78,7 +82,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="{{ auth()->user()->isRestrictedOfficer() ? 5 : 7 }}" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
+                    <td colspan="{{ auth()->user()->isRestrictedOfficer() ? 5 : (auth()->user()->canDownloadMemberCardAndCv() ? 7 : 6) }}" class="text-center py-4 text-muted">Belum ada data pengurus yang sesuai filter.</td>
                 </tr>
             @endforelse
         </tbody>

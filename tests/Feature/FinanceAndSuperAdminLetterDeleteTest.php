@@ -558,4 +558,50 @@ class FinanceAndSuperAdminLetterDeleteTest extends TestCase
             $this->get(route('admin.letters.create'))->assertStatus(200);
         }
     }
+
+    public function test_bendahara_cannot_download_or_see_card_and_cv_download_buttons(): void
+    {
+        $bendahara = $this->createOfficer('Bendahara Kartu', 'member', 'Bendahara');
+        $wakilBendahara = $this->createOfficer('Wakil Bendahara Kartu', 'member', 'Wakil Bendahara');
+        $targetOfficer = $this->createOfficer('Ketua Target', 'member', 'Ketua');
+        $targetMember = $targetOfficer->member;
+
+        $cardDownloadUrl = route('admin.anggota.card.download', $targetMember->id);
+        $cvDownloadUrl = route('admin.anggota.cv.download', $targetMember->id);
+
+        foreach ([$bendahara, $wakilBendahara] as $user) {
+            $this->actingAs($user);
+
+            // Daftar Pengurus: tombol KARTU PENGURUS & kolom Kartu Digital disembunyikan
+            $pengurusPage = $this->get(route('admin.pengurus.index'));
+            $pengurusPage->assertStatus(200);
+            $pengurusPage->assertDontSee('KARTU PENGURUS');
+            $pengurusPage->assertDontSee($cardDownloadUrl);
+
+            // Database Anggota: tombol download kartu & CV PDF disembunyikan
+            $anggotaPage = $this->get(route('admin.anggota.index'));
+            $anggotaPage->assertStatus(200);
+            $anggotaPage->assertDontSee($cardDownloadUrl);
+            $anggotaPage->assertDontSee($cvDownloadUrl);
+
+            // Detail Data Anggota: tombol Kartu Digital (PDF) & Download CV (PDF) disembunyikan
+            $detailPage = $this->get(route('admin.anggota.show', $targetMember->id));
+            $detailPage->assertStatus(200);
+            $detailPage->assertDontSee('Kartu Digital (PDF)');
+            $detailPage->assertDontSee('Download CV (PDF)');
+            $detailPage->assertDontSee($cardDownloadUrl);
+            $detailPage->assertDontSee($cvDownloadUrl);
+
+            // Akses langsung endpoint download kartu & CV ditolak 403
+            $this->get($cardDownloadUrl)->assertStatus(403);
+            $this->get($cvDownloadUrl)->assertStatus(403);
+        }
+
+        // Superadmin tetap melihat tombol download kartu & CV
+        $superAdmin = $this->createOfficer('Super Admin Kartu', 'super_admin');
+        $this->actingAs($superAdmin);
+        $this->get(route('admin.pengurus.index'))->assertSee('KARTU PENGURUS');
+        $this->get(route('admin.anggota.index'))->assertSee($cardDownloadUrl)->assertSee($cvDownloadUrl);
+        $this->get(route('admin.anggota.show', $targetMember->id))->assertSee('Kartu Digital (PDF)')->assertSee('Download CV (PDF)');
+    }
 }

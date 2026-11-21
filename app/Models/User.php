@@ -697,6 +697,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Memeriksa apakah user berhak mengunduh kartu anggota/pengurus dan CV PDF anggota
+     * pada halaman daftar pengurus, database anggota, dan detail data anggota.
+     * Bendahara / Wakil Bendahara tidak berhak mengunduh kartu maupun CV anggota/pengurus.
+     */
+    public function canDownloadMemberCardAndCv(): bool
+    {
+        if ($this->isBendaharaOfficer()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Memeriksa apakah user dapat mengelola menu Keuangan (Kas Masuk & Kas Keluar).
      * Hak akses: Bendahara dan Admin (Superadmin, Admin Kota, Admin PAC, Admin MWC).
      */
