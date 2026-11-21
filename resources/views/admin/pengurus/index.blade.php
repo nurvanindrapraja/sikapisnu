@@ -86,7 +86,11 @@
 
             @if(auth()->user()->canManageMembersAndOfficers())
                 <!-- Responsive Button: Desktop text + icon, Mobile icon only -->
-                <button type="button" @click="openPromoteModal()" class="btn btn-success rounded-pill fw-bold d-flex align-items-center gap-1 shadow-sm px-3 py-2">
+                <button type="button"
+                        @click="openPromoteModal()"
+                        class="btn btn-success rounded-pill fw-bold d-inline-flex align-items-center justify-content-center gap-md-1 shadow-sm px-3 py-2 btn-mobile-icon"
+                        title="Tetapkan Pengurus Baru"
+                        aria-label="Tetapkan Pengurus Baru">
                     <i class="bi bi-plus-lg fs-6"></i>
                     <span class="d-none d-md-inline">Tetapkan Pengurus Baru</span>
                 </button>

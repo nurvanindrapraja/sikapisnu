@@ -5,8 +5,12 @@
 @section('content')
 <div class="container-fluid px-0">
     <div class="mb-4">
-        <a href="{{ route('admin.product_orders.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-2">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Pesanan
+        <a href="{{ route('admin.product_orders.index') }}"
+           class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-2 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+           title="Kembali ke Daftar Pesanan"
+           aria-label="Kembali ke Daftar Pesanan">
+            <i class="bi bi-arrow-left"></i>
+            <span class="d-none d-md-inline ms-1">Kembali ke Daftar Pesanan</span>
         </a>
         <div class="d-flex flex-wrap justify-content-between align-items-center">
             <div>

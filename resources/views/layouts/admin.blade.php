@@ -249,6 +249,22 @@
         .pagination .page-link:focus {
             box-shadow: 0 0 0 0.25rem rgba(0, 104, 55, 0.25);
         }
+
+        @media (max-width: 767.98px) {
+            .btn-mobile-icon {
+                width: 38px;
+                height: 38px;
+                padding: 0 !important;
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            }
+            .btn-mobile-icon.btn-sm {
+                width: 34px;
+                height: 34px;
+            }
+        }
     </style>
     @yield('styles')
 </head>

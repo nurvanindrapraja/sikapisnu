@@ -4,8 +4,8 @@
 @section('header_title', 'Master Kelompok Kerja')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
+<div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+    <div class="min-w-0">
         <h4 class="fw-bold text-dark m-0">
             <i class="bi bi-person-workspace text-success me-2"></i> Master Kelompok Kerja (Pokja)
         </h4>
@@ -13,8 +13,14 @@
             Kelola struktur khusus gugus tugas yang beranggotakan pengurus dari Seksi-Seksi PC & PAC ISNU
         </p>
     </div>
-    <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddWorkgroup">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Pokja Baru
+    <button type="button"
+            class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+            data-bs-toggle="modal"
+            data-bs-target="#modalAddWorkgroup"
+            title="Tambah Pokja Baru"
+            aria-label="Tambah Pokja Baru">
+        <i class="bi bi-plus-lg"></i>
+        <span class="d-none d-md-inline ms-1">Tambah Pokja Baru</span>
     </button>
 </div>
 

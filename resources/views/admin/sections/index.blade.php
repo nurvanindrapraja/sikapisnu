@@ -4,13 +4,19 @@
 @section('header_title', 'Master Seksi Kepengurusan')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
+<div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+    <div class="min-w-0">
         <h4 class="fw-bold text-dark m-0"><i class="bi bi-diagram-2-fill text-success me-2"></i> Master Seksi Kepengurusan</h4>
         <p class="text-secondary small m-0 mt-1">Kelola data Seksi / Bidang pada PC ISNU Kota Surabaya & PAC ISNU Kecamatan</p>
     </div>
-    <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddSection">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Seksi Baru
+    <button type="button"
+            class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+            data-bs-toggle="modal"
+            data-bs-target="#modalAddSection"
+            title="Tambah Seksi Baru"
+            aria-label="Tambah Seksi Baru">
+        <i class="bi bi-plus-lg"></i>
+        <span class="d-none d-md-inline ms-1">Tambah Seksi Baru</span>
     </button>
 </div>
 

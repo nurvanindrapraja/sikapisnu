@@ -259,8 +259,8 @@
     <div class="card-body p-4">
         <!-- Advanced Multi-Filter Form -->
         <form @submit.prevent="applyFilter()" class="mb-4">
-            <div class="row g-2 align-items-center mb-3">
-                <div class="col-md">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="flex-grow-1 min-w-0">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                         <input type="text" 
@@ -270,20 +270,32 @@
                                placeholder="Cari nama, NIK, no. anggota, atau profesi...">
                     </div>
                 </div>
-                <div class="col-auto d-flex gap-2">
-                    <button type="button" class="btn btn-outline-success rounded-pill px-3 fw-semibold" @click="showFilters = !showFilters">
-                        <i class="bi bi-funnel me-1"></i> Filter <span x-text="showFilters ? '▲' : '▼'" class="small ms-1"></span>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <button type="button"
+                            class="btn btn-outline-success rounded-pill px-3 fw-semibold d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                            @click="showFilters = !showFilters"
+                            title="Filter Anggota"
+                            aria-label="Filter Anggota">
+                        <i class="bi bi-funnel"></i>
+                        <span class="d-none d-md-inline ms-1">Filter</span>
+                        <span x-text="showFilters ? '▲' : '▼'" class="small ms-1 d-none d-md-inline"></span>
                     </button>
                     <button type="button" 
-                            class="btn btn-outline-secondary rounded-pill px-3" 
+                            class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon" 
                             @click="resetFilter()" 
-                            x-show="searchQuery || provinceName || cityName || kecamatanName || kelurahanName || statusQuery || educationLevelQuery || nuTrainingQuery || organizationQuery || employmentQuery || certificationQuery">
-                        <i class="bi bi-x-circle me-1"></i> Reset
+                            x-show="searchQuery || provinceName || cityName || kecamatanName || kelurahanName || statusQuery || educationLevelQuery || nuTrainingQuery || organizationQuery || employmentQuery || certificationQuery"
+                            title="Reset Filter"
+                            aria-label="Reset Filter">
+                        <i class="bi bi-x-circle"></i>
+                        <span class="d-none d-md-inline ms-1">Reset</span>
                     </button>
                     <button type="button" 
-                            class="btn btn-danger rounded-pill px-3 fw-semibold shadow-sm text-white" 
-                            @click="openRekapModal()">
-                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download Rekap PDF
+                            class="btn btn-danger rounded-pill px-3 fw-semibold shadow-sm text-white d-inline-flex align-items-center justify-content-center btn-mobile-icon" 
+                            @click="openRekapModal()"
+                            title="Download Rekap PDF"
+                            aria-label="Download Rekap PDF">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                        <span class="d-none d-md-inline ms-1">Download Rekap PDF</span>
                     </button>
                 </div>
             </div>

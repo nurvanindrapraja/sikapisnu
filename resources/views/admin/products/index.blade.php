@@ -16,12 +16,19 @@
             <h4 class="fw-bold text-dark mb-0">Manajemen Produk & Merchandise ISNU</h4>
             <p class="text-muted small mb-0">Dikelola oleh Admin PCNU untuk penyediaan seragam, batik, kaos, pin, buku, dan cinderamata resmi.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('store.index') }}" target="_blank" class="btn btn-outline-success rounded-pill px-3 shadow-sm">
-                <i class="bi bi-box-arrow-up-right me-1"></i> Buka Toko Publik
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+            <a href="{{ route('store.index') }}" target="_blank" class="btn btn-outline-success rounded-pill px-3 shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon" title="Buka Toko Publik" aria-label="Buka Toko Publik">
+                <i class="bi bi-box-arrow-up-right"></i>
+                <span class="d-none d-md-inline ms-1">Buka Toko Publik</span>
             </a>
-            <button type="button" class="btn btn-isnu-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCreateProduct">
-                <i class="bi bi-plus-circle-fill me-1"></i> Tambah Produk Baru
+            <button type="button"
+                    class="btn btn-isnu-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalCreateProduct"
+                    title="Tambah Produk Baru"
+                    aria-label="Tambah Produk Baru">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span class="d-none d-md-inline ms-1">Tambah Produk Baru</span>
             </button>
         </div>
     </div>

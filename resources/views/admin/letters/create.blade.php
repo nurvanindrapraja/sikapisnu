@@ -77,18 +77,26 @@
 @section('content')
 <div class="container-fluid px-0" x-data="{ isSubmitting: false, activeBtn: '', letterType: '{{ old('letter_type', $type ?? 'surat_biasa') }}', letterLevel: '{{ old('level', $defaultLevel ?? 'PC ISNU') }}' }">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
+    <div class="d-flex align-items-start align-items-md-center justify-content-between gap-2 mb-4">
+        <div class="min-w-0">
             <h4 class="fw-bold mb-1 text-dark">Form Pengajuan Konsep Surat</h4>
             <p class="text-muted small mb-0">Surat resmi diterbitkan dalam format PDF ber-QRCode dan ditandatangani digital bertahap (Sekretaris lalu Ketua).</p>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center"
-                    onclick="openDraftPreviewModal()">
-                <i class="bi bi-eye-fill me-1"></i> Pratinjau Surat
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <button type="button"
+                    class="btn btn-outline-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                    onclick="openDraftPreviewModal()"
+                    title="Pratinjau Surat"
+                    aria-label="Pratinjau Surat">
+                <i class="bi bi-eye-fill"></i>
+                <span class="d-none d-md-inline ms-1">Pratinjau Surat</span>
             </button>
-            <a href="{{ route('admin.letters.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+            <a href="{{ route('admin.letters.index') }}"
+               class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+               title="Kembali ke Daftar"
+               aria-label="Kembali ke Daftar">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-md-inline ms-1">Kembali ke Daftar</span>
             </a>
         </div>
     </div>
@@ -547,11 +555,14 @@
                                 Batal
                             </a>
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-outline-primary rounded-pill px-4 d-inline-flex align-items-center justify-content-center shadow-sm"
+                                <button type="button" class="btn btn-outline-primary rounded-pill px-4 d-inline-flex align-items-center justify-content-center shadow-sm btn-mobile-icon"
                                         id="btnPreviewDraftBottom"
                                         :disabled="isSubmitting"
-                                        onclick="openDraftPreviewModal()">
-                                    <i class="bi bi-eye-fill me-1"></i> Pratinjau Surat
+                                        onclick="openDraftPreviewModal()"
+                                        title="Pratinjau Surat"
+                                        aria-label="Pratinjau Surat">
+                                    <i class="bi bi-eye-fill"></i>
+                                    <span class="d-none d-md-inline ms-1">Pratinjau Surat</span>
                                 </button>
                                 <button type="button" class="btn btn-light border rounded-pill px-4 d-inline-flex align-items-center justify-content-center"
                                         :disabled="isSubmitting"

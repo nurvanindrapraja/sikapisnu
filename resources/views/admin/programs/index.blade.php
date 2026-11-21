@@ -4,8 +4,8 @@
 @section('header_title', 'Master Program Kerja')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
+<div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+    <div class="min-w-0">
         <h4 class="fw-bold text-dark m-0">
             <i class="bi bi-card-checklist text-success me-2"></i> Master Program Kerja Seksi
         </h4>
@@ -14,8 +14,14 @@
         </p>
     </div>
     @if(auth()->user()->canManageAnyProgramOrEvent())
-    <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddProgram">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Program Baru
+    <button type="button"
+            class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+            data-bs-toggle="modal"
+            data-bs-target="#modalAddProgram"
+            title="Tambah Program Baru"
+            aria-label="Tambah Program Baru">
+        <i class="bi bi-plus-lg"></i>
+        <span class="d-none d-md-inline ms-1">Tambah Program Baru</span>
     </button>
     @endif
 </div>

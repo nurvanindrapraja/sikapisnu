@@ -21,8 +21,12 @@
             <h4 class="fw-bold mb-0 text-dark">{{ $letter->formatted_letter_number }}</h4>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.letters.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i> Kembali
+            <a href="{{ route('admin.letters.index') }}"
+               class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+               title="Kembali"
+               aria-label="Kembali">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-md-inline ms-1">Kembali</span>
             </a>
             @if($letter->status === 'selesai')
                 @php
@@ -30,8 +34,10 @@
                     $showPdfSlug = \Illuminate\Support\Str::slug($letter->letter_number, '_');
                 @endphp
                 <button type="button" 
-                        class="btn btn-outline-success rounded-pill px-3 d-inline-flex align-items-center"
+                        class="btn btn-outline-success rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
                         :disabled="isDownloadingPdf"
+                        title="Unduh PDF"
+                        aria-label="Unduh PDF"
                         @click="handleLetterPdfDownload({
                             baseUrl: '{{ route('admin.letters.download-pdf', $letter->id) }}',
                             mergedUrl: '{{ route('admin.letters.download-pdf', ['id' => $letter->id, 'include_attachments' => 1]) }}',
@@ -40,17 +46,18 @@
                             mergedFilename: 'Surat_{{ $showPdfSlug }}_dan_Lampiran.pdf',
                             attachmentsCount: {{ $showAttachmentsCount }}
                         }, (val) => isDownloadingPdf = val)">
-                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="isDownloadingPdf" x-cloak></span>
-                    <i class="bi bi-file-earmark-pdf me-1" x-show="!isDownloadingPdf"></i>
-                    <span x-text="isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF'">Unduh PDF</span>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" x-show="isDownloadingPdf" x-cloak></span>
+                    <i class="bi bi-file-earmark-pdf" x-show="!isDownloadingPdf"></i>
+                    <span class="d-none d-md-inline ms-1" x-text="isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF'">Unduh PDF</span>
                 </button>
             @else
                 <button type="button" 
-                        class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center"
+                        class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
                         disabled
-                        title="File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap oleh Sekretaris dan Ketua.">
-                    <i class="bi bi-lock-fill me-1"></i>
-                    <span>Unduh PDF (Terkunci)</span>
+                        title="File PDF baru dapat diunduh ketika surat sudah ditandatangani secara lengkap oleh Sekretaris dan Ketua."
+                        aria-label="Unduh PDF Terkunci">
+                    <i class="bi bi-lock-fill"></i>
+                    <span class="d-none d-md-inline ms-1">Unduh PDF (Terkunci)</span>
                 </button>
             @endif
             <a href="{{ route('surat.verifikasi', $letter->letter_code) }}" target="_blank" class="btn btn-outline-info rounded-pill px-3">

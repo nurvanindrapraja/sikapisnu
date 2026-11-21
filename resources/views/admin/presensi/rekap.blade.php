@@ -4,8 +4,8 @@
 @section('header_title', 'Tingkat Kehadiran Kegiatan Kader')
 
 @section('content')
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
+<div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+    <div class="min-w-0">
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <h4 class="fw-bold text-dark m-0"><i class="bi bi-graph-up-arrow text-success me-2"></i> Rekap Tingkat Kehadiran Kegiatan</h4>
             @if(!empty($isPacScoped) && !empty($scopedPac))
@@ -22,9 +22,13 @@
             @endif
         </p>
     </div>
-    <div>
-        <a href="{{ route('admin.events.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Kelola Kegiatan
+    <div class="flex-shrink-0">
+        <a href="{{ route('admin.events.index') }}"
+           class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+           title="Kembali ke Kelola Kegiatan"
+           aria-label="Kembali ke Kelola Kegiatan">
+            <i class="bi bi-arrow-left"></i>
+            <span class="d-none d-md-inline ms-1">Kembali ke Kelola Kegiatan</span>
         </a>
     </div>
 </div>

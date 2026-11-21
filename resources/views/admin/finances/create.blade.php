@@ -16,9 +16,13 @@
             <h4 class="fw-bold text-dark mb-0">Catat Transaksi Kas Baru</h4>
             <p class="text-muted small mb-0">Catat arus kas masuk (pemasukan) atau kas keluar (pengeluaran) organisasi.</p>
         </div>
-        <div>
-            <a href="{{ route('admin.finances.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Kas
+        <div class="flex-shrink-0">
+            <a href="{{ route('admin.finances.index') }}"
+               class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+               title="Kembali ke Daftar Kas"
+               aria-label="Kembali ke Daftar Kas">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-md-inline ms-1">Kembali ke Daftar Kas</span>
             </a>
         </div>
     </div>

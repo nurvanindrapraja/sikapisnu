@@ -5,8 +5,12 @@
 
 @section('content')
 <div class="mb-4">
-    <a href="{{ route('admin.events.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-        <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar Kegiatan
+    <a href="{{ route('admin.events.index') }}"
+       class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+       title="Kembali ke Daftar Kegiatan"
+       aria-label="Kembali ke Daftar Kegiatan">
+        <i class="bi bi-arrow-left"></i>
+        <span class="d-none d-md-inline ms-1">Kembali ke Daftar Kegiatan</span>
     </a>
 </div>
 

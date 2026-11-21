@@ -194,13 +194,18 @@
 
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-4 border-bottom pb-3">
                 <div>
                     <h5 class="fw-bold text-dark m-0"><i class="bi bi-geo-alt-fill text-success me-2"></i> Master Data Lokasi Berjenjang</h5>
                     <small class="text-muted">Kelola data Provinsi, Kota/Kabupaten, Kecamatan, dan Kelurahan/Desa.</small>
                 </div>
-                <button type="button" @click="openAddModal('province')" class="btn btn-success rounded-pill fw-bold btn-sm px-3">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Provinsi Baru
+                <button type="button"
+                        @click="openAddModal('province')"
+                        class="btn btn-success rounded-pill fw-bold btn-sm px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                        title="Tambah Provinsi Baru"
+                        aria-label="Tambah Provinsi Baru">
+                    <i class="bi bi-plus-lg"></i>
+                    <span class="d-none d-md-inline ms-1">Tambah Provinsi Baru</span>
                 </button>
             </div>
 

@@ -16,18 +16,27 @@
             <h4 class="fw-bold text-dark mb-0">Pengelolaan Keuangan Kas ISNU</h4>
             <p class="text-muted small mb-0">Kelola arus kas uang masuk dan uang keluar organisasi secara transparan dan akuntabel.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.finances.export') }}" class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm">
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+            <a href="{{ route('admin.finances.export') }}"
+               class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center gap-md-1 shadow-sm btn-mobile-icon"
+               title="Export Laporan (CSV)"
+               aria-label="Export Laporan (CSV)">
                 <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i>
-                <span>Export Laporan (CSV)</span>
+                <span class="d-none d-md-inline">Export Laporan (CSV)</span>
             </a>
-            <a href="{{ route('admin.finances.create', ['type' => 'in']) }}" class="btn btn-success rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm">
+            <a href="{{ route('admin.finances.create', ['type' => 'in']) }}"
+               class="btn btn-success rounded-pill px-3 d-inline-flex align-items-center justify-content-center gap-md-1 shadow-sm btn-mobile-icon"
+               title="Catat Uang Masuk"
+               aria-label="Catat Uang Masuk">
                 <i class="bi bi-plus-circle-fill"></i>
-                <span>Catat Uang Masuk</span>
+                <span class="d-none d-md-inline">Catat Uang Masuk</span>
             </a>
-            <a href="{{ route('admin.finances.create', ['type' => 'out']) }}" class="btn btn-danger rounded-pill px-3 d-inline-flex align-items-center gap-1 shadow-sm">
+            <a href="{{ route('admin.finances.create', ['type' => 'out']) }}"
+               class="btn btn-danger rounded-pill px-3 d-inline-flex align-items-center justify-content-center gap-md-1 shadow-sm btn-mobile-icon"
+               title="Catat Uang Keluar"
+               aria-label="Catat Uang Keluar">
                 <i class="bi bi-dash-circle-fill"></i>
-                <span>Catat Uang Keluar</span>
+                <span class="d-none d-md-inline">Catat Uang Keluar</span>
             </a>
         </div>
     </div>

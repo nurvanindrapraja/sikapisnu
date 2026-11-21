@@ -5,8 +5,8 @@
 
 @section('content')
 <!-- Breadcrumbs & Navigasi -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-    <div>
+<div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+    <div class="min-w-0">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-1 small">
                 <li class="breadcrumb-item"><a href="{{ route('admin.workgroups.index') }}" class="text-decoration-none text-success">Master Kelompok Kerja</a></li>
@@ -17,12 +17,22 @@
             <i class="bi bi-person-workspace text-success me-2"></i> {{ $workgroup->name }}
         </h4>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{{ route('admin.workgroups.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2">
-            <i class="bi bi-arrow-left me-1"></i> Kembali ke Daftar
+    <div class="d-flex gap-2 flex-shrink-0">
+        <a href="{{ route('admin.workgroups.index') }}"
+           class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+           title="Kembali ke Daftar"
+           aria-label="Kembali ke Daftar">
+            <i class="bi bi-arrow-left"></i>
+            <span class="d-none d-md-inline ms-1">Kembali ke Daftar</span>
         </a>
-        <button type="button" class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddPokjaMember">
-            <i class="bi bi-person-plus-fill me-1"></i> Tambah Anggota dari Seksi
+        <button type="button"
+                class="btn btn-sm btn-isnu-primary px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+                data-bs-toggle="modal"
+                data-bs-target="#modalAddPokjaMember"
+                title="Tambah Anggota dari Seksi"
+                aria-label="Tambah Anggota dari Seksi">
+            <i class="bi bi-person-plus-fill"></i>
+            <span class="d-none d-md-inline ms-1">Tambah Anggota dari Seksi</span>
         </button>
     </div>
 </div>

@@ -16,9 +16,13 @@
             <h4 class="fw-bold text-dark mb-0">Rincian Transaksi Kas</h4>
             <p class="text-muted small mb-0">Detail pencatatan arus kas dan bukti pendukung transaksi.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.finances.index') }}" class="btn btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i> Kembali
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+            <a href="{{ route('admin.finances.index') }}"
+               class="btn btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
+               title="Kembali"
+               aria-label="Kembali">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-md-inline ms-1">Kembali</span>
             </a>
             <a href="{{ route('admin.finances.edit', $transaction->id) }}" class="btn btn-light border rounded-pill px-3">
                 <i class="bi bi-pencil me-1"></i> Sunting

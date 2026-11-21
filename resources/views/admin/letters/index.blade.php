@@ -8,8 +8,8 @@
 
 
     <!-- Header & Action Button -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
-        <div>
+    <div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
+        <div class="min-w-0">
             <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                 <h4 class="fw-bold mb-0 text-dark">Daftar Konsep Surat & E-TTD</h4>
                 @if(!empty($isPacScoped) && !empty($scopedPac))
@@ -26,10 +26,15 @@
                 @endif
             </p>
         </div>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-success rounded-pill px-3 shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#chooseLetterTypeModal">
+        <div class="d-flex gap-2 flex-shrink-0">
+            <button type="button"
+                    class="btn btn-success rounded-pill px-3 shadow-sm d-inline-flex align-items-center justify-content-center gap-md-2 btn-mobile-icon"
+                    data-bs-toggle="modal"
+                    data-bs-target="#chooseLetterTypeModal"
+                    title="Ajukan Konsep Surat Baru"
+                    aria-label="Ajukan Konsep Surat Baru">
                 <i class="bi bi-plus-circle"></i>
-                <span>Ajukan Konsep Surat Baru</span>
+                <span class="d-none d-md-inline">Ajukan Konsep Surat Baru</span>
             </button>
         </div>
     </div>
