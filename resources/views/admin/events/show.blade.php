@@ -4,6 +4,10 @@
 @section('header_title', 'Detail Kegiatan & Presensi')
 
 @section('content')
+@php
+    $canManageEvent = auth()->user()->canManageSectionProgramOrEvent($event->section_id ? (int) $event->section_id : null);
+    $mediaLinks = is_array($event->media_links) ? $event->media_links : [];
+@endphp
 <div class="mb-4">
     <a href="{{ route('admin.events.index') }}"
        class="btn btn-sm btn-outline-secondary rounded-pill px-3 d-inline-flex align-items-center justify-content-center btn-mobile-icon"
@@ -24,6 +28,18 @@
 @if(session('error'))
     <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+        <strong class="d-block mb-1"><i class="bi bi-exclamation-circle-fill me-1"></i> Terjadi kesalahan validasi:</strong>
+        <ul class="mb-0 ps-3 small">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 @endif
@@ -57,7 +73,7 @@
                         </div>
                         <h4 class="fw-bold text-dark m-0">{{ $event->title }}</h4>
                     </div>
-                    @if(auth()->user()->canManageSectionProgramOrEvent($event->section_id ? (int) $event->section_id : null))
+                    @if($canManageEvent)
                     <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalEditEvent">
                         <i class="bi bi-pencil-square me-1"></i> Edit Kegiatan
                     </button>
@@ -127,9 +143,11 @@
                 <div class="border-top pt-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold text-dark m-0"><i class="bi bi-folder-symlink-fill text-success me-2"></i> Laporan (LPJ) & Foto Dokumentasi</h6>
+                        @if($canManageEvent)
                         <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalUploadReport">
                             <i class="bi bi-cloud-upload-fill me-1"></i> Upload LPJ / Foto
                         </button>
+                        @endif
                     </div>
 
                     <!-- LPJ PDF File -->
@@ -156,7 +174,7 @@
                     </div>
 
                     <!-- Documentation Photos Gallery -->
-                    <div>
+                    <div class="mb-4">
                         <label class="form-label fw-semibold small text-muted mb-2">Foto Dokumentasi Kegiatan:</label>
                         @if($event->documentation_photos && count($event->documentation_photos) > 0)
                             <div class="row g-2">
@@ -165,6 +183,7 @@
                                         <a href="{{ asset('storage/'.$photo) }}" target="_blank">
                                             <img src="{{ asset('storage/'.$photo) }}" alt="Dokumentasi" class="img-fluid rounded-3 object-fit-cover shadow-sm w-100" style="height: 100px;">
                                         </a>
+                                        @if($canManageEvent)
                                         <form action="{{ route('admin.events.delete_photo', [$event->id, $index]) }}" method="POST" class="position-absolute top-0 end-0 p-1">
                                             @csrf
                                             @method('DELETE')
@@ -172,6 +191,7 @@
                                                 <i class="bi bi-x"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -180,13 +200,153 @@
                         @endif
                     </div>
                 </div>
+
+                <!-- Online Media Coverage Section (Optional, Multiple Links) -->
+                <div class="border-top pt-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="fw-bold text-dark m-0">
+                                <i class="bi bi-newspaper text-primary me-2"></i> Pemberitaan Media Online
+                            </h6>
+                            <span class="badge bg-light text-secondary border rounded-pill small">Opsional</span>
+                            @if(count($mediaLinks) > 0)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">{{ count($mediaLinks) }} Media</span>
+                            @endif
+                        </div>
+                        @if($canManageEvent)
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddMediaLinks">
+                            <i class="bi bi-plus-circle-fill me-1"></i> Tambah Link Berita
+                        </button>
+                        @endif
+                    </div>
+
+                    @if(count($mediaLinks) > 0)
+                        <div class="d-flex flex-column gap-2">
+                            @foreach($mediaLinks as $mIndex => $media)
+                                <div class="d-flex align-items-start justify-content-between gap-2 bg-light p-3 rounded-3 border">
+                                    <div class="min-w-0">
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1">
+                                                <i class="bi bi-globe2 me-1"></i> {{ $media['media_name'] ?? 'Media Online' }}
+                                            </span>
+                                            @if(!empty($media['title']))
+                                                <strong class="text-dark small text-break">{{ $media['title'] }}</strong>
+                                            @endif
+                                        </div>
+                                        <a href="{{ $media['url'] }}" target="_blank" rel="noopener noreferrer" class="small text-primary text-break d-inline-flex align-items-center gap-1">
+                                            <span>{{ $media['url'] }}</span>
+                                            <i class="bi bi-box-arrow-up-right flex-shrink-0"></i>
+                                        </a>
+                                    </div>
+                                    @if($canManageEvent)
+                                        <form action="{{ route('admin.events.media_links.destroy', [$event->id, $mIndex]) }}" method="POST" class="flex-shrink-0" onsubmit="return confirm('Hapus tautan pemberitaan ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" title="Hapus tautan pemberitaan">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="bg-light p-3 rounded-3 text-center text-muted small border">
+                            <i class="bi bi-newspaper d-block fs-4 mb-1 text-secondary"></i>
+                            Belum ada tautan pemberitaan media online yang ditambahkan.
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Presence Link & Unique Share Card -->
+    <!-- RSVP & Presence Link Cards -->
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 h-100 bg-isnu text-white">
+        <div class="d-flex flex-column gap-4 h-100">
+            <!-- Link Konfirmasi Kehadiran (RSVP / Estimasi Peserta) Card -->
+            <div class="card border-0 shadow-sm rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 55%, #0a4fa3 100%);">
+                <div class="card-body p-4 d-flex flex-column justify-content-between" x-data="{
+                    rsvpLink: '{{ route('event.rsvp.show', $event->unique_code) }}',
+                    copiedRsvp: false,
+                    copyRsvpLink() {
+                        navigator.clipboard.writeText(this.rsvpLink);
+                        this.copiedRsvp = true;
+                        setTimeout(() => this.copiedRsvp = false, 2500);
+                    }
+                }">
+                    <div>
+                        <span class="badge bg-white text-primary px-3 py-1 rounded-pill fw-bold mb-2">
+                            <i class="bi bi-calendar2-check-fill me-1"></i> KONFIRMASI KEHADIRAN (RSVP)
+                        </span>
+
+                        <h5 class="fw-bold text-white mb-1">Estimasi Jumlah Peserta</h5>
+                        <p class="text-white-50 small mb-3">Bagikan link ini sebelum acara untuk mengetahui perkiraan jumlah peserta yang akan hadir.</p>
+
+                        <!-- Ringkasan Estimasi Peserta -->
+                        <div class="row g-2 mb-3 text-center">
+                            <div class="col-4">
+                                <div class="bg-white text-dark rounded-3 p-2 shadow-sm">
+                                    <div class="fs-5 fw-bold text-success lh-1">{{ $rsvpCounts['hadir'] }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Akan Hadir</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-white text-dark rounded-3 p-2 shadow-sm">
+                                    <div class="fs-5 fw-bold text-warning lh-1">{{ $rsvpCounts['ragu'] }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Ragu</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-white text-dark rounded-3 p-2 shadow-sm">
+                                    <div class="fs-5 fw-bold text-danger lh-1">{{ $rsvpCounts['tidak_hadir'] }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Tidak Hadir</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status RSVP -->
+                        @php $rsvpStatus = $event->rsvpStatus(); @endphp
+                        <div class="p-2.5 rounded-3 mb-3 bg-white text-dark shadow-sm small">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted fw-semibold">Status RSVP:</span>
+                                @if($rsvpStatus === 'open')
+                                    <span class="badge bg-success text-white rounded-pill">DIBUKA</span>
+                                @elseif($rsvpStatus === 'disabled')
+                                    <span class="badge bg-secondary text-white rounded-pill">NONAKTIF</span>
+                                @elseif($rsvpStatus === 'ended')
+                                    <span class="badge bg-warning text-dark rounded-pill">BATAS WAKTU HABIS</span>
+                                @else
+                                    <span class="badge bg-secondary text-white rounded-pill">DITUTUP</span>
+                                @endif
+                            </div>
+                            @if($event->rsvp_deadline_at)
+                                <div class="text-secondary mt-1" style="font-size: 0.78rem;">
+                                    <strong>Batas Akhir:</strong> {{ $event->rsvp_deadline_at->translatedFormat('d M Y H:i') }} WIB
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="bg-black bg-opacity-25 p-2.5 rounded-3 mb-3 text-break">
+                            <small class="text-white-50 d-block mb-1">URL Konfirmasi Kehadiran:</small>
+                            <code class="text-warning small" x-text="rsvpLink"></code>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="button" @click="copyRsvpLink()" class="btn btn-warning w-100 fw-bold rounded-pill py-2 shadow-sm text-dark">
+                            <i class="bi" :class="copiedRsvp ? 'bi-check2-all' : 'bi-clipboard-fill'"></i>
+                            <span x-text="copiedRsvp ? 'Link Konfirmasi Disalin!' : 'Salin Link Konfirmasi'"></span>
+                        </button>
+                        <a :href="rsvpLink" target="_blank" class="btn btn-outline-light w-100 rounded-pill py-2 mt-2 fw-semibold">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Buka Halaman Konfirmasi
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presence Link & Unique Share Card -->
+            <div class="card border-0 shadow-sm rounded-4 flex-grow-1 bg-isnu text-white">
             <div class="card-body p-4 d-flex flex-column justify-content-between" x-data="{
                 link: '{{ route('event.presence.show', $event->unique_code) }}',
                 copied: false,
@@ -243,6 +403,141 @@
                         <i class="bi bi-box-arrow-up-right me-1"></i> Buka Halaman Presensi
                     </a>
                 </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estimasi Peserta & Daftar Konfirmasi Kehadiran (RSVP) Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-0 p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+        <div>
+            <h5 class="fw-bold text-dark m-0">
+                <i class="bi bi-calendar2-check-fill text-primary me-2"></i>
+                Daftar Konfirmasi Kehadiran / RSVP ({{ $rsvpCounts['total'] }} Responden)
+            </h5>
+            <small class="text-muted">Rekap konfirmasi peserta sebelum acara untuk estimasi kehadiran</small>
+        </div>
+        <div class="d-flex flex-wrap gap-1.5">
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1.5">
+                <i class="bi bi-check-circle-fill me-1"></i> Akan Hadir: {{ $rsvpCounts['hadir'] }}
+            </span>
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1.5">
+                <i class="bi bi-question-circle-fill me-1"></i> Ragu: {{ $rsvpCounts['ragu'] }}
+            </span>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1.5">
+                <i class="bi bi-x-circle-fill me-1"></i> Tidak Hadir: {{ $rsvpCounts['tidak_hadir'] }}
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <!-- Desktop Table View (>= 768px) -->
+        <div class="d-none d-md-block table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;">No</th>
+                        <th>Nama Peserta</th>
+                        <th>Status Konfirmasi</th>
+                        <th>No. WhatsApp / HP</th>
+                        <th>Institusi / PAC</th>
+                        <th>Catatan</th>
+                        <th>Waktu Konfirmasi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($rsvps as $index => $r)
+                        <tr>
+                            <td>{{ $rsvps->firstItem() + $index }}</td>
+                            <td>
+                                <strong class="d-block text-dark">{{ $r->name }}</strong>
+                                @if($r->member)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill">Anggota SIKAP</span>
+                                @else
+                                    <span class="badge bg-light text-secondary border px-2 py-0.5 rounded-pill">Tamu / Umum</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge {{ $r->status_badge_class }} rounded-pill px-2.5 py-1">
+                                    {{ $r->status_label }}
+                                </span>
+                            </td>
+                            <td>{{ $r->phone ?: '-' }}</td>
+                            <td><span class="fw-semibold text-dark">{{ $r->institution_or_pac ?: '-' }}</span></td>
+                            <td><small class="text-secondary">{{ $r->notes ?: '-' }}</small></td>
+                            <td>
+                                <strong class="d-block text-dark">{{ $r->confirmed_at->translatedFormat('d M Y') }}</strong>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i> {{ $r->confirmed_at->format('H:i') }} WIB</small>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-calendar2-x fs-2 d-block mb-2 text-secondary"></i>
+                                Belum ada peserta yang mengisi konfirmasi kehadiran (RSVP).
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View (< 768px) -->
+        <div class="d-md-none p-3 d-flex flex-column gap-3">
+            @forelse($rsvps as $r)
+                <div class="card border rounded-4 shadow-sm bg-white">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div class="min-w-0">
+                                <h6 class="fw-bold text-dark mb-0 text-break">{{ $r->name }}</h6>
+                                @if($r->member)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">Anggota SIKAP</span>
+                                @else
+                                    <span class="badge bg-light text-secondary border rounded-pill small">Tamu / Umum</span>
+                                @endif
+                            </div>
+                            <span class="badge {{ $r->status_badge_class }} rounded-pill flex-shrink-0">
+                                {{ $r->status_label }}
+                            </span>
+                        </div>
+                        <div class="bg-light rounded-3 p-2.5 small">
+                            <div class="d-flex justify-content-between gap-2 mb-1">
+                                <span class="text-muted">Institusi / PAC:</span>
+                                <span class="fw-semibold text-dark text-end">{{ $r->institution_or_pac ?: '-' }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between gap-2 mb-1">
+                                <span class="text-muted">No. HP / WA:</span>
+                                <span class="text-dark text-end">{{ $r->phone ?: '-' }}</span>
+                            </div>
+                            @if($r->notes)
+                                <div class="d-flex justify-content-between gap-2 mb-1">
+                                    <span class="text-muted">Catatan:</span>
+                                    <span class="text-secondary text-end">{{ $r->notes }}</span>
+                                </div>
+                            @endif
+                            <div class="d-flex justify-content-between gap-2">
+                                <span class="text-muted">Waktu Konfirmasi:</span>
+                                <span class="fw-semibold text-dark text-end">{{ $r->confirmed_at->translatedFormat('d M Y, H:i') }} WIB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center py-4 text-muted bg-light rounded-4">
+                    <i class="bi bi-calendar2-x fs-2 d-block mb-2 text-secondary"></i>
+                    Belum ada peserta yang mengisi konfirmasi kehadiran (RSVP).
+                </div>
+            @endforelse
+        </div>
+
+        <div class="mt-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 px-3 pb-3">
+            <div class="small text-muted">
+                Menampilkan {{ $rsvps->firstItem() ?? 0 }} - {{ $rsvps->lastItem() ?? 0 }} dari total {{ $rsvps->total() }} Konfirmasi Kehadiran
+            </div>
+            <div>
+                {{ $rsvps->links() }}
             </div>
         </div>
     </div>
@@ -373,6 +668,7 @@
                 @method('PUT')
                 <div class="modal-body p-4" x-data="{
                     method: '{{ $event->method }}',
+                    rsvpEnabled: {{ $event->rsvp_enabled ? 'true' : 'false' }},
                     selectedSectionId: '{{ $event->section_id }}',
                     selectedProgramId: '{{ $event->program_id }}',
                     sectionsData: {{ Js::from($sections->map(fn($s) => [
@@ -478,6 +774,22 @@
                             <label class="form-label fw-semibold">Waktu Berakhir Presensi <span class="text-danger">*</span></label>
                             <input type="datetime-local" name="presence_end_at" class="form-control" value="{{ $event->presence_end_at->format('Y-m-d\TH:i') }}" required>
                         </div>
+
+                        <div class="col-12"><hr class="my-1 text-secondary"></div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <input type="hidden" name="rsvp_enabled" value="0">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="editEventRsvpEnabled" name="rsvp_enabled" value="1" x-model="rsvpEnabled">
+                                <label class="form-check-label fw-semibold" for="editEventRsvpEnabled">
+                                    Aktifkan Link Konfirmasi Kehadiran (RSVP)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6" x-show="rsvpEnabled">
+                            <label class="form-label fw-semibold">Batas Akhir Konfirmasi <span class="text-secondary small fw-normal">(Opsional)</span></label>
+                            <input type="datetime-local" name="rsvp_deadline_at" class="form-control" value="{{ $event->rsvp_deadline_at ? $event->rsvp_deadline_at->format('Y-m-d\TH:i') : '' }}">
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Status Kegiatan <span class="text-danger">*</span></label>
                             <select name="status" class="form-select" required>
@@ -527,4 +839,75 @@
         </div>
     </div>
 </div>
+
+@if($canManageEvent)
+<!-- Modal Tambah Link Pemberitaan Media Online -->
+<div class="modal fade" id="modalAddMediaLinks" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white border-0 p-3">
+                <h6 class="modal-title fw-bold"><i class="bi bi-newspaper me-1"></i> Tambah Tautan Pemberitaan Media Online</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.events.media_links.store', $event->id) }}" method="POST" x-data="{
+                rows: [{ media_name: '', title: '', url: '' }],
+                addRow() {
+                    this.rows.push({ media_name: '', title: '', url: '' });
+                },
+                removeRow(idx) {
+                    if (this.rows.length > 1) {
+                        this.rows.splice(idx, 1);
+                    }
+                }
+            }">
+                @csrf
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Tambahkan satu atau beberapa tautan pemberitaan dari media online terkait kegiatan ini. Pengisian bersifat opsional.
+                    </p>
+
+                    <div class="d-flex flex-column gap-3">
+                        <template x-for="(row, idx) in rows" :key="idx">
+                            <div class="bg-light border rounded-4 p-3 position-relative">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill">Media #<span x-text="idx + 1"></span></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" x-show="rows.length > 1" @click="removeRow(idx)">
+                                        <i class="bi bi-trash me-1"></i> Hapus Baris
+                                    </button>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-semibold mb-1">Nama Media <span class="text-muted fw-normal">(Opsional)</span></label>
+                                        <input type="text" :name="`media_links[${idx}][media_name]`" x-model="row.media_name" class="form-control form-control-sm" placeholder="Contoh: NU Online, DetikJatim, Kompas">
+                                    </div>
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-semibold mb-1">Judul Berita <span class="text-muted fw-normal">(Opsional)</span></label>
+                                        <input type="text" :name="`media_links[${idx}][title]`" x-model="row.title" class="form-control form-control-sm" placeholder="Contoh: PC ISNU Surabaya Gelar Harlah ke-27">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold mb-1">Link / URL Pemberitaan <span class="text-danger">*</span></label>
+                                        <input type="url" :name="`media_links[${idx}][url]`" x-model="row.url" class="form-control form-control-sm" placeholder="https://www.nu.or.id/daerah/..." required>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addRow()">
+                            <i class="bi bi-plus-lg me-1"></i> Tambah Media Lain
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold rounded-pill px-4">
+                        <i class="bi bi-check-lg me-1"></i> Simpan Link Pemberitaan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 @endsection

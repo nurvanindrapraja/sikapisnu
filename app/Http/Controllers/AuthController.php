@@ -32,7 +32,7 @@ class AuthController extends Controller
 
         if ($request->has('redirect')) {
             session()->put('url.intended', $request->query('redirect'));
-        } elseif (url()->previous() && str_contains(url()->previous(), '/presensi/')) {
+        } elseif (url()->previous() && (str_contains(url()->previous(), '/presensi/') || str_contains(url()->previous(), '/konfirmasi/'))) {
             session()->put('url.intended', url()->previous());
         }
 

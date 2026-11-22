@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Event;
 use App\Models\EventPresence;
+use App\Models\EventRsvp;
 use App\Models\Member;
 use App\Models\Pac;
 use App\Models\Program;
@@ -19,7 +20,7 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Event::with(['section', 'program'])->withCount('presences');
+        $query = Event::with(['section', 'program'])->withCount(['presences', 'attendingRsvps']);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
@@ -247,8 +248,12 @@ class EventController extends Controller
             'end_time' => 'required|string|max:10',
             'presence_start_at' => 'required|date',
             'presence_end_at' => 'required|date|after_or_equal:presence_start_at',
+            'rsvp_enabled' => 'nullable|boolean',
+            'rsvp_deadline_at' => 'nullable|date',
             'status' => 'required|in:planned,completed,cancelled',
         ]);
+
+        $validated['rsvp_enabled'] = $request->has('rsvp_enabled') ? $request->boolean('rsvp_enabled') : true;
 
         if (! empty($validated['program_id']) && empty($validated['section_id'])) {
             $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
@@ -273,19 +278,32 @@ class EventController extends Controller
 
         AuditLog::record(auth()->id(), 'Tambah Kegiatan', "Menambahkan Kegiatan: {$event->title}");
 
+        $rsvpUrl = $event->rsvp_enabled ? route('event.rsvp.show', $event->unique_code) : null;
+        $presenceUrl = route('event.presence.show', $event->unique_code);
+        $successMessage = $event->rsvp_enabled
+            ? "Kegiatan '{$event->title}' berhasil dibuat. Link konfirmasi kehadiran & link presensi siap dibagikan."
+            : "Kegiatan '{$event->title}' berhasil dibuat. Link presensi siap diakses.";
+
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => "Kegiatan '{$event->title}' berhasil dibuat. Link presensi siap diakses.",
+                'message' => $successMessage,
+                'event_title' => $event->title,
+                'rsvp_enabled' => (bool) $event->rsvp_enabled,
+                'rsvp_url' => $rsvpUrl,
+                'presence_url' => $presenceUrl,
+                'event_show_url' => route('admin.events.show', $event->id),
             ]);
         }
 
-        return back()->with('success', "Kegiatan '{$event->title}' berhasil dibuat. Link presensi siap diakses.");
+        return back()->with('success', $successMessage);
     }
 
     public function show($id)
     {
-        $event = Event::with(['presences.member', 'presences.user', 'creator', 'section', 'program'])->withCount('presences')->findOrFail($id);
+        $event = Event::with(['presences.member', 'presences.user', 'creator', 'section', 'program'])
+            ->withCount(['presences', 'rsvps', 'attendingRsvps'])
+            ->findOrFail($id);
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
@@ -295,13 +313,22 @@ class EventController extends Controller
         }
 
         $presences = $event->presences()->latest('attended_at')->paginate(20)->withQueryString();
+        $rsvps = $event->rsvps()->with(['member', 'user'])->latest('confirmed_at')->paginate(20, ['*'], 'rsvp_page')->withQueryString();
+
+        $rsvpCounts = [
+            'hadir' => $event->rsvps()->where('attendance_status', EventRsvp::STATUS_HADIR)->count(),
+            'ragu' => $event->rsvps()->where('attendance_status', EventRsvp::STATUS_RAGU)->count(),
+            'tidak_hadir' => $event->rsvps()->where('attendance_status', EventRsvp::STATUS_TIDAK_HADIR)->count(),
+        ];
+        $rsvpCounts['total'] = $rsvpCounts['hadir'] + $rsvpCounts['ragu'] + $rsvpCounts['tidak_hadir'];
+
         $sections = auth()->user()->isKetuaOrSekretarisPac()
             ? Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
                 ->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
             : Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
                 ->orderBy('level')->orderBy('name')->get();
 
-        return view('admin.events.show', compact('event', 'presences', 'sections'));
+        return view('admin.events.show', compact('event', 'presences', 'rsvps', 'rsvpCounts', 'sections'));
     }
 
     public function update(Request $request, $id)
@@ -322,8 +349,16 @@ class EventController extends Controller
             'end_time' => 'required|string|max:10',
             'presence_start_at' => 'required|date',
             'presence_end_at' => 'required|date|after_or_equal:presence_start_at',
+            'rsvp_enabled' => 'nullable|boolean',
+            'rsvp_deadline_at' => 'nullable|date',
             'status' => 'required|in:planned,completed,cancelled',
         ]);
+
+        if ($request->has('rsvp_enabled')) {
+            $validated['rsvp_enabled'] = $request->boolean('rsvp_enabled');
+        } else {
+            unset($validated['rsvp_enabled']);
+        }
 
         if (! empty($validated['program_id']) && empty($validated['section_id'])) {
             $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
@@ -423,6 +458,96 @@ class EventController extends Controller
         }
 
         return back()->with('success', 'Foto dokumentasi berhasil dihapus.');
+    }
+
+    public function addMediaLink(Request $request, $id)
+    {
+        $event = Event::findOrFail($id);
+
+        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
+        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan tautan pemberitaan pada kegiatan ini.');
+        }
+
+        $rawItems = $request->input('media_links');
+        if (! is_array($rawItems)) {
+            $rawItems = [[
+                'media_name' => $request->input('media_name'),
+                'title' => $request->input('title'),
+                'url' => $request->input('url'),
+            ]];
+        }
+
+        $filteredItems = array_values(array_filter($rawItems, function ($item) {
+            return is_array($item) && (
+                trim((string) ($item['url'] ?? '')) !== ''
+                || trim((string) ($item['media_name'] ?? '')) !== ''
+                || trim((string) ($item['title'] ?? '')) !== ''
+            );
+        }));
+
+        $request->merge(['media_links' => $filteredItems]);
+
+        $validated = $request->validate([
+            'media_links' => 'required|array|min:1',
+            'media_links.*.media_name' => 'nullable|string|max:150',
+            'media_links.*.title' => 'nullable|string|max:255',
+            'media_links.*.url' => 'required|url|max:1000',
+        ], [
+            'media_links.required' => 'Masukkan minimal satu tautan pemberitaan media online.',
+            'media_links.*.url.required' => 'Link / URL pemberitaan wajib diisi.',
+            'media_links.*.url.url' => 'Format link pemberitaan tidak valid (gunakan awalan https:// atau http://).',
+        ]);
+
+        $existingLinks = $event->media_links ?? [];
+
+        foreach ($validated['media_links'] as $item) {
+            $url = trim($item['url']);
+            $mediaName = trim((string) ($item['media_name'] ?? ''));
+            if ($mediaName === '') {
+                $host = parse_url($url, PHP_URL_HOST) ?: 'Media Online';
+                $mediaName = preg_replace('/^www\./i', '', $host);
+            }
+
+            $title = trim((string) ($item['title'] ?? ''));
+
+            $existingLinks[] = [
+                'media_name' => $mediaName,
+                'title' => $title !== '' ? $title : null,
+                'url' => $url,
+                'added_at' => now()->toIso8601String(),
+            ];
+        }
+
+        $event->media_links = $existingLinks;
+        $event->save();
+
+        $addedCount = count($validated['media_links']);
+        AuditLog::record(auth()->id(), 'Tambah Pemberitaan Media', "Menambahkan {$addedCount} tautan pemberitaan media online untuk kegiatan: {$event->title}");
+
+        return back()->with('success', "{$addedCount} tautan pemberitaan media online berhasil ditambahkan.");
+    }
+
+    public function deleteMediaLink(Request $request, $id, $index)
+    {
+        $event = Event::findOrFail($id);
+
+        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
+        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus tautan pemberitaan pada kegiatan ini.');
+        }
+
+        $mediaLinks = $event->media_links ?? [];
+
+        if (isset($mediaLinks[$index])) {
+            unset($mediaLinks[$index]);
+            $event->media_links = array_values($mediaLinks);
+            $event->save();
+
+            AuditLog::record(auth()->id(), 'Hapus Pemberitaan Media', "Menghapus tautan pemberitaan media online dari kegiatan: {$event->title}");
+        }
+
+        return back()->with('success', 'Tautan pemberitaan media online berhasil dihapus.');
     }
 
     public function destroy(Request $request, $id)

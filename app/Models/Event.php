@@ -27,10 +27,13 @@ class Event extends Model
         'end_time',
         'presence_start_at',
         'presence_end_at',
+        'rsvp_enabled',
+        'rsvp_deadline_at',
         'status',
         'budget',
         'lpj_file',
         'documentation_photos',
+        'media_links',
         'created_by',
     ];
 
@@ -38,13 +41,27 @@ class Event extends Model
         'event_date' => 'date',
         'presence_start_at' => 'datetime',
         'presence_end_at' => 'datetime',
+        'rsvp_enabled' => 'boolean',
+        'rsvp_deadline_at' => 'datetime',
         'documentation_photos' => 'array',
+        'media_links' => 'array',
         'budget' => 'decimal:2',
     ];
 
     public function presences(): HasMany
     {
         return $this->hasMany(EventPresence::class, 'event_id');
+    }
+
+    public function rsvps(): HasMany
+    {
+        return $this->hasMany(EventRsvp::class, 'event_id');
+    }
+
+    public function attendingRsvps(): HasMany
+    {
+        return $this->hasMany(EventRsvp::class, 'event_id')
+            ->where('attendance_status', EventRsvp::STATUS_HADIR);
     }
 
     public function creator(): BelongsTo
@@ -108,5 +125,42 @@ class Event extends Model
         }
 
         return 'Masa presensi sedang aktif.';
+    }
+
+    public function rsvpStatus(): string
+    {
+        if (! $this->rsvp_enabled) {
+            return 'disabled';
+        }
+
+        if ($this->status === 'cancelled') {
+            return 'cancelled';
+        }
+
+        if ($this->status === 'completed') {
+            return 'completed';
+        }
+
+        if ($this->rsvp_deadline_at && now()->greaterThan($this->rsvp_deadline_at)) {
+            return 'ended';
+        }
+
+        return 'open';
+    }
+
+    public function isRsvpOpen(): bool
+    {
+        return $this->rsvpStatus() === 'open';
+    }
+
+    public function getRsvpMessageAttribute(): string
+    {
+        return match ($this->rsvpStatus()) {
+            'disabled' => 'Konfirmasi kehadiran (RSVP) tidak diaktifkan untuk kegiatan ini.',
+            'cancelled' => 'Kegiatan ini telah dibatalkan sehingga konfirmasi kehadiran ditutup.',
+            'completed' => 'Kegiatan ini telah selesai dilaksanakan sehingga konfirmasi kehadiran ditutup.',
+            'ended' => 'Batas waktu konfirmasi kehadiran telah berakhir pada '.$this->rsvp_deadline_at?->translatedFormat('d F Y H:i').' WIB.',
+            default => 'Konfirmasi kehadiran sedang dibuka.',
+        };
     }
 }

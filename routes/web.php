@@ -55,9 +55,11 @@ Route::get('/verify/{qr_token}', [VerificationController::class, 'verify'])->nam
 Route::get('/card/{qr_token}', [VerificationController::class, 'verify']);
 Route::get('/qr-code/{qr_token}.png', [VerificationController::class, 'qrImage'])->name('verify.qr');
 
-// Public Event Presensi Link Route
+// Public Event Presensi & Konfirmasi Kehadiran (RSVP) Routes
 Route::get('/presensi/{code}', [EventPresenceController::class, 'showPresenceForm'])->name('event.presence.show');
 Route::post('/presensi/{code}', [EventPresenceController::class, 'submitPresence'])->name('event.presence.submit');
+Route::get('/konfirmasi/{code}', [EventPresenceController::class, 'showRsvpForm'])->name('event.rsvp.show');
+Route::post('/konfirmasi/{code}', [EventPresenceController::class, 'submitRsvp'])->name('event.rsvp.submit');
 
 // 2. Auth Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -231,6 +233,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('/events/{id}', [AdminEvent::class, 'update'])->name('events.update');
     Route::post('/events/{id}/report', [AdminEvent::class, 'uploadReport'])->name('events.upload_report');
     Route::delete('/events/{id}/photo/{index}', [AdminEvent::class, 'deletePhoto'])->name('events.delete_photo');
+    Route::post('/events/{id}/media-links', [AdminEvent::class, 'addMediaLink'])->name('events.media_links.store');
+    Route::delete('/events/{id}/media-links/{index}', [AdminEvent::class, 'deleteMediaLink'])->name('events.media_links.destroy');
     Route::delete('/events/{id}', [AdminEvent::class, 'destroy'])->name('events.destroy');
 
     // Laporan & Export

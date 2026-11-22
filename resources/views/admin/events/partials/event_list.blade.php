@@ -96,9 +96,16 @@
                         </small>
                     </td>
                     <td class="text-center">
-                        <span class="badge bg-dark text-white rounded-pill px-3 py-1.5 fs-6">
-                            {{ $evt->presences_count }} Orang
-                        </span>
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="badge bg-dark text-white rounded-pill px-3 py-1.5" title="Jumlah Presensi Aktual">
+                                <i class="bi bi-person-check-fill me-1"></i> {{ $evt->presences_count }} Hadir
+                            </span>
+                            @if($evt->rsvp_enabled || ($evt->attending_rsvps_count ?? 0) > 0)
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 small" title="Estimasi peserta yang konfirmasi akan hadir (RSVP)">
+                                    <i class="bi bi-calendar2-check me-1"></i> Estimasi: {{ $evt->attending_rsvps_count ?? 0 }}
+                                </span>
+                            @endif
+                        </div>
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
@@ -164,7 +171,10 @@
                             <i class="bi bi-geo-alt-fill me-1"></i> Luring
                         </span>
                     @endif
-                    <span class="badge bg-dark rounded-pill small">{{ $evt->presences_count }} Orang</span>
+                    <span class="badge bg-dark rounded-pill small">Presensi: {{ $evt->presences_count }}</span>
+                    @if($evt->rsvp_enabled || ($evt->attending_rsvps_count ?? 0) > 0)
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">Estimasi: {{ $evt->attending_rsvps_count ?? 0 }}</span>
+                    @endif
                     @if($evt->section)
                         <span class="badge bg-light text-dark border rounded-pill small">{{ Str::limit($evt->section->name, 22) }}</span>
                     @endif

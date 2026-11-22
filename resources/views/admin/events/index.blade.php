@@ -36,6 +36,65 @@
     </div>
 @endif
 
+<!-- Banner Cepat Link Konfirmasi Kehadiran Setelah Membuat Kegiatan -->
+<div x-data="{
+        created: null,
+        copiedRsvp: false,
+        copiedPresence: false,
+        copyText(text, target) {
+            navigator.clipboard.writeText(text);
+            this[target] = true;
+            setTimeout(() => this[target] = false, 2500);
+        }
+    }"
+    @event-created.window="created = $event.detail; copiedRsvp = false; copiedPresence = false"
+    x-show="created"
+    x-cloak
+    class="alert alert-primary border-primary-subtle bg-primary-subtle rounded-4 shadow-sm mb-4 p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+        <div>
+            <h6 class="fw-bold text-primary-emphasis mb-1">
+                <i class="bi bi-check-circle-fill text-success me-1"></i>
+                Kegiatan "<span x-text="created?.title"></span>" Berhasil Dibuat!
+            </h6>
+            <p class="small text-secondary mb-0">Bagikan link konfirmasi kehadiran (RSVP) di bawah ini untuk memantau estimasi jumlah peserta yang akan hadir.</p>
+        </div>
+        <button type="button" class="btn-close" @click="created = null" aria-label="Tutup"></button>
+    </div>
+
+    <div class="row g-2 mt-2">
+        <template x-if="created?.rsvpEnabled && created?.rsvpUrl">
+            <div class="col-md-7">
+                <div class="bg-white rounded-3 p-2.5 border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <small class="text-muted d-block fw-semibold">Link Konfirmasi Kehadiran (RSVP):</small>
+                        <code class="small text-primary text-break" x-text="created.rsvpUrl"></code>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                        <button type="button" @click="copyText(created.rsvpUrl, 'copiedRsvp')" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold">
+                            <i class="bi" :class="copiedRsvp ? 'bi-check2-all' : 'bi-clipboard-fill'"></i>
+                            <span x-text="copiedRsvp ? 'Disalin!' : 'Salin Link'"></span>
+                        </button>
+                        <a :href="created.rsvpUrl" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-2.5" title="Buka halaman konfirmasi">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <div :class="(created?.rsvpEnabled && created?.rsvpUrl) ? 'col-md-5' : 'col-12'">
+            <div class="bg-white rounded-3 p-2.5 border d-flex flex-wrap align-items-center justify-content-between gap-2 h-100">
+                <div class="small text-muted">
+                    Kelola presensi &amp; pantau estimasi peserta di halaman detail kegiatan.
+                </div>
+                <a :href="created?.showUrl" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+                    <i class="bi bi-eye-fill me-1"></i> Lihat Detail Kegiatan
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Card Filter & Table -->
 <div class="card border-0 shadow-sm rounded-4 mb-4" x-data="{
     search: '{{ request('search') }}',
@@ -122,6 +181,7 @@
                 eventDate: '{{ date('Y-m-d') }}',
                 startTime: '08:00',
                 endTime: '12:00',
+                rsvpEnabled: true,
                 selectedSectionId: '{{ (auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}',
                 selectedProgramId: '',
                 sectionsData: {{ Js::from($sections->map(fn($s) => [
@@ -166,9 +226,19 @@
                             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             modal.hide();
                             this.$el.reset();
+                            this.rsvpEnabled = true;
                             this.selectedSectionId = '{{ (auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents()) ? (auth()->user()->getOfficerSectionId() ?? '') : '' }}';
                             this.selectedProgramId = '';
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
+                            window.dispatchEvent(new CustomEvent('event-created', {
+                                detail: {
+                                    title: data.event_title,
+                                    rsvpEnabled: data.rsvp_enabled,
+                                    rsvpUrl: data.rsvp_url,
+                                    presenceUrl: data.presence_url,
+                                    showUrl: data.event_show_url
+                                }
+                            }));
                             window.dispatchEvent(new CustomEvent('refresh-events'));
                         } else {
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
@@ -291,6 +361,29 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Waktu Berakhir Presensi <span class="text-danger">*</span></label>
                             <input type="datetime-local" name="presence_end_at" x-ref="presenceEnd" class="form-control" required :disabled="loading">
+                        </div>
+
+                        <div class="col-12"><hr class="my-2 text-secondary"></div>
+                        <div class="col-12">
+                            <h6 class="fw-bold text-primary m-0"><i class="bi bi-calendar2-check-fill me-1"></i> Link Konfirmasi Kehadiran (Estimasi Jumlah Peserta)</h6>
+                            <p class="text-muted small mb-0">Sistem otomatis membuatkan link unik konfirmasi kehadiran (RSVP) agar panitia mengetahui estimasi jumlah peserta yang akan hadir sebelum acara dimulai.</p>
+                        </div>
+
+                        <div class="col-md-6 d-flex align-items-center">
+                            <input type="hidden" name="rsvp_enabled" value="0">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="addEventRsvpEnabled" name="rsvp_enabled" value="1" x-model="rsvpEnabled" :disabled="loading">
+                                <label class="form-check-label fw-semibold" for="addEventRsvpEnabled">
+                                    Aktifkan Link Konfirmasi Kehadiran (RSVP)
+                                </label>
+                                <div class="form-text small text-muted">Link langsung tersedia dan siap dibagikan setelah kegiatan disimpan.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6" x-show="rsvpEnabled">
+                            <label class="form-label fw-semibold">Batas Akhir Konfirmasi <span class="text-secondary small fw-normal">(Opsional)</span></label>
+                            <input type="datetime-local" name="rsvp_deadline_at" class="form-control" :disabled="loading">
+                            <div class="form-text small text-muted">Kosongkan jika konfirmasi dibuka hingga kegiatan selesai/dibatalkan.</div>
                         </div>
 
                         <div class="col-md-6">
