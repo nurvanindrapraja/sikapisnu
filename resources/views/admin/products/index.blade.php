@@ -265,9 +265,12 @@
 
                             <!-- Live Image Preview for Edit -->
                             <div id="editImagePreviewContainer" class="mt-2 d-none">
-                                <small class="text-muted d-block mb-1" id="editPreviewLabel">Foto Saat Ini / Preview:</small>
+                                <small class="text-muted d-block mb-1" id="editPreviewLabel">Foto Saat Ini:</small>
                                 <div class="position-relative d-inline-block border rounded-3 p-1 bg-light">
                                     <img id="editImagePreview" src="" alt="Preview" class="rounded-2" style="max-height: 120px; object-fit: contain;">
+                                    <button type="button" id="btnRemoveEditImage" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle p-1 d-none" style="line-height: 1; width: 24px; height: 24px;" title="Batalkan pilihan foto baru">
+                                        <i class="bi bi-x"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -486,6 +489,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const editForm = document.getElementById('formEditProduct');
                 const editErrors = document.getElementById('editProductErrors');
 
+                const currentToken = ++editFetchToken;
+                editForm.reset();
+                resetEditImageState();
                 editErrors.classList.add('d-none');
                 editErrors.innerHTML = '';
                 editForm.action = updateUrl;
@@ -500,6 +506,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(res => res.json())
                 .then(data => {
+                    if (currentToken !== editFetchToken) {
+                        return;
+                    }
                     if (data.success && data.product) {
                         const p = data.product;
                         document.getElementById('edit_name').value = p.name || '';
@@ -510,14 +519,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('edit_description').value = p.description || '';
                         document.getElementById('edit_is_active').checked = !!p.is_active;
 
-                        // Preview Foto
-                        const previewContainer = document.getElementById('editImagePreviewContainer');
-                        const previewImg = document.getElementById('editImagePreview');
-                        if (p.image_url) {
-                            previewImg.src = p.image_url;
-                            previewContainer.classList.remove('d-none');
+                        // Pastikan input file selalu kosong & preview menampilkan foto milik produk yang dipilih
+                        editImageInput.value = '';
+                        editOriginalImageUrl = p.image_url || '';
+                        editPreviewLabel.textContent = 'Foto Saat Ini:';
+                        btnRemoveEditImage.classList.add('d-none');
+
+                        if (editOriginalImageUrl) {
+                            editImagePreview.src = editOriginalImageUrl;
+                            editImagePreviewContainer.classList.remove('d-none');
                         } else {
-                            previewContainer.classList.add('d-none');
+                            editImagePreview.src = '';
+                            editImagePreviewContainer.classList.add('d-none');
                         }
                     }
                 })
@@ -526,7 +539,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Gagal memuat rincian data produk.', 'danger');
                 })
                 .finally(() => {
-                    editOverlay.style.setProperty('display', 'none', 'important');
+                    if (currentToken === editFetchToken) {
+                        editOverlay.style.setProperty('display', 'none', 'important');
+                    }
                 });
             });
         });
@@ -575,10 +590,36 @@ document.addEventListener('DOMContentLoaded', function() {
         createImagePreviewContainer.classList.add('d-none');
     });
 
-    // Modal Edit Image Preview
+    // Modal Edit Image Preview & Reset Helpers
     const editImageInput = document.getElementById('edit_image');
     const editImagePreviewContainer = document.getElementById('editImagePreviewContainer');
     const editImagePreview = document.getElementById('editImagePreview');
+    const editPreviewLabel = document.getElementById('editPreviewLabel');
+    const btnRemoveEditImage = document.getElementById('btnRemoveEditImage');
+    let editOriginalImageUrl = '';
+    let editFetchToken = 0;
+
+    function resetEditImageState() {
+        editImageInput.value = '';
+        editOriginalImageUrl = '';
+        editImagePreview.src = '';
+        editPreviewLabel.textContent = 'Foto Saat Ini:';
+        btnRemoveEditImage.classList.add('d-none');
+        editImagePreviewContainer.classList.add('d-none');
+    }
+
+    function restoreOriginalEditImage() {
+        editImageInput.value = '';
+        btnRemoveEditImage.classList.add('d-none');
+        editPreviewLabel.textContent = 'Foto Saat Ini:';
+        if (editOriginalImageUrl) {
+            editImagePreview.src = editOriginalImageUrl;
+            editImagePreviewContainer.classList.remove('d-none');
+        } else {
+            editImagePreview.src = '';
+            editImagePreviewContainer.classList.add('d-none');
+        }
+    }
 
     editImageInput.addEventListener('change', function() {
         if (this.files && this.files[0]) {
@@ -587,10 +628,34 @@ document.addEventListener('DOMContentLoaded', function() {
             reader.onload = function(e) {
                 editImagePreview.src = e.target.result;
                 editImagePreviewContainer.classList.remove('d-none');
-                document.getElementById('editPreviewLabel').textContent = 'Preview Foto Baru:';
+                editPreviewLabel.textContent = 'Preview Foto Baru:';
+                btnRemoveEditImage.classList.remove('d-none');
             };
             reader.readAsDataURL(file);
+        } else {
+            restoreOriginalEditImage();
         }
+    });
+
+    btnRemoveEditImage.addEventListener('click', function() {
+        restoreOriginalEditImage();
+    });
+
+    // Reset state setiap kali modal ditutup agar file input tidak terbawa ke produk berikutnya
+    document.getElementById('modalEditProduct').addEventListener('hidden.bs.modal', function() {
+        formEdit.reset();
+        resetEditImageState();
+        editErrors.classList.add('d-none');
+        editErrors.innerHTML = '';
+    });
+
+    document.getElementById('modalCreateProduct').addEventListener('hidden.bs.modal', function() {
+        formCreate.reset();
+        createImageInput.value = '';
+        createImagePreview.src = '';
+        createImagePreviewContainer.classList.add('d-none');
+        createErrors.classList.add('d-none');
+        createErrors.innerHTML = '';
     });
 
     // Form Create Submit via AJAX
@@ -626,6 +691,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalCreateProduct')).hide();
                 formCreate.reset();
+                createImageInput.value = '';
+                createImagePreview.src = '';
                 createImagePreviewContainer.classList.add('d-none');
                 showNotification(data.message, 'success');
                 fetchProducts();
@@ -680,6 +747,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('modalEditProduct')).hide();
+                formEdit.reset();
+                resetEditImageState();
                 showNotification(data.message, 'success');
                 fetchProducts();
             }
