@@ -222,128 +222,126 @@
 <!-- Modal Tambah Program Kerja Baru -->
 <div class="modal fade" id="modalAddProgram" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-program-wide">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <form action="{{ route('admin.programs.store') }}" method="POST" x-data="{
-                loading: false,
-                async submitForm() {
-                    if (window.syncProgramTinyMce) {
-                        window.syncProgramTinyMce(this.$el);
-                    }
-                    this.loading = true;
-                    const formData = new FormData(this.$el);
-                    try {
-                        const res = await fetch(this.$el.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: formData
-                        });
-                        const data = await res.json();
-                        this.loading = false;
-                        if (res.ok && data.success) {
-                            const modalEl = document.getElementById('modalAddProgram');
-                            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                            if (window.resetProgramTinyMce) {
-                                window.resetProgramTinyMce(this.$el);
-                            }
-                            this.$el.reset();
-                            modal.hide();
-                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
-                            window.dispatchEvent(new CustomEvent('refresh-programs'));
-                        } else {
-                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
-                        }
-                    } catch (err) {
-                        this.loading = false;
-                        console.error(err);
-                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: 'Terjadi kesalahan server.', type: 'error' } }));
-                    }
+        <form action="{{ route('admin.programs.store') }}" method="POST" class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" x-data="{
+            loading: false,
+            async submitForm() {
+                if (window.syncProgramTinyMce) {
+                    window.syncProgramTinyMce(this.$el);
                 }
-            }" @submit.prevent="submitForm()">
-                @csrf
-                <div class="modal-header bg-isnu text-white border-0 p-3 px-4">
-                    <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill me-1"></i> Tambah Master Program Kerja Seksi</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
-                </div>
-                <div x-show="loading" class="progress rounded-0" style="height: 3px;" x-cloak>
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">Pilih Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
-                            <select name="section_id" class="form-select" required :disabled="loading">
-                                @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
-                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
-                                    @if($mySection)
-                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
-                                    @else
-                                        <option value="">-- Anda belum memiliki Seksi assigned --</option>
-                                    @endif
+                this.loading = true;
+                const formData = new FormData(this.$el);
+                try {
+                    const res = await fetch(this.$el.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    this.loading = false;
+                    if (res.ok && data.success) {
+                        const modalEl = document.getElementById('modalAddProgram');
+                        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        if (window.resetProgramTinyMce) {
+                            window.resetProgramTinyMce(this.$el);
+                        }
+                        this.$el.reset();
+                        modal.hide();
+                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
+                        window.dispatchEvent(new CustomEvent('refresh-programs'));
+                    } else {
+                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: data.message || 'Terjadi kesalahan.', type: 'error' } }));
+                    }
+                } catch (err) {
+                    this.loading = false;
+                    console.error(err);
+                    window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Gagal!', message: 'Terjadi kesalahan server.', type: 'error' } }));
+                }
+            }
+        }" @submit.prevent="submitForm()">
+            @csrf
+            <div class="modal-header bg-isnu text-white border-0 p-3 px-4 flex-shrink-0">
+                <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill me-1"></i> Tambah Master Program Kerja Seksi</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
+            </div>
+            <div x-show="loading" class="progress rounded-0 flex-shrink-0" style="height: 3px;" x-cloak>
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Pilih Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
+                        <select name="section_id" class="form-select" required :disabled="loading">
+                            @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
+                                @php $mySection = auth()->user()->getOfficerSection(); @endphp
+                                @if($mySection)
+                                    <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
                                 @else
-                                    <option value="">-- Pilih Seksi / Bidang --</option>
-                                    @foreach($sections as $sec)
-                                        <option value="{{ $sec->id }}">
-                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                        </option>
-                                    @endforeach
+                                    <option value="">-- Anda belum memiliki Seksi assigned --</option>
                                 @endif
-                            </select>
-                        </div>
+                            @else
+                                <option value="">-- Pilih Seksi / Bidang --</option>
+                                @foreach($sections as $sec)
+                                    <option value="{{ $sec->id }}">
+                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Tahun / Periode <span class="text-secondary small">(Opsional)</span></label>
-                            <input type="text" name="year" class="form-control" value="{{ date('Y') }}" placeholder="Contoh: 2026 atau 2026-2030" :disabled="loading">
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tahun / Periode <span class="text-secondary small">(Opsional)</span></label>
+                        <input type="text" name="year" class="form-control" value="{{ date('Y') }}" placeholder="Contoh: 2026 atau 2026-2030" :disabled="loading">
+                    </div>
 
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">Nama Program Kerja <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control" placeholder="Contoh: Program Penguatan Ideologi & Pelatihan Kader Intelektual" required :disabled="loading">
-                        </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Nama Program Kerja <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="Contoh: Program Penguatan Ideologi & Pelatihan Kader Intelektual" required :disabled="loading">
+                    </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Kode Program <span class="text-secondary small">(Opsional)</span></label>
-                            <input type="text" name="code" class="form-control" placeholder="Contoh: PRG-KDR-01" :disabled="loading">
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Kode Program <span class="text-secondary small">(Opsional)</span></label>
+                        <input type="text" name="code" class="form-control" placeholder="Contoh: PRG-KDR-01" :disabled="loading">
+                    </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Indikator Keberhasilan / Capaian <span class="text-danger">*</span></label>
-                            <textarea name="indicator" class="form-control" rows="4" placeholder="Contoh: Terlaksananya pembinaan ideologi kader sarjana dan peningkatan pemahaman ASWAJA..." required :disabled="loading"></textarea>
-                            <div class="form-text small text-muted">Kriteria atau parameter untuk mengukur ketercapaian program.</div>
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Indikator Keberhasilan / Capaian <span class="text-danger">*</span></label>
+                        <textarea name="indicator" class="form-control" rows="3" placeholder="Contoh: Terlaksananya pembinaan ideologi kader sarjana dan peningkatan pemahaman ASWAJA..." required :disabled="loading"></textarea>
+                        <div class="form-text small text-muted">Kriteria atau parameter untuk mengukur ketercapaian program.</div>
+                    </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Target Capaian <span class="text-danger">*</span></label>
-                            <textarea name="target" class="form-control" rows="4" placeholder="Contoh: 100 Kader sarjana tersertifikasi dalam 2 angkatan pelatihan..." required :disabled="loading"></textarea>
-                            <div class="form-text small text-muted">Ukuran hasil kuantitatif maupun kualitatif yang diharapkan.</div>
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Target Capaian <span class="text-danger">*</span></label>
+                        <textarea name="target" class="form-control" rows="3" placeholder="Contoh: 100 Kader sarjana tersertifikasi dalam 2 angkatan pelatihan..." required :disabled="loading"></textarea>
+                        <div class="form-text small text-muted">Ukuran hasil kuantitatif maupun kualitatif yang diharapkan.</div>
+                    </div>
 
-                        <div class="col-12">
-                            <label for="addProgramDescription" class="form-label fw-semibold">Deskripsi Program Kerja <span class="text-secondary small fw-normal">(Editor HTML)</span></label>
-                            <textarea id="addProgramDescription" name="description" class="form-control program-description-editor" rows="6" placeholder="Tuliskan latar belakang, tujuan, tahapan, atau rincian program kerja..." :disabled="loading"></textarea>
-                            <div class="form-text small text-muted">Mendukung pemformatan teks, daftar bernomor/bullet, tautan, serta tabel.</div>
-                        </div>
+                    <div class="col-12">
+                        <label for="addProgramDescription" class="form-label fw-semibold">Deskripsi Program Kerja <span class="text-secondary small fw-normal">(Editor HTML)</span></label>
+                        <textarea id="addProgramDescription" name="description" class="form-control program-description-editor" rows="6" placeholder="Tuliskan latar belakang, tujuan, tahapan, atau rincian program kerja..." :disabled="loading"></textarea>
+                        <div class="form-text small text-muted">Mendukung pemformatan teks, daftar bernomor/bullet, tautan, serta tabel.</div>
+                    </div>
 
-                        <div class="col-12">
-                            <div class="form-check form-switch mt-1">
-                                <input class="form-check-input" type="checkbox" role="switch" name="is_active" id="addProgramIsActive" value="1" checked :disabled="loading">
-                                <label class="form-check-label fw-semibold" for="addProgramIsActive">Status Program Aktif</label>
-                            </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch mt-1">
+                            <input class="form-check-input" type="checkbox" role="switch" name="is_active" id="addProgramIsActive" value="1" checked :disabled="loading">
+                            <label class="form-check-label fw-semibold" for="addProgramIsActive">Status Program Aktif</label>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-0 px-4 py-3">
-                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
-                    <button type="submit" class="btn btn-sm btn-isnu-primary fw-bold rounded-pill px-4" :disabled="loading">
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
-                        <i class="bi bi-check-lg me-1" x-show="!loading"></i>
-                        <span x-text="loading ? 'Menyimpan...' : 'Simpan Program'"></span>
-                    </button>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="modal-footer bg-light border-0 px-4 py-3 flex-shrink-0">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal" :disabled="loading">Batal</button>
+                <button type="submit" class="btn btn-sm btn-isnu-primary fw-bold rounded-pill px-4" :disabled="loading">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" x-show="loading" x-cloak></span>
+                    <i class="bi bi-check-lg me-1" x-show="!loading"></i>
+                    <span x-text="loading ? 'Menyimpan...' : 'Simpan Program'"></span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection
@@ -375,14 +373,13 @@
             menubar: false,
             branding: false,
             promotion: false,
-            min_height: 300,
-            max_height: 520,
-            plugins: 'lists link table code wordcount autoresize',
+            height: 320,
+            min_height: 260,
+            plugins: 'lists link table code wordcount',
             toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link | removeformat | code',
             toolbar_mode: 'sliding',
             statusbar: true,
             resize: true,
-            autoresize_bottom_margin: 16,
             content_style: 'body { font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.65; color: #212529; } p { margin: 0 0 0.6rem; } ul, ol { padding-left: 1.4rem; margin: 0 0 0.6rem; } table { border-collapse: collapse; width: 100%; } table td, table th { border: 1px solid #ced4da; padding: 6px 8px; }',
             setup: function (editor) {
                 editor.on('change keyup blur', function () {
