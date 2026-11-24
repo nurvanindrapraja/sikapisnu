@@ -132,16 +132,43 @@
 <!-- Card Filter & Table -->
 <div class="card border-0 shadow-sm rounded-4 mb-4" x-data="{
     search: '{{ request('search') }}',
-    section_id: '{{ request('section_id') }}',
     level: '{{ request('level') }}',
+    pac_id: '{{ request('pac_id') }}',
+    section_id: '{{ request('section_id') }}',
     status: '{{ request('status') }}',
     loading: false,
+    sectionsData: {{ Js::from($sections->map(fn($s) => [
+        'id' => (string) $s->id,
+        'name' => $s->name,
+        'level' => $s->level,
+        'pac_id' => $s->pac_id ? (string) $s->pac_id : '',
+        'pac_name' => $s->pac?->display_name ?? $s->pac?->name ?? '',
+    ])) }},
+    get filteredSections() {
+        return this.sectionsData.filter(s => {
+            if (this.level && s.level !== this.level) return false;
+            if (this.level === 'PAC ISNU' && this.pac_id && s.pac_id !== String(this.pac_id)) return false;
+            return true;
+        });
+    },
+    onLevelChange() {
+        if (this.level !== 'PAC ISNU') {
+            this.pac_id = '';
+        }
+        this.section_id = '';
+        this.fetchPrograms();
+    },
+    onPacChange() {
+        this.section_id = '';
+        this.fetchPrograms();
+    },
     fetchPrograms() {
         this.loading = true;
         const params = new URLSearchParams();
         if (this.search) params.append('search', this.search);
-        if (this.section_id) params.append('section_id', this.section_id);
         if (this.level) params.append('level', this.level);
+        if (this.level === 'PAC ISNU' && this.pac_id) params.append('pac_id', this.pac_id);
+        if (this.section_id) params.append('section_id', this.section_id);
         if (this.status) params.append('status', this.status);
 
         fetch(`{{ route('admin.programs.index') }}?${params.toString()}`, {
@@ -163,38 +190,52 @@
     }
 }" @refresh-programs.window="fetchPrograms()">
     <div class="card-header bg-white border-0 p-3 p-md-4">
-        <div class="row g-3 align-items-center">
-            <div class="col-md-4">
+        <div class="row g-2 align-items-center">
+            <!-- 1. Pencarian Nama Program -->
+            <div :class="level === 'PAC ISNU' ? 'col-md-3' : 'col-md-4'">
                 <div class="input-group input-group-sm search-box">
                     <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                     <input type="text" x-model="search" @input.debounce.400ms="fetchPrograms()" class="form-control bg-light border-start-0" placeholder="Cari nama program / indikator / target...">
                 </div>
             </div>
-            <div class="col-md-3">
-                <select x-model="section_id" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
-                    <option value="">-- Semua Seksi / Bidang --</option>
-                    @foreach($sections as $sec)
-                        <option value="{{ $sec->id }}">
-                            [{{ $sec->level }}] {{ $sec->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+
+            <!-- 2. Pilih Tingkatan (PC / PAC) & Daftar PAC -->
             @if(auth()->user()->isKetuaOrSekretarisPac())
                 <div class="col-md-2">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle p-2 px-3 rounded-pill">
-                        <i class="bi bi-geo-alt-fill me-1"></i> PAC ISNU
+                    <span class="badge bg-success-subtle text-success border border-success-subtle p-2 px-3 rounded-pill w-100 text-truncate">
+                        <i class="bi bi-geo-alt-fill me-1"></i> {{ auth()->user()->getManagedPac()?->display_name ?? 'PAC ISNU' }}
                     </span>
                 </div>
             @else
                 <div class="col-md-2">
-                    <select x-model="level" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
+                    <select x-model="level" @change="onLevelChange()" class="form-select form-select-sm bg-light">
                         <option value="">-- Semua Tingkat --</option>
                         <option value="PC ISNU">PC ISNU</option>
                         <option value="PAC ISNU">PAC ISNU</option>
                     </select>
                 </div>
+
+                <div class="col-md-2" x-show="level === 'PAC ISNU'" x-cloak>
+                    <select x-model="pac_id" @change="onPacChange()" class="form-select form-select-sm bg-light">
+                        <option value="">-- Semua PAC ISNU --</option>
+                        @foreach($pacs as $pac)
+                            <option value="{{ $pac->id }}">{{ $pac->display_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             @endif
+
+            <!-- 3. Pilih List Seksi / Bidang (Terfilter oleh Tingkatan & PAC) -->
+            <div :class="level === 'PAC ISNU' ? 'col-md-2' : 'col-md-3'">
+                <select x-model="section_id" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
+                    <option value="">-- Semua Seksi / Bidang --</option>
+                    <template x-for="sec in filteredSections" :key="sec.id">
+                        <option :value="sec.id" x-text="sec.pac_name ? `[${sec.pac_name}] ${sec.name}` : `[${sec.level}] ${sec.name}`"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- 4. Status -->
             <div class="col-md-2">
                 <select x-model="status" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
                     <option value="">-- Semua Status --</option>
@@ -202,8 +243,10 @@
                     <option value="inactive">Non-Aktif</option>
                 </select>
             </div>
+
+            <!-- 5. Reset -->
             <div class="col-md-1 text-end">
-                <button type="button" @click="search=''; section_id=''; level=''; status=''; fetchPrograms()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill" title="Reset Filter">
+                <button type="button" @click="search=''; level=''; pac_id=''; section_id=''; status=''; fetchPrograms()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill" title="Reset Filter">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </button>
             </div>

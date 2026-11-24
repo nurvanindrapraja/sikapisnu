@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Event;
 use App\Models\Member;
+use App\Models\Mwc;
+use App\Models\Pac;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\Section;
@@ -117,6 +119,38 @@ class ProgramAndEventTest extends TestCase
         $this->assertStringNotContainsString('<script>', $program->description);
         $this->assertStringNotContainsString('onclick=', $program->description);
         $this->assertStringNotContainsString('javascript:', $program->description);
+    }
+
+    public function test_programs_can_be_filtered_by_level_pac_and_section(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $mwcA = Mwc::create(['code' => 'MWC-A', 'name' => 'MWC A', 'city' => 'Surabaya']);
+        $mwcB = Mwc::create(['code' => 'MWC-B', 'name' => 'MWC B', 'city' => 'Surabaya']);
+        $pacA = Pac::create(['mwc_id' => $mwcA->id, 'code' => 'PAC-A', 'name' => 'PAC Gayungan', 'kecamatan' => 'GAYUNGAN']);
+        $pacB = Pac::create(['mwc_id' => $mwcB->id, 'code' => 'PAC-B', 'name' => 'PAC Gubeng', 'kecamatan' => 'GUBENG']);
+
+        $secPc = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi PC Kaderisasi']);
+        $secPacA = Section::create(['level' => 'PAC ISNU', 'pac_id' => $pacA->id, 'name' => 'Seksi PAC Gayungan']);
+        $secPacB = Section::create(['level' => 'PAC ISNU', 'pac_id' => $pacB->id, 'name' => 'Seksi PAC Gubeng']);
+
+        Program::create(['section_id' => $secPc->id, 'name' => 'Program Khusus PC', 'is_active' => true]);
+        Program::create(['section_id' => $secPacA->id, 'name' => 'Program Khusus PAC Gayungan', 'is_active' => true]);
+        Program::create(['section_id' => $secPacB->id, 'name' => 'Program Khusus PAC Gubeng', 'is_active' => true]);
+
+        // Filter level PC ISNU
+        $this->actingAs($admin)->get(route('admin.programs.index', ['level' => 'PC ISNU']))
+            ->assertStatus(200)
+            ->assertSee('Program Khusus PC')
+            ->assertDontSee('Program Khusus PAC Gayungan')
+            ->assertDontSee('Program Khusus PAC Gubeng');
+
+        // Filter level PAC ISNU + specific PAC
+        $this->actingAs($admin)->get(route('admin.programs.index', ['level' => 'PAC ISNU', 'pac_id' => $pacA->id]))
+            ->assertStatus(200)
+            ->assertSee('Program Khusus PAC Gayungan')
+            ->assertDontSee('Program Khusus PC')
+            ->assertDontSee('Program Khusus PAC Gubeng');
     }
 
     public function test_admin_can_create_event_with_section_program_and_rab(): void

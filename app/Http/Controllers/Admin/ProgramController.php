@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Event;
+use App\Models\Pac;
 use App\Models\Program;
 use App\Models\Section;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +45,11 @@ class ProgramController extends Controller
                     $q->where('level', $level);
                 });
             }
+
+            if ($request->filled('pac_id')) {
+                $pacId = (int) $request->pac_id;
+                $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+            }
         }
 
         if ($request->filled('status')) {
@@ -72,6 +78,9 @@ class ProgramController extends Controller
         $sections = auth()->user()->isKetuaOrSekretarisPac()
             ? Section::with('pac')->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
             : Section::with('pac')->orderBy('level')->orderBy('name')->get();
+        $pacs = auth()->user()->isKetuaOrSekretarisPac()
+            ? collect()
+            : Pac::orderBy('name')->get();
 
         if (auth()->user()->isKetuaOrSekretarisPac()) {
             $pacId = auth()->user()->getManagedPacId();
@@ -94,7 +103,7 @@ class ProgramController extends Controller
             return view('admin.programs.partials.program_list', compact('programs', 'sections'));
         }
 
-        return view('admin.programs.index', compact('programs', 'sections', 'metrics'));
+        return view('admin.programs.index', compact('programs', 'sections', 'pacs', 'metrics'));
     }
 
     /**
