@@ -3,6 +3,39 @@
 @section('title', 'Master Program Kerja Seksi - SIKAP ISNU')
 @section('header_title', 'Master Program Kerja')
 
+@section('styles')
+<style>
+    @media (min-width: 1200px) {
+        .modal-program-wide {
+            max-width: 1140px;
+        }
+    }
+    .tox-tinymce {
+        border-radius: 0.75rem !important;
+        border-color: #dee2e6 !important;
+    }
+    .tox-tinymce:focus-within {
+        border-color: #198754 !important;
+        box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15) !important;
+    }
+    .program-html-content p:last-child,
+    .program-html-content ul:last-child,
+    .program-html-content ol:last-child {
+        margin-bottom: 0;
+    }
+    .program-html-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0.75rem;
+    }
+    .program-html-content table th,
+    .program-html-content table td {
+        border: 1px solid #dee2e6;
+        padding: 0.4rem 0.6rem;
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 mb-4">
     <div class="min-w-0">
@@ -116,7 +149,11 @@
         })
         .then(res => res.text())
         .then(html => {
-            document.getElementById('programListContainer').innerHTML = html;
+            const container = document.getElementById('programListContainer');
+            if (window.destroyProgramTinyMceIn) {
+                window.destroyProgramTinyMceIn(container);
+            }
+            container.innerHTML = html;
             this.loading = false;
         })
         .catch(err => {
@@ -184,11 +221,14 @@
 
 <!-- Modal Tambah Program Kerja Baru -->
 <div class="modal fade" id="modalAddProgram" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-program-wide">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <form action="{{ route('admin.programs.store') }}" method="POST" x-data="{
                 loading: false,
                 async submitForm() {
+                    if (window.syncProgramTinyMce) {
+                        window.syncProgramTinyMce(this.$el);
+                    }
                     this.loading = true;
                     const formData = new FormData(this.$el);
                     try {
@@ -205,8 +245,11 @@
                         if (res.ok && data.success) {
                             const modalEl = document.getElementById('modalAddProgram');
                             const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                            modal.hide();
+                            if (window.resetProgramTinyMce) {
+                                window.resetProgramTinyMce(this.$el);
+                            }
                             this.$el.reset();
+                            modal.hide();
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { title: 'Berhasil!', message: data.message, type: 'success' } }));
                             window.dispatchEvent(new CustomEvent('refresh-programs'));
                         } else {
@@ -220,7 +263,7 @@
                 }
             }" @submit.prevent="submitForm()">
                 @csrf
-                <div class="modal-header bg-isnu text-white border-0 p-3">
+                <div class="modal-header bg-isnu text-white border-0 p-3 px-4">
                     <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill me-1"></i> Tambah Master Program Kerja Seksi</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
                 </div>
@@ -267,19 +310,20 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Indikator Keberhasilan / Capaian <span class="text-danger">*</span></label>
-                            <textarea name="indicator" class="form-control" rows="3" placeholder="Contoh: Terlaksananya pembinaan ideologi kader sarjana dan peningkatan pemahaman ASWAJA..." required :disabled="loading"></textarea>
+                            <textarea name="indicator" class="form-control" rows="4" placeholder="Contoh: Terlaksananya pembinaan ideologi kader sarjana dan peningkatan pemahaman ASWAJA..." required :disabled="loading"></textarea>
                             <div class="form-text small text-muted">Kriteria atau parameter untuk mengukur ketercapaian program.</div>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Target Capaian <span class="text-danger">*</span></label>
-                            <textarea name="target" class="form-control" rows="3" placeholder="Contoh: 100 Kader sarjana tersertifikasi dalam 2 angkatan pelatihan..." required :disabled="loading"></textarea>
+                            <textarea name="target" class="form-control" rows="4" placeholder="Contoh: 100 Kader sarjana tersertifikasi dalam 2 angkatan pelatihan..." required :disabled="loading"></textarea>
                             <div class="form-text small text-muted">Ukuran hasil kuantitatif maupun kualitatif yang diharapkan.</div>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Deskripsi Program Kerja</label>
-                            <textarea name="description" class="form-control" rows="2" placeholder="Tuliskan latar belakang, tujuan, atau mekanisme program..." :disabled="loading"></textarea>
+                            <label for="addProgramDescription" class="form-label fw-semibold">Deskripsi Program Kerja <span class="text-secondary small fw-normal">(Editor HTML)</span></label>
+                            <textarea id="addProgramDescription" name="description" class="form-control program-description-editor" rows="6" placeholder="Tuliskan latar belakang, tujuan, tahapan, atau rincian program kerja..." :disabled="loading"></textarea>
+                            <div class="form-text small text-muted">Mendukung pemformatan teks, daftar bernomor/bullet, tautan, serta tabel.</div>
                         </div>
 
                         <div class="col-12">
@@ -302,4 +346,107 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7.6.1/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+(function () {
+    // Izinkan interaksi dialog TinyMCE (Link, Table, Source Code) di dalam Bootstrap 5 Modal
+    document.addEventListener('focusin', function (e) {
+        if (e.target.closest('.tox-tinymce, .tox-tinymce-aux, .moxman-window, .tam-assetmanager-root') !== null) {
+            e.stopImmediatePropagation();
+        }
+    });
+
+    function initProgramEditor(textarea) {
+        if (!textarea || !textarea.id || typeof window.tinymce === 'undefined') {
+            return;
+        }
+
+        const existing = window.tinymce.get(textarea.id);
+        if (existing) {
+            existing.remove();
+        }
+
+        window.tinymce.init({
+            selector: '#' + CSS.escape(textarea.id),
+            license_key: 'gpl',
+            menubar: false,
+            branding: false,
+            promotion: false,
+            min_height: 300,
+            max_height: 520,
+            plugins: 'lists link table code wordcount autoresize',
+            toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table link | removeformat | code',
+            toolbar_mode: 'sliding',
+            statusbar: true,
+            resize: true,
+            autoresize_bottom_margin: 16,
+            content_style: 'body { font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.65; color: #212529; } p { margin: 0 0 0.6rem; } ul, ol { padding-left: 1.4rem; margin: 0 0 0.6rem; } table { border-collapse: collapse; width: 100%; } table td, table th { border: 1px solid #ced4da; padding: 6px 8px; }',
+            setup: function (editor) {
+                editor.on('change keyup blur', function () {
+                    editor.save();
+                });
+            }
+        });
+    }
+
+    window.syncProgramTinyMce = function (scopeEl) {
+        if (typeof window.tinymce === 'undefined' || !scopeEl) {
+            return;
+        }
+        scopeEl.querySelectorAll('textarea.program-description-editor').forEach(function (ta) {
+            const ed = ta.id ? window.tinymce.get(ta.id) : null;
+            if (ed) {
+                ed.save();
+            }
+        });
+    };
+
+    window.resetProgramTinyMce = function (scopeEl) {
+        if (typeof window.tinymce === 'undefined' || !scopeEl) {
+            return;
+        }
+        scopeEl.querySelectorAll('textarea.program-description-editor').forEach(function (ta) {
+            const ed = ta.id ? window.tinymce.get(ta.id) : null;
+            if (ed) {
+                ed.setContent('');
+                ed.save();
+            }
+        });
+    };
+
+    window.destroyProgramTinyMceIn = function (scopeEl) {
+        if (typeof window.tinymce === 'undefined' || !scopeEl) {
+            return;
+        }
+        scopeEl.querySelectorAll('textarea.program-description-editor').forEach(function (ta) {
+            const ed = ta.id ? window.tinymce.get(ta.id) : null;
+            if (ed) {
+                ed.remove();
+            }
+        });
+    };
+
+    // Lazy init TinyMCE ketika modal Tambah/Edit Program dibuka, dan bersihkan saat modal ditutup
+    document.addEventListener('shown.bs.modal', function (event) {
+        const modalEl = event.target;
+        if (!modalEl) {
+            return;
+        }
+        modalEl.querySelectorAll('textarea.program-description-editor').forEach(function (ta) {
+            initProgramEditor(ta);
+        });
+    });
+
+    document.addEventListener('hidden.bs.modal', function (event) {
+        const modalEl = event.target;
+        if (!modalEl) {
+            return;
+        }
+        window.destroyProgramTinyMceIn(modalEl);
+    });
+})();
+</script>
 @endsection

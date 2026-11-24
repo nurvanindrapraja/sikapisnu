@@ -123,6 +123,7 @@ class ProgramController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi ini.');
         }
 
+        $validated['description'] = $this->sanitizeDescriptionHtml($validated['description'] ?? null);
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program = Program::create($validated);
@@ -169,6 +170,7 @@ class ProgramController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi ini.');
         }
 
+        $validated['description'] = $this->sanitizeDescriptionHtml($validated['description'] ?? null);
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program->update($validated);
@@ -184,6 +186,42 @@ class ProgramController extends Controller
         }
 
         return back()->with('success', "Program '{$program->name}' berhasil diperbarui.");
+    }
+
+    /**
+     * Sanitasi HTML deskripsi program kerja dari editor rich-text (TinyMCE)
+     * agar hanya tag dan atribut pemformatan aman yang disimpan.
+     */
+    protected function sanitizeDescriptionHtml(?string $html): ?string
+    {
+        if ($html === null) {
+            return null;
+        }
+
+        $trimmed = trim($html);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        // Hapus blok script/style beserta isinya
+        $clean = preg_replace('#<(script|style|iframe|object|embed)\b[^>]*>.*?</\1>#is', '', $trimmed) ?? $trimmed;
+
+        $allowedTags = '<p><br><strong><b><em><i><u><s><ul><ol><li><h1><h2><h3><h4><h5><h6><blockquote><table><thead><tbody><tfoot><tr><th><td><a><span><div><hr><sub><sup>';
+        $clean = strip_tags($clean, $allowedTags);
+
+        // Hapus atribut event handler (onclick, onerror, dll.)
+        $clean = preg_replace('/\s+on[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean) ?? $clean;
+
+        // Netralkan skema berbahaya pada href/src (javascript:, vbscript:, data:text/html)
+        $clean = preg_replace('/(href|src)\s*=\s*(["\'])\s*(?:javascript|vbscript|data\s*:\s*text\/html):.*?\2/i', '$1=$2#$2', $clean) ?? $clean;
+
+        // Jika konten HTML kosong melompong (hanya tag kosong & spasi)
+        $plainText = trim(str_replace("\xc2\xa0", ' ', html_entity_decode(strip_tags($clean), ENT_QUOTES, 'UTF-8')));
+        if ($plainText === '' && stripos($clean, '<table') === false) {
+            return null;
+        }
+
+        return trim($clean);
     }
 
     /**

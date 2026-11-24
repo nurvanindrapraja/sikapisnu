@@ -92,6 +92,33 @@ class ProgramAndEventTest extends TestCase
         ]);
     }
 
+    public function test_program_description_supports_safe_html_and_strips_dangerous_scripts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $section = Section::create([
+            'level' => 'PC ISNU',
+            'name' => 'Seksi Riset',
+        ]);
+
+        $dirtyHtml = '<p><strong>Tahapan Program:</strong></p><ol><li>Pendataan kader</li><li>Pemetaan keahlian</li></ol><script>alert("xss")</script><a href="javascript:alert(1)" onclick="evil()">Klik</a>';
+
+        $this->actingAs($admin)->post(route('admin.programs.store'), [
+            'section_id' => $section->id,
+            'name' => 'Program Deskripsi HTML',
+            'indicator' => 'Tersedia direktori',
+            'target' => '200 kader',
+            'description' => $dirtyHtml,
+            'is_active' => 1,
+        ])->assertRedirect();
+
+        $program = Program::where('name', 'Program Deskripsi HTML')->firstOrFail();
+        $this->assertStringContainsString('<p><strong>Tahapan Program:</strong></p>', $program->description);
+        $this->assertStringContainsString('<ol><li>Pendataan kader</li><li>Pemetaan keahlian</li></ol>', $program->description);
+        $this->assertStringNotContainsString('<script>', $program->description);
+        $this->assertStringNotContainsString('onclick=', $program->description);
+        $this->assertStringNotContainsString('javascript:', $program->description);
+    }
+
     public function test_admin_can_create_event_with_section_program_and_rab(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

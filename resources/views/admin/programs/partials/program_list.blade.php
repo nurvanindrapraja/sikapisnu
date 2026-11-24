@@ -23,12 +23,26 @@
                     <td>{{ $programs->firstItem() + $index }}</td>
                     <td>
                         <strong class="d-block text-dark">{{ $prg->name }}</strong>
-                        <div class="d-flex align-items-center gap-1.5 mt-0.5">
+                        @if($prg->description)
+                            @php $plainDesc = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($prg->description), ENT_QUOTES, 'UTF-8'))); @endphp
+                            @if($plainDesc !== '')
+                                <small class="text-muted d-block mt-0.5">{{ Str::limit($plainDesc, 95) }}</small>
+                            @endif
+                        @endif
+                        <div class="d-flex align-items-center gap-1.5 mt-1">
                             @if($prg->code)
                                 <code class="small text-muted">{{ $prg->code }}</code>
                             @endif
                             @if($prg->year)
                                 <span class="badge bg-light text-secondary border small px-2 py-0.5 rounded-pill">{{ $prg->year }}</span>
+                            @endif
+                            @if($prg->description)
+                                <button type="button"
+                                        class="btn btn-link btn-sm p-0 text-success text-decoration-none small fw-semibold"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalDetailProgram{{ $prg->id }}">
+                                    <i class="bi bi-file-earmark-richtext me-0.5"></i> Lihat Deskripsi
+                                </button>
                             @endif
                         </div>
                     </td>
@@ -181,7 +195,18 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end align-items-center gap-2 pt-2 border-top">
+                <div class="d-flex justify-content-between align-items-center gap-2 pt-2 border-top">
+                    <div>
+                        @if($prg->description)
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalDetailProgram{{ $prg->id }}">
+                                <i class="bi bi-file-earmark-richtext me-1"></i> Deskripsi
+                            </button>
+                        @endif
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
                     @if($canManageProgram)
                         <button type="button"
                                 class="btn btn-sm btn-outline-warning rounded-circle d-inline-flex align-items-center justify-content-center"
@@ -206,6 +231,7 @@
                             <i class="bi bi-lock-fill me-1"></i> Terkunci
                         </span>
                     @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -217,14 +243,69 @@
     @endforelse
 </div>
 
-<!-- Modals Edit & Hapus Program -->
+<!-- Modals Detail, Edit & Hapus Program -->
 @foreach($programs as $prg)
+    @if($prg->description)
+    <div class="modal fade text-start" id="modalDetailProgram{{ $prg->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-isnu text-white border-0 p-3 px-4">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-file-earmark-richtext me-1"></i> Detail Program Kerja</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <h5 class="fw-bold text-dark mb-1">{{ $prg->name }}</h5>
+                        <div class="d-flex flex-wrap align-items-center gap-1.5">
+                            @if($prg->section)
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">{{ $prg->section->name }}</span>
+                            @endif
+                            @if($prg->code)
+                                <code class="small text-muted">{{ $prg->code }}</code>
+                            @endif
+                            @if($prg->year)
+                                <span class="badge bg-light text-secondary border rounded-pill">{{ $prg->year }}</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 h-100 border">
+                                <small class="text-muted fw-semibold d-block mb-1"><i class="bi bi-check2-circle text-success me-1"></i> Indikator Capaian</small>
+                                <div class="small text-dark">{{ $prg->indicator ?: '-' }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 h-100 border">
+                                <small class="text-muted fw-semibold d-block mb-1"><i class="bi bi-bullseye text-danger me-1"></i> Target Capaian</small>
+                                <div class="small fw-semibold text-dark">{{ $prg->target ?: '-' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-3 p-3 bg-white">
+                        <small class="text-muted fw-semibold d-block mb-2 border-bottom pb-2">Deskripsi Program Kerja</small>
+                        <div class="program-html-content small text-dark">{!! $prg->description !!}</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="modal fade text-start" id="modalEditProgram{{ $prg->id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-program-wide">
             <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                 <form action="{{ route('admin.programs.update', $prg->id) }}" method="POST" x-data="{
                     loading: false,
                     async submitForm() {
+                        if (window.syncProgramTinyMce) {
+                            window.syncProgramTinyMce(this.$el);
+                        }
                         this.loading = true;
                         const formData = new FormData(this.$el);
                         try {
@@ -256,7 +337,7 @@
                 }" @submit.prevent="submitForm()">
                     @csrf
                     @method('PUT')
-                    <div class="modal-header bg-warning text-dark border-0 p-3">
+                    <div class="modal-header bg-warning text-dark border-0 p-3 px-4">
                         <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Edit Master Program Kerja</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
                     </div>
@@ -300,17 +381,18 @@
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Indikator Keberhasilan / Capaian <span class="text-danger">*</span></label>
-                                <textarea name="indicator" class="form-control" rows="3" required :disabled="loading">{{ $prg->indicator }}</textarea>
+                                <textarea name="indicator" class="form-control" rows="4" required :disabled="loading">{{ $prg->indicator }}</textarea>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Target Capaian <span class="text-danger">*</span></label>
-                                <textarea name="target" class="form-control" rows="3" required :disabled="loading">{{ $prg->target }}</textarea>
+                                <textarea name="target" class="form-control" rows="4" required :disabled="loading">{{ $prg->target }}</textarea>
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label fw-semibold">Deskripsi Program Kerja</label>
-                                <textarea name="description" class="form-control" rows="2" :disabled="loading">{{ $prg->description }}</textarea>
+                                <label for="editProgramDescription{{ $prg->id }}" class="form-label fw-semibold">Deskripsi Program Kerja <span class="text-secondary small fw-normal">(Editor HTML)</span></label>
+                                <textarea id="editProgramDescription{{ $prg->id }}" name="description" class="form-control program-description-editor" rows="6" :disabled="loading">{{ $prg->description }}</textarea>
+                                <div class="form-text small text-muted">Mendukung pemformatan teks, daftar bernomor/bullet, tautan, serta tabel.</div>
                             </div>
 
                             <div class="col-12">
