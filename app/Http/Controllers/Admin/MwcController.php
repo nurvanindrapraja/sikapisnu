@@ -43,6 +43,7 @@ class MwcController extends Controller
 
         Cache::forget('master_mwc_pacs');
         Cache::forget('admin_dashboard_stats');
+        Cache::forget('home_stats_metrics');
 
         return back()->with('success', 'MWC baru berhasil ditambahkan.');
     }
@@ -70,6 +71,7 @@ class MwcController extends Controller
 
         Cache::forget('master_mwc_pacs');
         Cache::forget('admin_dashboard_stats');
+        Cache::forget('home_stats_metrics');
 
         return back()->with('success', 'PAC ISNU '.$pac->name.' berhasil ditambahkan.');
     }
@@ -93,6 +95,7 @@ class MwcController extends Controller
 
         Cache::forget('master_mwc_pacs');
         Cache::forget('admin_dashboard_stats');
+        Cache::forget('home_stats_metrics');
 
         return back()->with('success', 'Data PAC ISNU '.$pac->name.' berhasil diperbarui.');
     }
@@ -108,6 +111,7 @@ class MwcController extends Controller
 
         Cache::forget('master_mwc_pacs');
         Cache::forget('admin_dashboard_stats');
+        Cache::forget('home_stats_metrics');
 
         return back()->with('success', 'PAC ISNU '.$name.' berhasil dihapus.');
     }

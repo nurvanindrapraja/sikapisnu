@@ -623,6 +623,9 @@ class MemberController extends Controller
             $member->user->update(['email' => $validated['email']]);
         }
 
+        Cache::forget('home_stats_metrics');
+        Cache::forget('admin_dashboard_stats');
+
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -647,6 +650,9 @@ class MemberController extends Controller
             $member->user->delete();
         }
         $member->delete();
+
+        Cache::forget('home_stats_metrics');
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->route('admin.anggota.index')->with('success', 'Data anggota '.$name.' telah dipindahkan ke Data Sampah.');
     }
@@ -709,6 +715,9 @@ class MemberController extends Controller
         if ($member->user_id) {
             User::withTrashed()->find($member->user_id)?->restore();
         }
+
+        Cache::forget('home_stats_metrics');
+        Cache::forget('admin_dashboard_stats');
 
         return redirect()->route('admin.sampah.index')->with('success', "Data anggota {$name} berhasil dikembalikan ke Data Aktif.");
     }

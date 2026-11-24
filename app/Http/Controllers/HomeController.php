@@ -16,10 +16,10 @@ class HomeController extends Controller
                 'totalPengurus' => Member::where('membership_status', 'pengurus')->count(),
                 'totalPacMembers' => Member::whereIn('membership_status', ['terverifikasi', 'pengurus'])
                     ->where(function ($q) {
-                        $q->whereNotNull('pac_id')
-                            ->orWhereNotNull('mwc_id')
-                            ->orWhere(function ($sq) {
-                                $sq->whereNotNull('kecamatan')->where('kecamatan', '!=', '');
+                        $q->whereHas('pac')
+                            ->orWhereHas('activePosition', function ($p) {
+                                $p->whereNotNull('pac_id')
+                                    ->whereHas('pac');
                             });
                     })
                     ->count(),
