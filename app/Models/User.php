@@ -381,8 +381,17 @@ class User extends Authenticatable
      */
     public function canManageSectionProgramOrEvent(?int $sectionId): bool
     {
-        if ($this->canManageAllProgramsAndEvents()) {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
             return true;
+        }
+
+        if ($this->isKetuaOrSekretarisPc()) {
+            if ($sectionId === null) {
+                return true;
+            }
+            $section = Section::find($sectionId);
+
+            return $section !== null && $section->level === 'PC ISNU';
         }
 
         if ($this->isKetuaOrSekretarisPac()) {
@@ -391,7 +400,9 @@ class User extends Authenticatable
             }
             $section = Section::find($sectionId);
 
-            return $section && (int) $section->pac_id === (int) $this->getManagedPacId();
+            return $section !== null
+                && $section->level === 'PAC ISNU'
+                && (int) $section->pac_id === (int) $this->getManagedPacId();
         }
 
         if ($this->isSectionOfficer()) {
@@ -404,7 +415,78 @@ class User extends Authenticatable
     }
 
     /**
-     * Memeriksa apakah user dapat mengelola setidaknya satu seksi untuk program atau kegiatan.
+     * Memeriksa apakah user memiliki hak akses untuk menambah, mengedit, atau menghapus
+     * program atau kegiatan pada Kelompok Kerja (Pokja) tertentu.
+     */
+    public function canManageWorkgroupProgramOrEvent(?int $workgroupId): bool
+    {
+        if ($this->isSuperAdmin() || $this->isAdminKota() || $this->role === 'admin') {
+            return true;
+        }
+
+        if ($workgroupId === null) {
+            return false;
+        }
+
+        $workgroup = Workgroup::find($workgroupId);
+        if (! $workgroup) {
+            return false;
+        }
+
+        if ($this->isKetuaOrSekretarisPc()) {
+            return $workgroup->level === 'PC ISNU';
+        }
+
+        if ($this->isKetuaOrSekretarisPac()) {
+            return $workgroup->level === 'PAC ISNU'
+                && (int) $workgroup->pac_id === (int) $this->getManagedPacId();
+        }
+
+        if ($this->isSectionOfficer()) {
+            $memberId = $this->member?->id;
+            if (! $memberId) {
+                return false;
+            }
+
+            if ($this->isOfficerPac()) {
+                return $workgroup->level === 'PAC ISNU'
+                    && (int) $workgroup->pac_id === (int) $this->getManagedPacId()
+                    && $workgroup->members()->where('members.id', $memberId)->exists();
+            }
+
+            return $workgroup->level === 'PC ISNU'
+                && $workgroup->members()->where('members.id', $memberId)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Memeriksa apakah user berhak mengelola program kerja tertentu (baik pengampu Seksi maupun Pokja).
+     */
+    public function canManageProgram(Program $program): bool
+    {
+        if ($program->workgroup_id) {
+            return $this->canManageWorkgroupProgramOrEvent((int) $program->workgroup_id);
+        }
+
+        return $this->canManageSectionProgramOrEvent($program->section_id ? (int) $program->section_id : null);
+    }
+
+    /**
+     * Memeriksa apakah user berhak mengelola kegiatan tertentu (baik pengampu Seksi maupun Pokja).
+     */
+    public function canManageEvent(Event $event): bool
+    {
+        if ($event->workgroup_id) {
+            return $this->canManageWorkgroupProgramOrEvent((int) $event->workgroup_id);
+        }
+
+        return $this->canManageSectionProgramOrEvent($event->section_id ? (int) $event->section_id : null);
+    }
+
+    /**
+     * Memeriksa apakah user dapat mengelola setidaknya satu seksi atau Pokja untuk program atau kegiatan.
      */
     public function canManageAnyProgramOrEvent(): bool
     {
@@ -416,7 +498,27 @@ class User extends Authenticatable
             return $this->getManagedPacId() !== null;
         }
 
-        return $this->isSectionOfficer() && $this->getOfficerSectionId() !== null;
+        if ($this->isSectionOfficer()) {
+            if ($this->getOfficerSectionId() !== null) {
+                return true;
+            }
+
+            $memberId = $this->member?->id;
+            if ($memberId) {
+                $wgQuery = Workgroup::where('is_active', true)
+                    ->whereHas('members', fn ($q) => $q->where('members.id', $memberId));
+
+                if ($this->isOfficerPac()) {
+                    $wgQuery->where('level', 'PAC ISNU')->where('pac_id', $this->getManagedPacId());
+                } else {
+                    $wgQuery->where('level', 'PC ISNU');
+                }
+
+                return $wgQuery->exists();
+            }
+        }
+
+        return false;
     }
 
     public function isMember(): bool

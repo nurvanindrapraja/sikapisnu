@@ -130,36 +130,52 @@
 </div>
 
 <!-- Card Filter & Table -->
-<div class="card border-0 shadow-sm rounded-4 mb-4" x-data="{
-    search: '{{ request('search') }}',
-    level: '{{ request('level') }}',
-    pac_id: '{{ request('pac_id') }}',
-    section_id: '{{ request('section_id') }}',
-    status: '{{ request('status') }}',
-    loading: false,
-    sectionsData: {{ Js::from($sections->map(fn($s) => [
-        'id' => (string) $s->id,
+@php
+    $filterOwners = $sections->map(fn($s) => [
+        'key' => 'section:' . $s->id,
+        'type' => 'section',
         'name' => $s->name,
         'level' => $s->level,
         'pac_id' => $s->pac_id ? (string) $s->pac_id : '',
         'pac_name' => $s->pac?->display_name ?? $s->pac?->name ?? '',
-    ])) }},
-    get filteredSections() {
-        return this.sectionsData.filter(s => {
-            if (this.level && s.level !== this.level) return false;
-            if (this.level === 'PAC ISNU' && this.pac_id && s.pac_id !== String(this.pac_id)) return false;
+    ])->concat($workgroups->map(fn($w) => [
+        'key' => 'workgroup:' . $w->id,
+        'type' => 'workgroup',
+        'name' => $w->name,
+        'level' => $w->level,
+        'pac_id' => $w->pac_id ? (string) $w->pac_id : '',
+        'pac_name' => $w->pac?->display_name ?? $w->pac?->name ?? '',
+    ]))->values();
+@endphp
+<div class="card border-0 shadow-sm rounded-4 mb-4" x-data="{
+    search: '{{ request('search') }}',
+    level: '{{ request('level') }}',
+    pac_id: '{{ request('pac_id') }}',
+    owner_key: '{{ request('owner_key') ?: (request('section_id') ? 'section:' . request('section_id') : (request('workgroup_id') ? 'workgroup:' . request('workgroup_id') : '')) }}',
+    status: '{{ request('status') }}',
+    loading: false,
+    ownersData: {{ Js::from($filterOwners) }},
+    get filteredOwners() {
+        return this.ownersData.filter(o => {
+            if (this.level && o.level !== this.level) return false;
+            if (this.level === 'PAC ISNU' && this.pac_id && o.pac_id !== String(this.pac_id)) return false;
             return true;
         });
+    },
+    formatOwnerLabel(o) {
+        const prefix = o.type === 'workgroup' ? 'Pokja' : 'Seksi';
+        const scope = o.pac_name ? o.pac_name : o.level;
+        return `[${prefix} - ${scope}] ${o.name}`;
     },
     onLevelChange() {
         if (this.level !== 'PAC ISNU') {
             this.pac_id = '';
         }
-        this.section_id = '';
+        this.owner_key = '';
         this.fetchPrograms();
     },
     onPacChange() {
-        this.section_id = '';
+        this.owner_key = '';
         this.fetchPrograms();
     },
     fetchPrograms() {
@@ -168,7 +184,7 @@
         if (this.search) params.append('search', this.search);
         if (this.level) params.append('level', this.level);
         if (this.level === 'PAC ISNU' && this.pac_id) params.append('pac_id', this.pac_id);
-        if (this.section_id) params.append('section_id', this.section_id);
+        if (this.owner_key) params.append('owner_key', this.owner_key);
         if (this.status) params.append('status', this.status);
 
         fetch(`{{ route('admin.programs.index') }}?${params.toString()}`, {
@@ -200,7 +216,7 @@
             </div>
 
             <!-- 2. Pilih Tingkatan (PC / PAC) & Daftar PAC -->
-            @if(auth()->user()->isKetuaOrSekretarisPac())
+            @if(auth()->user()->isOfficerPac() && !(auth()->user()->isSuperAdmin() || auth()->user()->isAdminKota() || auth()->user()->role === 'admin'))
                 <div class="col-md-2">
                     <span class="badge bg-success-subtle text-success border border-success-subtle p-2 px-3 rounded-pill w-100 text-truncate">
                         <i class="bi bi-geo-alt-fill me-1"></i> {{ auth()->user()->getManagedPac()?->display_name ?? 'PAC ISNU' }}
@@ -225,12 +241,12 @@
                 </div>
             @endif
 
-            <!-- 3. Pilih List Seksi / Bidang (Terfilter oleh Tingkatan & PAC) -->
+            <!-- 3. Pilih List Seksi / Pokja (Terfilter oleh Tingkatan & PAC) -->
             <div :class="level === 'PAC ISNU' ? 'col-md-2' : 'col-md-3'">
-                <select x-model="section_id" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
-                    <option value="">-- Semua Seksi / Bidang --</option>
-                    <template x-for="sec in filteredSections" :key="sec.id">
-                        <option :value="sec.id" x-text="sec.pac_name ? `[${sec.pac_name}] ${sec.name}` : `[${sec.level}] ${sec.name}`"></option>
+                <select x-model="owner_key" @change="fetchPrograms()" class="form-select form-select-sm bg-light">
+                    <option value="">-- Semua Seksi / Pokja --</option>
+                    <template x-for="o in filteredOwners" :key="o.key">
+                        <option :value="o.key" x-text="formatOwnerLabel(o)"></option>
                     </template>
                 </select>
             </div>
@@ -246,7 +262,7 @@
 
             <!-- 5. Reset -->
             <div class="col-md-1 text-end">
-                <button type="button" @click="search=''; level=''; pac_id=''; section_id=''; status=''; fetchPrograms()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill" title="Reset Filter">
+                <button type="button" @click="search=''; level=''; pac_id=''; owner_key=''; status=''; fetchPrograms()" class="btn btn-sm btn-outline-secondary w-100 rounded-pill" title="Reset Filter">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </button>
             </div>
@@ -306,7 +322,7 @@
         }" @submit.prevent="submitForm()">
             @csrf
             <div class="modal-header bg-isnu text-white border-0 p-3 px-4 flex-shrink-0">
-                <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill me-1"></i> Tambah Master Program Kerja Seksi</h6>
+                <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle-fill me-1"></i> Tambah Master Program Kerja Seksi / Pokja</h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" :disabled="loading"></button>
             </div>
             <div x-show="loading" class="progress rounded-0 flex-shrink-0" style="height: 3px;" x-cloak>
@@ -314,23 +330,32 @@
             </div>
             <div class="modal-body p-4">
                 <div class="row g-3">
+                    @php
+                        $singleOwnerOption = ($formSections->count() + $formWorkgroups->count()) === 1;
+                    @endphp
                     <div class="col-md-8">
-                        <label class="form-label fw-semibold">Pilih Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
-                        <select name="section_id" class="form-select" required :disabled="loading">
-                            @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
-                                @php $mySection = auth()->user()->getOfficerSection(); @endphp
-                                @if($mySection)
-                                    <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
-                                @else
-                                    <option value="">-- Anda belum memiliki Seksi assigned --</option>
-                                @endif
-                            @else
-                                <option value="">-- Pilih Seksi / Bidang --</option>
-                                @foreach($sections as $sec)
-                                    <option value="{{ $sec->id }}">
-                                        [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                    </option>
-                                @endforeach
+                        <label class="form-label fw-semibold">Pilih Seksi / Bidang / Pokja Pengampu <span class="text-danger">*</span></label>
+                        <select name="owner_key" class="form-select" required :disabled="loading">
+                            @if(!$singleOwnerOption)
+                                <option value="">-- Pilih Seksi / Bidang / Pokja --</option>
+                            @endif
+                            @if($formSections->isNotEmpty())
+                                <optgroup label="Seksi / Bidang">
+                                    @foreach($formSections as $sec)
+                                        <option value="section:{{ $sec->id }}" {{ $singleOwnerOption ? 'selected' : '' }}>
+                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->display_name }}) @endif
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                            @if($formWorkgroups->isNotEmpty())
+                                <optgroup label="Kelompok Kerja (Pokja)">
+                                    @foreach($formWorkgroups as $wg)
+                                        <option value="workgroup:{{ $wg->id }}" {{ $singleOwnerOption && $formSections->isEmpty() ? 'selected' : '' }}>
+                                            [Pokja {{ $wg->level }}] {{ $wg->name }} @if($wg->pac) ({{ $wg->pac->display_name }}) @endif
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             @endif
                         </select>
                     </div>

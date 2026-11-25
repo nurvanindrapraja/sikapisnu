@@ -15,6 +15,7 @@ class Program extends Model
 
     protected $fillable = [
         'section_id',
+        'workgroup_id',
         'name',
         'code',
         'indicator',
@@ -37,10 +38,46 @@ class Program extends Model
     }
 
     /**
+     * Kelompok Kerja (Pokja) yang menaungi program ini.
+     */
+    public function workgroup(): BelongsTo
+    {
+        return $this->belongsTo(Workgroup::class, 'workgroup_id');
+    }
+
+    /**
      * Kegiatan-kegiatan di bawah naungan program ini.
      */
     public function events(): HasMany
     {
         return $this->hasMany(Event::class, 'program_id');
+    }
+
+    public function isOwnedByWorkgroup(): bool
+    {
+        return ! empty($this->workgroup_id);
+    }
+
+    public function getOwnerKeyAttribute(): string
+    {
+        if ($this->workgroup_id) {
+            return 'workgroup:'.$this->workgroup_id;
+        }
+
+        if ($this->section_id) {
+            return 'section:'.$this->section_id;
+        }
+
+        return '';
+    }
+
+    public function getOwnerNameAttribute(): string
+    {
+        return $this->workgroup?->name ?? $this->section?->name ?? '-';
+    }
+
+    public function getOwnerLevelAttribute(): ?string
+    {
+        return $this->workgroup?->level ?? $this->section?->level;
     }
 }

@@ -12,22 +12,169 @@ use App\Models\Pac;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\User;
+use App\Models\Workgroup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class EventController extends Controller
 {
+    /**
+     * Mengambil daftar Seksi dan Pokja (beserta program aktifnya) yang boleh dipilih user pada form Tambah/Edit Kegiatan:
+     * - Admin Sistem: semua Seksi & Pokja.
+     * - Pengurus PC: hanya Seksi PC ISNU + Pokja PC ISNU (sesuai lingkup jabatan).
+     * - Pengurus PAC: hanya Seksi PAC-nya + Pokja PAC-nya (sesuai lingkup jabatan).
+     *
+     * @return array{0: Collection<int, Section>, 1: Collection<int, Workgroup>}
+     */
+    protected function resolveFormOwners(User $user): array
+    {
+        $activeProgramsRelation = ['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'];
+
+        if ($user->isSuperAdmin() || $user->isAdminKota() || $user->role === 'admin') {
+            return [
+                Section::with($activeProgramsRelation)->orderBy('level')->orderBy('name')->get(),
+                Workgroup::with($activeProgramsRelation)->where('is_active', true)->orderBy('level')->orderBy('name')->get(),
+            ];
+        }
+
+        if ($user->isOfficerPac()) {
+            $pacId = $user->getManagedPacId();
+            if (! $pacId) {
+                return [collect(), collect()];
+            }
+
+            if ($user->isKetuaOrSekretarisPac()) {
+                return [
+                    Section::with($activeProgramsRelation)
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->orderBy('name')
+                        ->get(),
+                    Workgroup::with($activeProgramsRelation)
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->get(),
+                ];
+            }
+
+            if ($user->isSectionOfficer()) {
+                $mySectionId = $user->getOfficerSectionId();
+                $memberId = $user->member?->id;
+
+                $sections = $mySectionId
+                    ? Section::with($activeProgramsRelation)->where('id', $mySectionId)->where('pac_id', $pacId)->get()
+                    : collect();
+
+                $workgroups = $memberId
+                    ? Workgroup::with($activeProgramsRelation)
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->where('is_active', true)
+                        ->whereHas('members', fn ($q) => $q->where('members.id', $memberId))
+                        ->orderBy('name')
+                        ->get()
+                    : collect();
+
+                return [$sections, $workgroups];
+            }
+
+            return [collect(), collect()];
+        }
+
+        if ($user->isKetuaOrSekretarisPc()) {
+            return [
+                Section::with($activeProgramsRelation)
+                    ->where('level', 'PC ISNU')
+                    ->orderBy('name')
+                    ->get(),
+                Workgroup::with($activeProgramsRelation)
+                    ->where('level', 'PC ISNU')
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(),
+            ];
+        }
+
+        if ($user->isSectionOfficer()) {
+            $mySectionId = $user->getOfficerSectionId();
+            $memberId = $user->member?->id;
+
+            $sections = $mySectionId
+                ? Section::with($activeProgramsRelation)->where('id', $mySectionId)->where('level', 'PC ISNU')->get()
+                : collect();
+
+            $workgroups = $memberId
+                ? Workgroup::with($activeProgramsRelation)
+                    ->where('level', 'PC ISNU')
+                    ->where('is_active', true)
+                    ->whereHas('members', fn ($q) => $q->where('members.id', $memberId))
+                    ->orderBy('name')
+                    ->get()
+                : collect();
+
+            return [$sections, $workgroups];
+        }
+
+        return [collect(), collect()];
+    }
+
+    /**
+     * Memetakan input `owner_key` (`section:{id}` atau `workgroup:{id}`) ke `section_id` dan `workgroup_id`.
+     */
+    protected function normalizeOwnerInput(Request $request): void
+    {
+        if (! $request->has('owner_key')) {
+            return;
+        }
+
+        $ownerKey = trim((string) $request->input('owner_key'));
+        if ($ownerKey === '') {
+            $request->merge([
+                'section_id' => null,
+                'workgroup_id' => null,
+            ]);
+        } elseif (str_starts_with($ownerKey, 'section:')) {
+            $request->merge([
+                'section_id' => (int) substr($ownerKey, strlen('section:')),
+                'workgroup_id' => null,
+            ]);
+        } elseif (str_starts_with($ownerKey, 'workgroup:')) {
+            $request->merge([
+                'section_id' => null,
+                'workgroup_id' => (int) substr($ownerKey, strlen('workgroup:')),
+            ]);
+        }
+    }
+
     public function index(Request $request)
     {
-        $query = Event::with(['section', 'program'])->withCount(['presences', 'attendingRsvps']);
+        $user = auth()->user();
+        $isPacScoped = $user->isOfficerPac() && ! ($user->isSuperAdmin() || $user->isAdminKota() || $user->role === 'admin');
+        $managedPacId = $isPacScoped ? $user->getManagedPacId() : null;
 
-        if (auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+        $query = Event::with(['section.pac', 'workgroup.pac', 'program'])->withCount(['presences', 'attendingRsvps']);
+
+        if ($isPacScoped) {
+            $query->where(function ($q) use ($managedPacId) {
+                $q->whereHas('section', fn ($sq) => $sq->where('pac_id', $managedPacId))
+                    ->orWhereHas('workgroup', fn ($wq) => $wq->where('pac_id', $managedPacId));
+            });
         } else {
-            if ($request->filled('section_id')) {
+            if ($request->filled('owner_key')) {
+                $ownerKey = trim((string) $request->owner_key);
+                if (str_starts_with($ownerKey, 'section:')) {
+                    $query->where('section_id', (int) substr($ownerKey, strlen('section:')));
+                } elseif (str_starts_with($ownerKey, 'workgroup:')) {
+                    $query->where('workgroup_id', (int) substr($ownerKey, strlen('workgroup:')));
+                }
+            } elseif ($request->filled('section_id')) {
                 $query->where('section_id', $request->section_id);
+            } elseif ($request->filled('workgroup_id')) {
+                $query->where('workgroup_id', $request->workgroup_id);
             }
         }
 
@@ -53,17 +200,24 @@ class EventController extends Controller
         }
 
         $events = $query->latest('event_date')->paginate(10)->withQueryString();
-        $sections = auth()->user()->isKetuaOrSekretarisPac()
+        $sections = $isPacScoped
             ? Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
-                ->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
+                ->where('pac_id', $managedPacId)->orderBy('name')->get()
             : Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
                 ->orderBy('level')->orderBy('name')->get();
+        $workgroups = $isPacScoped
+            ? Workgroup::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->where('pac_id', $managedPacId)->where('is_active', true)->orderBy('name')->get()
+            : Workgroup::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
+                ->where('is_active', true)->orderBy('level')->orderBy('name')->get();
+
+        [$formSections, $formWorkgroups] = $this->resolveFormOwners($user);
 
         if ($request->ajax()) {
-            return view('admin.events.partials.event_list', compact('events', 'sections'));
+            return view('admin.events.partials.event_list', compact('events', 'sections', 'workgroups'));
         }
 
-        return view('admin.events.index', compact('events', 'sections'));
+        return view('admin.events.index', compact('events', 'sections', 'workgroups', 'formSections', 'formWorkgroups'));
     }
 
     /**
@@ -234,10 +388,13 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        $this->normalizeOwnerInput($request);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'section_id' => 'nullable|exists:sections,id',
+            'workgroup_id' => 'nullable|exists:workgroups,id',
             'program_id' => 'nullable|exists:programs,id',
             'budget' => 'nullable|numeric|min:0',
             'location' => 'required|string|max:255',
@@ -255,20 +412,29 @@ class EventController extends Controller
 
         $validated['rsvp_enabled'] = $request->has('rsvp_enabled') ? $request->boolean('rsvp_enabled') : true;
 
-        if (! empty($validated['program_id']) && empty($validated['section_id'])) {
-            $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
+        if (! empty($validated['program_id']) && empty($validated['section_id']) && empty($validated['workgroup_id'])) {
+            $prog = Program::find($validated['program_id']);
+            $validated['section_id'] = $prog?->section_id;
+            $validated['workgroup_id'] = $prog?->workgroup_id;
         }
 
-        $sectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+        if (! empty($validated['workgroup_id'])) {
+            $validated['section_id'] = null;
+            $authorized = auth()->user()->canManageWorkgroupProgramOrEvent((int) $validated['workgroup_id']);
+        } else {
+            $validated['workgroup_id'] = null;
+            $sectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+            $authorized = auth()->user()->canManageSectionProgramOrEvent($sectionId);
+        }
 
-        if (! auth()->user()->canManageSectionProgramOrEvent($sectionId)) {
+        if (! $authorized) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan kegiatan pada seksi / pokja ini.');
         }
 
         $validated['unique_code'] = 'evt-'.Str::slug(substr($validated['title'], 0, 30)).'-'.Str::random(6);
@@ -301,13 +467,16 @@ class EventController extends Controller
 
     public function show($id)
     {
-        $event = Event::with(['presences.member', 'presences.user', 'creator', 'section', 'program'])
+        $event = Event::with(['presences.member', 'presences.user', 'creator', 'section.pac', 'workgroup.pac', 'program'])
             ->withCount(['presences', 'rsvps', 'attendingRsvps'])
             ->findOrFail($id);
 
-        if (auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            if ($event->section && (int) $event->section->pac_id !== (int) $pacId) {
+        $user = auth()->user();
+        $isPacScoped = $user->isOfficerPac() && ! ($user->isSuperAdmin() || $user->isAdminKota() || $user->role === 'admin');
+        if ($isPacScoped) {
+            $pacId = (int) $user->getManagedPacId();
+            $eventPacId = $event->section?->pac_id ?? $event->workgroup?->pac_id;
+            if ($eventPacId !== null && (int) $eventPacId !== $pacId) {
                 abort(403, 'Anda hanya dapat melihat kegiatan di wilayah PAC Anda.');
             }
         }
@@ -322,23 +491,22 @@ class EventController extends Controller
         ];
         $rsvpCounts['total'] = $rsvpCounts['hadir'] + $rsvpCounts['ragu'] + $rsvpCounts['tidak_hadir'];
 
-        $sections = auth()->user()->isKetuaOrSekretarisPac()
-            ? Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
-                ->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
-            : Section::with(['programs' => fn ($q) => $q->where('is_active', true)->orderBy('name'), 'pac'])
-                ->orderBy('level')->orderBy('name')->get();
+        [$formSections, $formWorkgroups] = $this->resolveFormOwners($user);
+        $sections = $formSections;
 
-        return view('admin.events.show', compact('event', 'presences', 'rsvps', 'rsvpCounts', 'sections'));
+        return view('admin.events.show', compact('event', 'presences', 'rsvps', 'rsvpCounts', 'sections', 'formSections', 'formWorkgroups'));
     }
 
     public function update(Request $request, $id)
     {
         $event = Event::findOrFail($id);
+        $this->normalizeOwnerInput($request);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'section_id' => 'nullable|exists:sections,id',
+            'workgroup_id' => 'nullable|exists:workgroups,id',
             'program_id' => 'nullable|exists:programs,id',
             'budget' => 'nullable|numeric|min:0',
             'location' => 'required|string|max:255',
@@ -360,22 +528,29 @@ class EventController extends Controller
             unset($validated['rsvp_enabled']);
         }
 
-        if (! empty($validated['program_id']) && empty($validated['section_id'])) {
-            $validated['section_id'] = Program::find($validated['program_id'])?->section_id;
+        if (! empty($validated['program_id']) && empty($validated['section_id']) && empty($validated['workgroup_id'])) {
+            $prog = Program::find($validated['program_id']);
+            $validated['section_id'] = $prog?->section_id;
+            $validated['workgroup_id'] = $prog?->workgroup_id;
         }
 
-        $currentSectionId = $event->section_id ? (int) $event->section_id : null;
-        $newSectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+        if (! empty($validated['workgroup_id'])) {
+            $validated['section_id'] = null;
+            $canManageNewOwner = auth()->user()->canManageWorkgroupProgramOrEvent((int) $validated['workgroup_id']);
+        } else {
+            $validated['workgroup_id'] = null;
+            $newSectionId = ! empty($validated['section_id']) ? (int) $validated['section_id'] : null;
+            $canManageNewOwner = auth()->user()->canManageSectionProgramOrEvent($newSectionId);
+        }
 
-        if (! auth()->user()->canManageSectionProgramOrEvent($currentSectionId) ||
-            ! auth()->user()->canManageSectionProgramOrEvent($newSectionId)) {
+        if (! auth()->user()->canManageEvent($event) || ! $canManageNewOwner) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui kegiatan pada seksi / pokja ini.');
         }
 
         $event->update($validated);
@@ -396,9 +571,8 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
-        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
-            abort(403, 'Anda tidak memiliki hak akses untuk mengunggah dokumen kegiatan pada seksi ini.');
+        if (! auth()->user()->canManageEvent($event)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunggah dokumen kegiatan pada seksi / pokja ini.');
         }
 
         $request->validate([
@@ -440,9 +614,8 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
-        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
-            abort(403, 'Anda tidak memiliki hak akses untuk menghapus foto kegiatan pada seksi ini.');
+        if (! auth()->user()->canManageEvent($event)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus foto kegiatan pada seksi / pokja ini.');
         }
 
         $photos = $event->documentation_photos ?? [];
@@ -464,8 +637,7 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
-        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+        if (! auth()->user()->canManageEvent($event)) {
             abort(403, 'Anda tidak memiliki hak akses untuk menambahkan tautan pemberitaan pada kegiatan ini.');
         }
 
@@ -532,8 +704,7 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
-        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+        if (! auth()->user()->canManageEvent($event)) {
             abort(403, 'Anda tidak memiliki hak akses untuk menghapus tautan pemberitaan pada kegiatan ini.');
         }
 
@@ -554,15 +725,14 @@ class EventController extends Controller
     {
         $event = Event::findOrFail($id);
 
-        $eventSectionId = $event->section_id ? (int) $event->section_id : null;
-        if (! auth()->user()->canManageSectionProgramOrEvent($eventSectionId)) {
+        if (! auth()->user()->canManageEvent($event)) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus kegiatan pada seksi / pokja ini.');
         }
 
         $title = $event->title;

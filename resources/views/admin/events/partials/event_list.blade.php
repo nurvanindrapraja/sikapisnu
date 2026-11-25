@@ -16,8 +16,7 @@
             @forelse($events as $index => $evt)
                 @php
                     $presenceStatus = $evt->presenceStatus();
-                    $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
-                    $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
+                    $canManageEvt = auth()->user()->canManageEvent($evt);
                 @endphp
                 <tr>
                     <td>{{ $events->firstItem() + $index }}</td>
@@ -39,7 +38,11 @@
                         @endif
 
                         <div class="mt-1.5 d-flex flex-wrap gap-1 align-items-center">
-                            @if($evt->section)
+                            @if($evt->workgroup)
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 rounded-pill small" title="Pokja Pengampu: {{ $evt->workgroup->name }}">
+                                    <i class="bi bi-people-fill me-1"></i> {{ Str::limit($evt->workgroup->name, 28) }}
+                                </span>
+                            @elseif($evt->section)
                                 <span class="badge bg-light text-dark border px-2 py-0.5 rounded-pill small" title="Seksi Pengampu: {{ $evt->section->name }}">
                                     <i class="bi bi-diagram-2 text-success me-1"></i> {{ Str::limit($evt->section->name, 28) }}
                                 </span>
@@ -141,8 +144,7 @@
     @forelse($events as $evt)
         @php
             $presenceStatus = $evt->presenceStatus();
-            $evtSectionId = $evt->section_id ? (int) $evt->section_id : null;
-            $canManageEvt = auth()->user()->canManageSectionProgramOrEvent($evtSectionId);
+            $canManageEvt = auth()->user()->canManageEvent($evt);
         @endphp
         <div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
             <div class="card-body p-3">
@@ -175,7 +177,9 @@
                     @if($evt->rsvp_enabled || ($evt->attending_rsvps_count ?? 0) > 0)
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">Estimasi: {{ $evt->attending_rsvps_count ?? 0 }}</span>
                     @endif
-                    @if($evt->section)
+                    @if($evt->workgroup)
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill small">{{ Str::limit($evt->workgroup->name, 22) }}</span>
+                    @elseif($evt->section)
                         <span class="badge bg-light text-dark border rounded-pill small">{{ Str::limit($evt->section->name, 22) }}</span>
                     @endif
                 </div>

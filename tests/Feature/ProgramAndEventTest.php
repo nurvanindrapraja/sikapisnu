@@ -10,6 +10,7 @@ use App\Models\Position;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\User;
+use App\Models\Workgroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -404,6 +405,121 @@ class ProgramAndEventTest extends TestCase
             'name' => 'Program oleh Bendahara',
         ]);
         $resp->assertStatus(403);
+    }
+
+    public function test_pc_officer_only_gets_pc_sections_and_pc_pokjas_and_pac_officer_only_gets_own_pac_sections_and_pokjas(): void
+    {
+        $mwcA = Mwc::create(['code' => 'MWC-GYG', 'name' => 'MWC Gayungan', 'city' => 'Surabaya']);
+        $mwcB = Mwc::create(['code' => 'MWC-GBG', 'name' => 'MWC Gubeng', 'city' => 'Surabaya']);
+        $pacA = Pac::create(['mwc_id' => $mwcA->id, 'code' => 'PAC-GYG', 'name' => 'PAC Gayungan', 'kecamatan' => 'GAYUNGAN']);
+        $pacB = Pac::create(['mwc_id' => $mwcB->id, 'code' => 'PAC-GBG', 'name' => 'PAC Gubeng', 'kecamatan' => 'GUBENG']);
+
+        $secPc = Section::create(['level' => 'PC ISNU', 'name' => 'Seksi PC Kaderisasi']);
+        $secPacA = Section::create(['level' => 'PAC ISNU', 'pac_id' => $pacA->id, 'name' => 'Seksi PAC Gayungan']);
+        $secPacB = Section::create(['level' => 'PAC ISNU', 'pac_id' => $pacB->id, 'name' => 'Seksi PAC Gubeng']);
+
+        $wgPc = Workgroup::create(['level' => 'PC ISNU', 'name' => 'Pokja PC JOSHNU', 'is_active' => true]);
+        $wgPacA = Workgroup::create(['level' => 'PAC ISNU', 'pac_id' => $pacA->id, 'name' => 'Pokja PAC Gayungan', 'is_active' => true]);
+        $wgPacB = Workgroup::create(['level' => 'PAC ISNU', 'pac_id' => $pacB->id, 'name' => 'Pokja PAC Gubeng', 'is_active' => true]);
+
+        $ketuaPc = $this->createOfficerUser('Ketua', null);
+        $ketuaPacA = $this->createPacOfficerUser('Ketua', $pacA->id);
+
+        // 1. Pengurus PC: formSections & formWorkgroups hanya PC (tidak termasuk PAC)
+        $resPc = $this->actingAs($ketuaPc)->get(route('admin.programs.index'));
+        $resPc->assertStatus(200);
+        $resPc->assertViewHas('formSections', fn ($c) => $c->pluck('id')->all() === [$secPc->id]);
+        $resPc->assertViewHas('formWorkgroups', fn ($c) => $c->pluck('id')->all() === [$wgPc->id]);
+
+        // Pengurus PC dapat membuat program untuk Pokja PC via owner_key
+        $this->actingAs($ketuaPc)->post(route('admin.programs.store'), [
+            'owner_key' => 'workgroup:'.$wgPc->id,
+            'name' => 'Program Pokja JOSHNU',
+            'indicator' => 'Jurnal terbit',
+            'target' => '2 edisi/tahun',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('programs', [
+            'name' => 'Program Pokja JOSHNU',
+            'section_id' => null,
+            'workgroup_id' => $wgPc->id,
+        ]);
+
+        // Pengurus PC TIDAK boleh membuat program untuk Seksi PAC atau Pokja PAC (403)
+        $this->actingAs($ketuaPc)->post(route('admin.programs.store'), [
+            'owner_key' => 'section:'.$secPacA->id,
+            'name' => 'Program Ilegal PC ke Seksi PAC',
+        ])->assertStatus(403);
+
+        $this->actingAs($ketuaPc)->post(route('admin.programs.store'), [
+            'owner_key' => 'workgroup:'.$wgPacA->id,
+            'name' => 'Program Ilegal PC ke Pokja PAC',
+        ])->assertStatus(403);
+
+        // 2. Pengurus PAC Gayungan: formSections & formWorkgroups hanya PAC Gayungan (tidak termasuk PC / PAC Gubeng)
+        $resPac = $this->actingAs($ketuaPacA)->get(route('admin.programs.index'));
+        $resPac->assertStatus(200);
+        $resPac->assertViewHas('formSections', fn ($c) => $c->pluck('id')->all() === [$secPacA->id]);
+        $resPac->assertViewHas('formWorkgroups', fn ($c) => $c->pluck('id')->all() === [$wgPacA->id]);
+
+        // Pengurus PAC Gayungan dapat membuat program untuk Pokja PAC Gayungan
+        $this->actingAs($ketuaPacA)->post(route('admin.programs.store'), [
+            'owner_key' => 'workgroup:'.$wgPacA->id,
+            'name' => 'Program Pokja Gayungan',
+            'indicator' => 'Terlaksana',
+            'target' => '100%',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('programs', [
+            'name' => 'Program Pokja Gayungan',
+            'section_id' => null,
+            'workgroup_id' => $wgPacA->id,
+        ]);
+
+        // Pengurus PAC Gayungan TIDAK boleh membuat program untuk Pokja PC atau Pokja PAC Gubeng (403)
+        $this->actingAs($ketuaPacA)->post(route('admin.programs.store'), [
+            'owner_key' => 'workgroup:'.$wgPc->id,
+            'name' => 'Program Ilegal PAC ke Pokja PC',
+        ])->assertStatus(403);
+
+        $this->actingAs($ketuaPacA)->post(route('admin.programs.store'), [
+            'owner_key' => 'workgroup:'.$wgPacB->id,
+            'name' => 'Program Ilegal PAC ke Pokja PAC Lain',
+        ])->assertStatus(403);
+    }
+
+    protected function createPacOfficerUser(string $positionTitle, int $pacId, ?int $sectionId = null): User
+    {
+        $user = User::factory()->create(['role' => 'member']);
+        $member = Member::create([
+            'user_id' => $user->id,
+            'member_number' => 'ISNU-'.fake()->numerify('######'),
+            'nik' => '3578'.fake()->numerify('############'),
+            'full_name' => 'Pengurus PAC '.$positionTitle,
+            'birth_place' => 'Surabaya',
+            'birth_date' => '1990-01-01',
+            'gender' => 'L',
+            'address' => 'Jl. Gayungan No. 1',
+            'kelurahan' => 'Gayungan',
+            'kecamatan' => 'Gayungan',
+            'city' => 'Kota Surabaya',
+            'occupation' => 'Pengurus',
+            'phone' => '0812'.fake()->numerify('########'),
+            'email' => fake()->unique()->safeEmail(),
+            'membership_status' => 'pengurus',
+            'pac_id' => $pacId,
+        ]);
+        Position::create([
+            'member_id' => $member->id,
+            'position_title' => $positionTitle,
+            'level' => 'PAC ISNU',
+            'pac_id' => $pacId,
+            'section_id' => $sectionId,
+            'period' => '2026-2030',
+            'is_active' => true,
+        ]);
+
+        return $user->fresh();
     }
 
     protected function createOfficerUser(string $positionTitle, ?int $sectionId = null): User

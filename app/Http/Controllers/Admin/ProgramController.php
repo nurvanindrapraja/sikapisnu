@@ -8,9 +8,12 @@ use App\Models\Event;
 use App\Models\Pac;
 use App\Models\Program;
 use App\Models\Section;
+use App\Models\User;
+use App\Models\Workgroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class ProgramController extends Controller
@@ -23,33 +26,176 @@ class ProgramController extends Controller
     }
 
     /**
+     * Mengambil daftar Seksi dan Pokja yang boleh dipilih user pada form Tambah/Edit Program Kerja:
+     * - Admin Sistem: semua Seksi & Pokja.
+     * - Pengurus PC: hanya Seksi PC ISNU + Pokja PC ISNU (sesuai lingkup jabatan).
+     * - Pengurus PAC: hanya Seksi PAC-nya + Pokja PAC-nya (sesuai lingkup jabatan).
+     *
+     * @return array{0: Collection<int, Section>, 1: Collection<int, Workgroup>}
+     */
+    protected function resolveFormOwners(User $user): array
+    {
+        if ($user->isSuperAdmin() || $user->isAdminKota() || $user->role === 'admin') {
+            return [
+                Section::with('pac')->orderBy('level')->orderBy('name')->get(),
+                Workgroup::with('pac')->where('is_active', true)->orderBy('level')->orderBy('name')->get(),
+            ];
+        }
+
+        if ($user->isOfficerPac()) {
+            $pacId = $user->getManagedPacId();
+            if (! $pacId) {
+                return [collect(), collect()];
+            }
+
+            if ($user->isKetuaOrSekretarisPac()) {
+                return [
+                    Section::with('pac')
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->orderBy('name')
+                        ->get(),
+                    Workgroup::with('pac')
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->get(),
+                ];
+            }
+
+            if ($user->isSectionOfficer()) {
+                $mySectionId = $user->getOfficerSectionId();
+                $memberId = $user->member?->id;
+
+                $sections = $mySectionId
+                    ? Section::with('pac')->where('id', $mySectionId)->where('pac_id', $pacId)->get()
+                    : collect();
+
+                $workgroups = $memberId
+                    ? Workgroup::with('pac')
+                        ->where('level', 'PAC ISNU')
+                        ->where('pac_id', $pacId)
+                        ->where('is_active', true)
+                        ->whereHas('members', fn ($q) => $q->where('members.id', $memberId))
+                        ->orderBy('name')
+                        ->get()
+                    : collect();
+
+                return [$sections, $workgroups];
+            }
+
+            return [collect(), collect()];
+        }
+
+        // Pengurus PC ISNU
+        if ($user->isKetuaOrSekretarisPc()) {
+            return [
+                Section::with('pac')
+                    ->where('level', 'PC ISNU')
+                    ->orderBy('name')
+                    ->get(),
+                Workgroup::with('pac')
+                    ->where('level', 'PC ISNU')
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(),
+            ];
+        }
+
+        if ($user->isSectionOfficer()) {
+            $mySectionId = $user->getOfficerSectionId();
+            $memberId = $user->member?->id;
+
+            $sections = $mySectionId
+                ? Section::with('pac')->where('id', $mySectionId)->where('level', 'PC ISNU')->get()
+                : collect();
+
+            $workgroups = $memberId
+                ? Workgroup::with('pac')
+                    ->where('level', 'PC ISNU')
+                    ->where('is_active', true)
+                    ->whereHas('members', fn ($q) => $q->where('members.id', $memberId))
+                    ->orderBy('name')
+                    ->get()
+                : collect();
+
+            return [$sections, $workgroups];
+        }
+
+        return [collect(), collect()];
+    }
+
+    /**
+     * Memetakan input `owner_key` (`section:{id}` atau `workgroup:{id}`) ke `section_id` dan `workgroup_id`.
+     */
+    protected function normalizeOwnerInput(Request $request): void
+    {
+        if (! $request->filled('owner_key')) {
+            return;
+        }
+
+        $ownerKey = trim((string) $request->input('owner_key'));
+        if (str_starts_with($ownerKey, 'section:')) {
+            $request->merge([
+                'section_id' => (int) substr($ownerKey, strlen('section:')),
+                'workgroup_id' => null,
+            ]);
+        } elseif (str_starts_with($ownerKey, 'workgroup:')) {
+            $request->merge([
+                'section_id' => null,
+                'workgroup_id' => (int) substr($ownerKey, strlen('workgroup:')),
+            ]);
+        }
+    }
+
+    /**
      * Menampilkan daftar Master Program Kerja Seksi.
      */
     public function index(Request $request): View
     {
         $this->checkAccess();
 
-        $query = Program::with(['section.pac'])->withCount('events');
+        $user = auth()->user();
+        $isPacScoped = $user->isOfficerPac() && ! ($user->isSuperAdmin() || $user->isAdminKota() || $user->role === 'admin');
+        $managedPacId = $isPacScoped ? $user->getManagedPacId() : null;
 
-        if (auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
-            $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+        $query = Program::with(['section.pac', 'workgroup.pac'])->withCount('events');
+
+        if ($isPacScoped) {
+            $query->where(function ($q) use ($managedPacId) {
+                $q->whereHas('section', fn ($sq) => $sq->where('pac_id', $managedPacId))
+                    ->orWhereHas('workgroup', fn ($wq) => $wq->where('pac_id', $managedPacId));
+            });
         } else {
-            if ($request->filled('section_id')) {
-                $query->where('section_id', $request->section_id);
-            }
-
             if ($request->filled('level')) {
                 $level = $request->level;
-                $query->whereHas('section', function ($q) use ($level) {
-                    $q->where('level', $level);
+                $query->where(function ($q) use ($level) {
+                    $q->whereHas('section', fn ($sq) => $sq->where('level', $level))
+                        ->orWhereHas('workgroup', fn ($wq) => $wq->where('level', $level));
                 });
             }
 
             if ($request->filled('pac_id')) {
                 $pacId = (int) $request->pac_id;
-                $query->whereHas('section', fn ($q) => $q->where('pac_id', $pacId));
+                $query->where(function ($q) use ($pacId) {
+                    $q->whereHas('section', fn ($sq) => $sq->where('pac_id', $pacId))
+                        ->orWhereHas('workgroup', fn ($wq) => $wq->where('pac_id', $pacId));
+                });
             }
+        }
+
+        if ($request->filled('owner_key')) {
+            $ownerKey = trim((string) $request->owner_key);
+            if (str_starts_with($ownerKey, 'section:')) {
+                $query->where('section_id', (int) substr($ownerKey, strlen('section:')));
+            } elseif (str_starts_with($ownerKey, 'workgroup:')) {
+                $query->where('workgroup_id', (int) substr($ownerKey, strlen('workgroup:')));
+            }
+        } elseif ($request->filled('section_id')) {
+            $query->where('section_id', (int) $request->section_id);
+        } elseif ($request->filled('workgroup_id')) {
+            $query->where('workgroup_id', (int) $request->workgroup_id);
         }
 
         if ($request->filled('status')) {
@@ -70,40 +216,64 @@ class ProgramController extends Controller
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('section', function ($sq) use ($search) {
                         $sq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('workgroup', function ($wq) use ($search) {
+                        $wq->where('name', 'like', "%{$search}%");
                     });
             });
         }
 
         $programs = $query->orderBy('name')->paginate(15)->withQueryString();
-        $sections = auth()->user()->isKetuaOrSekretarisPac()
-            ? Section::with('pac')->where('pac_id', auth()->user()->getManagedPacId())->orderBy('name')->get()
-            : Section::with('pac')->orderBy('level')->orderBy('name')->get();
-        $pacs = auth()->user()->isKetuaOrSekretarisPac()
-            ? collect()
-            : Pac::orderBy('name')->get();
 
-        if (auth()->user()->isKetuaOrSekretarisPac()) {
-            $pacId = auth()->user()->getManagedPacId();
+        // Daftar Seksi & Pokja untuk filter tabel
+        if ($isPacScoped) {
+            $sections = Section::with('pac')->where('pac_id', $managedPacId)->orderBy('name')->get();
+            $workgroups = Workgroup::with('pac')->where('pac_id', $managedPacId)->where('is_active', true)->orderBy('name')->get();
+            $pacs = collect();
+        } else {
+            $sections = Section::with('pac')->orderBy('level')->orderBy('name')->get();
+            $workgroups = Workgroup::with('pac')->where('is_active', true)->orderBy('level')->orderBy('name')->get();
+            $pacs = Pac::orderBy('name')->get();
+        }
+
+        // Daftar Seksi & Pokja khusus untuk form Tambah/Edit (PC hanya PC + Pokja PC, PAC hanya PAC + Pokja PAC)
+        [$formSections, $formWorkgroups] = $this->resolveFormOwners($user);
+
+        if ($isPacScoped) {
+            $pacCount = Program::where(function ($q) use ($managedPacId) {
+                $q->whereHas('section', fn ($sq) => $sq->where('pac_id', $managedPacId))
+                    ->orWhereHas('workgroup', fn ($wq) => $wq->where('pac_id', $managedPacId));
+            })->count();
+
             $metrics = [
-                'total' => Program::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->count(),
+                'total' => $pacCount,
                 'pc' => 0,
-                'pac' => Program::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->count(),
-                'events_count' => Event::whereHas('section', fn ($q) => $q->where('pac_id', $pacId))->whereNotNull('program_id')->count(),
+                'pac' => $pacCount,
+                'events_count' => Event::where(function ($q) use ($managedPacId) {
+                    $q->whereHas('section', fn ($sq) => $sq->where('pac_id', $managedPacId))
+                        ->orWhereHas('workgroup', fn ($wq) => $wq->where('pac_id', $managedPacId));
+                })->whereNotNull('program_id')->count(),
             ];
         } else {
             $metrics = [
                 'total' => Program::count(),
-                'pc' => Program::whereHas('section', fn ($q) => $q->where('level', 'PC ISNU'))->count(),
-                'pac' => Program::whereHas('section', fn ($q) => $q->where('level', 'PAC ISNU'))->count(),
+                'pc' => Program::where(function ($q) {
+                    $q->whereHas('section', fn ($sq) => $sq->where('level', 'PC ISNU'))
+                        ->orWhereHas('workgroup', fn ($wq) => $wq->where('level', 'PC ISNU'));
+                })->count(),
+                'pac' => Program::where(function ($q) {
+                    $q->whereHas('section', fn ($sq) => $sq->where('level', 'PAC ISNU'))
+                        ->orWhereHas('workgroup', fn ($wq) => $wq->where('level', 'PAC ISNU'));
+                })->count(),
                 'events_count' => Event::whereNotNull('program_id')->count(),
             ];
         }
 
         if ($request->ajax()) {
-            return view('admin.programs.partials.program_list', compact('programs', 'sections'));
+            return view('admin.programs.partials.program_list', compact('programs', 'sections', 'formSections', 'formWorkgroups'));
         }
 
-        return view('admin.programs.index', compact('programs', 'sections', 'pacs', 'metrics'));
+        return view('admin.programs.index', compact('programs', 'sections', 'workgroups', 'formSections', 'formWorkgroups', 'pacs', 'metrics'));
     }
 
     /**
@@ -111,8 +281,11 @@ class ProgramController extends Controller
      */
     public function store(Request $request): JsonResponse|RedirectResponse
     {
+        $this->normalizeOwnerInput($request);
+
         $validated = $request->validate([
-            'section_id' => 'required|exists:sections,id',
+            'section_id' => 'nullable|required_without:workgroup_id|exists:sections,id',
+            'workgroup_id' => 'nullable|required_without:section_id|exists:workgroups,id',
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'indicator' => 'nullable|string',
@@ -120,25 +293,36 @@ class ProgramController extends Controller
             'description' => 'nullable|string',
             'year' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+        ], [
+            'section_id.required_without' => 'Pilih Seksi / Bidang atau Pokja pengampu program kerja.',
+            'workgroup_id.required_without' => 'Pilih Seksi / Bidang atau Pokja pengampu program kerja.',
         ]);
 
-        if (! auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id'])) {
+        if (! empty($validated['workgroup_id'])) {
+            $validated['section_id'] = null;
+            $authorized = auth()->user()->canManageWorkgroupProgramOrEvent((int) $validated['workgroup_id']);
+        } else {
+            $validated['workgroup_id'] = null;
+            $authorized = auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id']);
+        }
+
+        if (! $authorized) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk menambahkan program kerja pada seksi / pokja ini.');
         }
 
         $validated['description'] = $this->sanitizeDescriptionHtml($validated['description'] ?? null);
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program = Program::create($validated);
-        $sectionName = $program->section?->name ?? 'Seksi';
+        $ownerName = $program->owner_name;
 
-        AuditLog::record(auth()->id(), 'Master Program', "Menambahkan Program Kerja [{$sectionName}]: {$program->name}");
+        AuditLog::record(auth()->id(), 'Master Program', "Menambahkan Program Kerja [{$ownerName}]: {$program->name}");
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -156,9 +340,11 @@ class ProgramController extends Controller
     public function update(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $program = Program::findOrFail($id);
+        $this->normalizeOwnerInput($request);
 
         $validated = $request->validate([
-            'section_id' => 'required|exists:sections,id',
+            'section_id' => 'nullable|required_without:workgroup_id|exists:sections,id',
+            'workgroup_id' => 'nullable|required_without:section_id|exists:workgroups,id',
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
             'indicator' => 'nullable|string',
@@ -166,26 +352,36 @@ class ProgramController extends Controller
             'description' => 'nullable|string',
             'year' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+        ], [
+            'section_id.required_without' => 'Pilih Seksi / Bidang atau Pokja pengampu program kerja.',
+            'workgroup_id.required_without' => 'Pilih Seksi / Bidang atau Pokja pengampu program kerja.',
         ]);
 
-        if (! auth()->user()->canManageSectionProgramOrEvent((int) $program->section_id) ||
-            ! auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id'])) {
+        if (! empty($validated['workgroup_id'])) {
+            $validated['section_id'] = null;
+            $canManageNewOwner = auth()->user()->canManageWorkgroupProgramOrEvent((int) $validated['workgroup_id']);
+        } else {
+            $validated['workgroup_id'] = null;
+            $canManageNewOwner = auth()->user()->canManageSectionProgramOrEvent((int) $validated['section_id']);
+        }
+
+        if (! auth()->user()->canManageProgram($program) || ! $canManageNewOwner) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk memperbarui program kerja pada seksi / pokja ini.');
         }
 
         $validated['description'] = $this->sanitizeDescriptionHtml($validated['description'] ?? null);
         $validated['is_active'] = $request->boolean('is_active', true);
 
         $program->update($validated);
-        $sectionName = $program->section?->name ?? 'Seksi';
+        $ownerName = $program->fresh()->owner_name;
 
-        AuditLog::record(auth()->id(), 'Master Program', "Memperbarui Program Kerja [{$sectionName}]: {$program->name}");
+        AuditLog::record(auth()->id(), 'Master Program', "Memperbarui Program Kerja [{$ownerName}]: {$program->name}");
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -240,14 +436,14 @@ class ProgramController extends Controller
     {
         $program = Program::findOrFail($id);
 
-        if (! auth()->user()->canManageSectionProgramOrEvent((int) $program->section_id)) {
+        if (! auth()->user()->canManageProgram($program)) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi ini.',
+                    'message' => 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi / pokja ini.',
                 ], 403);
             }
-            abort(403, 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi ini.');
+            abort(403, 'Anda tidak memiliki hak akses untuk menghapus program kerja pada seksi / pokja ini.');
         }
 
         // Program yang sudah ada kegiatannya tidak dapat dihapus

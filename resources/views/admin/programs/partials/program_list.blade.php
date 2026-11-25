@@ -5,7 +5,7 @@
             <tr>
                 <th style="width: 50px;">No</th>
                 <th>Program Kerja</th>
-                <th>Seksi / Bidang Pengampu</th>
+                <th>Seksi / Pokja Pengampu</th>
                 <th>Indikator Capaian</th>
                 <th>Target Capaian</th>
                 <th class="text-center">Kegiatan</th>
@@ -16,7 +16,7 @@
         <tbody>
             @forelse($programs as $index => $prg)
                 @php
-                    $canManageProgram = auth()->user()->canManageSectionProgramOrEvent($prg->section_id);
+                    $canManageProgram = auth()->user()->canManageProgram($prg);
                     $hasEvents = $prg->events_count > 0;
                 @endphp
                 <tr>
@@ -47,7 +47,18 @@
                         </div>
                     </td>
                     <td>
-                        @if($prg->section)
+                        @if($prg->workgroup)
+                            <strong class="d-block text-dark small">{{ $prg->workgroup->name }}</strong>
+                            @if($prg->workgroup->level === 'PC ISNU')
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 rounded-pill small">
+                                    <i class="bi bi-people-fill me-1"></i> Pokja PC ISNU
+                                </span>
+                            @else
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-0.5 rounded-pill small">
+                                    <i class="bi bi-people-fill me-1"></i> Pokja {{ $prg->workgroup->pac->display_name ?? 'PAC ISNU' }}
+                                </span>
+                            @endif
+                        @elseif($prg->section)
                             <strong class="d-block text-dark small">{{ $prg->section->name }}</strong>
                             @if($prg->section->level === 'PC ISNU')
                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill small">
@@ -149,7 +160,7 @@
 <div class="d-md-none p-3 d-flex flex-column gap-3">
     @forelse($programs as $prg)
         @php
-            $canManageProgram = auth()->user()->canManageSectionProgramOrEvent($prg->section_id);
+            $canManageProgram = auth()->user()->canManageProgram($prg);
             $hasEvents = $prg->events_count > 0;
         @endphp
         <div class="card border rounded-4 shadow-sm bg-white overflow-hidden">
@@ -173,7 +184,16 @@
                     @endif
                 </div>
 
-                @if($prg->section)
+                @if($prg->workgroup)
+                    <div class="mb-2 d-flex flex-wrap align-items-center gap-1">
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill small">
+                            <i class="bi bi-people-fill me-1"></i> Pokja: {{ $prg->workgroup->name }}
+                        </span>
+                        <span class="badge bg-dark rounded-pill small">
+                            <i class="bi bi-calendar-event me-1"></i> {{ $prg->events_count }} Kegiatan
+                        </span>
+                    </div>
+                @elseif($prg->section)
                     <div class="mb-2 d-flex flex-wrap align-items-center gap-1">
                         <span class="badge bg-light text-dark border rounded-pill small">
                             <i class="bi bi-diagram-2 text-success me-1"></i> {{ $prg->section->name }}
@@ -257,7 +277,11 @@
                     <div class="mb-3">
                         <h5 class="fw-bold text-dark mb-1">{{ $prg->name }}</h5>
                         <div class="d-flex flex-wrap align-items-center gap-1.5">
-                            @if($prg->section)
+                            @if($prg->workgroup)
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle rounded-pill">
+                                    <i class="bi bi-people-fill me-1"></i> Pokja: {{ $prg->workgroup->name }}
+                                </span>
+                            @elseif($prg->section)
                                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">{{ $prg->section->name }}</span>
                             @endif
                             @if($prg->code)
@@ -346,19 +370,25 @@
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-8">
-                            <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-danger">*</span></label>
-                            <select name="section_id" class="form-select" required :disabled="loading">
-                                @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
-                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
-                                    @if($mySection)
-                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
-                                    @endif
-                                @else
-                                    @foreach($sections as $sec)
-                                        <option value="{{ $sec->id }}" {{ $prg->section_id == $sec->id ? 'selected' : '' }}>
-                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                        </option>
-                                    @endforeach
+                            <label class="form-label fw-semibold">Seksi / Bidang / Pokja Pengampu <span class="text-danger">*</span></label>
+                            <select name="owner_key" class="form-select" required :disabled="loading">
+                                @if($formSections->isNotEmpty())
+                                    <optgroup label="Seksi / Bidang">
+                                        @foreach($formSections as $sec)
+                                            <option value="section:{{ $sec->id }}" {{ $prg->owner_key === 'section:' . $sec->id ? 'selected' : '' }}>
+                                                [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->display_name }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if($formWorkgroups->isNotEmpty())
+                                    <optgroup label="Kelompok Kerja (Pokja)">
+                                        @foreach($formWorkgroups as $wg)
+                                            <option value="workgroup:{{ $wg->id }}" {{ $prg->owner_key === 'workgroup:' . $wg->id ? 'selected' : '' }}>
+                                                [Pokja {{ $wg->level }}] {{ $wg->name }} @if($wg->pac) ({{ $wg->pac->display_name }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endif
                             </select>
                         </div>

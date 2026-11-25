@@ -18,6 +18,7 @@ class Event extends Model
         'unique_code',
         'description',
         'section_id',
+        'workgroup_id',
         'program_id',
         'location',
         'method',
@@ -78,11 +79,32 @@ class Event extends Model
     }
 
     /**
+     * Kelompok Kerja (Pokja) pengampu kegiatan.
+     */
+    public function workgroup(): BelongsTo
+    {
+        return $this->belongsTo(Workgroup::class, 'workgroup_id');
+    }
+
+    /**
      * Program kerja yang menaungi kegiatan ini.
      */
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class, 'program_id');
+    }
+
+    public function getOwnerKeyAttribute(): string
+    {
+        if ($this->workgroup_id) {
+            return 'workgroup:'.$this->workgroup_id;
+        }
+
+        if ($this->section_id) {
+            return 'section:'.$this->section_id;
+        }
+
+        return '';
     }
 
     public function getFormattedBudgetAttribute(): ?string

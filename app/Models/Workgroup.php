@@ -52,4 +52,20 @@ class Workgroup extends Model
     {
         return $this->hasMany(WorkgroupMember::class, 'workgroup_id');
     }
+
+    /**
+     * Program kerja yang diampu oleh Kelompok Kerja (Pokja) ini.
+     */
+    public function programs(): HasMany
+    {
+        return $this->hasMany(Program::class, 'workgroup_id');
+    }
+
+    /**
+     * Kegiatan yang diampu oleh Kelompok Kerja (Pokja) ini.
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class, 'workgroup_id');
+    }
 }

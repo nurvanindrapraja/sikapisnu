@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $canManageEvent = auth()->user()->canManageSectionProgramOrEvent($event->section_id ? (int) $event->section_id : null);
+    $canManageEvent = auth()->user()->canManageEvent($event);
     $mediaLinks = is_array($event->media_links) ? $event->media_links : [];
 @endphp
 <div class="mb-4">
@@ -55,7 +55,11 @@
                             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
                                 <i class="bi bi-calendar-event me-1"></i> {{ strtoupper($event->status) }}
                             </span>
-                            @if($event->section)
+                            @if($event->workgroup)
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1 rounded-pill">
+                                    <i class="bi bi-people-fill me-1"></i> Pokja: {{ $event->workgroup->name }}
+                                </span>
+                            @elseif($event->section)
                                 <span class="badge bg-light text-dark border px-2.5 py-1 rounded-pill">
                                     <i class="bi bi-diagram-2 text-success me-1"></i> Seksi: {{ $event->section->name }}
                                 </span>
@@ -666,25 +670,36 @@
             <form action="{{ route('admin.events.update', $event->id) }}" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="modal-body p-4" x-data="{
-                    method: '{{ $event->method }}',
-                    rsvpEnabled: {{ $event->rsvp_enabled ? 'true' : 'false' }},
-                    selectedSectionId: '{{ $event->section_id }}',
-                    selectedProgramId: '{{ $event->program_id }}',
-                    sectionsData: {{ Js::from($sections->map(fn($s) => [
-                        'id' => $s->id,
+                @php
+                    $editEventOwners = $formSections->map(fn($s) => [
+                        'key' => 'section:' . $s->id,
                         'name' => $s->name,
                         'programs' => $s->programs->map(fn($p) => [
                             'id' => $p->id,
                             'name' => $p->name,
                             'code' => $p->code,
-                        ]),
-                    ])) }},
+                        ])->values(),
+                    ])->concat($formWorkgroups->map(fn($w) => [
+                        'key' => 'workgroup:' . $w->id,
+                        'name' => $w->name,
+                        'programs' => $w->programs->map(fn($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'code' => $p->code,
+                        ])->values(),
+                    ]))->values();
+                @endphp
+                <div class="modal-body p-4" x-data="{
+                    method: '{{ $event->method }}',
+                    rsvpEnabled: {{ $event->rsvp_enabled ? 'true' : 'false' }},
+                    selectedOwnerKey: '{{ $event->owner_key }}',
+                    selectedProgramId: '{{ $event->program_id }}',
+                    ownersData: {{ Js::from($editEventOwners) }},
                     get filteredPrograms() {
-                        if (!this.selectedSectionId) {
-                            return this.sectionsData.flatMap(s => s.programs);
+                        if (!this.selectedOwnerKey) {
+                            return this.ownersData.flatMap(o => o.programs);
                         }
-                        const found = this.sectionsData.find(s => s.id == this.selectedSectionId);
+                        const found = this.ownersData.find(o => o.key === this.selectedOwnerKey);
                         return found ? found.programs : [];
                     }
                 }">
@@ -694,27 +709,33 @@
                             <input type="text" name="title" class="form-control" value="{{ $event->title }}" required>
                         </div>
 
-                        <!-- Pilihan Seksi Pengampu -->
+                        <!-- Pilihan Seksi / Pokja Pengampu -->
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Seksi / Bidang Pengampu <span class="text-secondary small">(Opsional)</span></label>
-                            <select name="section_id" class="form-select" x-model="selectedSectionId" @change="selectedProgramId = ''">
-                                @if(auth()->user()->isSectionOfficer() && !auth()->user()->canManageAllProgramsAndEvents())
-                                    @php $mySection = auth()->user()->getOfficerSection(); @endphp
-                                    @if($mySection)
-                                        <option value="{{ $mySection->id }}" selected>[{{ $mySection->level }}] {{ $mySection->name }} @if($mySection->pac) ({{ $mySection->pac->name }}) @endif</option>
-                                    @endif
-                                @else
-                                    <option value="">-- Tanpa Seksi Pengampu Khusus --</option>
-                                    @foreach($sections as $sec)
-                                        <option value="{{ $sec->id }}" {{ $event->section_id == $sec->id ? 'selected' : '' }}>
-                                            [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->name }}) @endif
-                                        </option>
-                                    @endforeach
+                            <label class="form-label fw-semibold">Seksi / Bidang / Pokja Pengampu <span class="text-secondary small">(Opsional)</span></label>
+                            <select name="owner_key" class="form-select" x-model="selectedOwnerKey" @change="selectedProgramId = ''">
+                                <option value="">-- Tanpa Seksi / Pokja Pengampu Khusus --</option>
+                                @if($formSections->isNotEmpty())
+                                    <optgroup label="Seksi / Bidang">
+                                        @foreach($formSections as $sec)
+                                            <option value="section:{{ $sec->id }}" {{ $event->owner_key === 'section:' . $sec->id ? 'selected' : '' }}>
+                                                [{{ $sec->level }}] {{ $sec->name }} @if($sec->pac) ({{ $sec->pac->display_name }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if($formWorkgroups->isNotEmpty())
+                                    <optgroup label="Kelompok Kerja (Pokja)">
+                                        @foreach($formWorkgroups as $wg)
+                                            <option value="workgroup:{{ $wg->id }}" {{ $event->owner_key === 'workgroup:' . $wg->id ? 'selected' : '' }}>
+                                                [Pokja {{ $wg->level }}] {{ $wg->name }} @if($wg->pac) ({{ $wg->pac->display_name }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endif
                             </select>
                         </div>
 
-                        <!-- Pilihan Program Kerja dari Seksi -->
+                        <!-- Pilihan Program Kerja dari Seksi / Pokja -->
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Program Kerja Terkait <span class="text-secondary small">(Opsional)</span></label>
                             <select name="program_id" class="form-select" x-model="selectedProgramId">
